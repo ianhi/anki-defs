@@ -134,6 +134,11 @@ export async function createCard(params: CreateCardParams): Promise<number> {
   return noteId;
 }
 
+export async function deleteNote(noteId: number): Promise<void> {
+  const ankiClient = getClient();
+  await ankiClient.note.deleteNotes({ notes: [noteId] });
+}
+
 export async function testConnection(): Promise<boolean> {
   try {
     const ankiClient = getClient();

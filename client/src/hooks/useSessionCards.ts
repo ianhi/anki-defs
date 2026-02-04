@@ -7,6 +7,8 @@ export interface SessionCard extends CardPreview {
   createdAt: number;
   noteId?: number;
   syncedToAnki: boolean;
+  deckName: string; // The deck this card was actually added to
+  modelName: string;
 }
 
 export interface PendingCard extends CardPreview {
@@ -23,7 +25,12 @@ interface SessionCardsState {
   pendingQueue: PendingCard[];
 
   // Actions
-  addCard: (card: Omit<SessionCard, 'id' | 'createdAt' | 'syncedToAnki'>, noteId?: number) => void;
+  addCard: (
+    card: Omit<SessionCard, 'id' | 'createdAt' | 'syncedToAnki' | 'deckName' | 'modelName'>,
+    deckName: string,
+    modelName: string,
+    noteId?: number
+  ) => void;
   removeCard: (id: string) => void;
   clearCards: () => void;
 
@@ -47,7 +54,7 @@ export const useSessionCards = create<SessionCardsState>()(
       cards: [],
       pendingQueue: [],
 
-      addCard: (card, noteId) =>
+      addCard: (card, deckName, modelName, noteId) =>
         set((state) => ({
           cards: [
             ...state.cards,
@@ -57,6 +64,8 @@ export const useSessionCards = create<SessionCardsState>()(
               createdAt: Date.now(),
               noteId,
               syncedToAnki: !!noteId,
+              deckName,
+              modelName,
             },
           ],
         })),

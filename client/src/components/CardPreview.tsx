@@ -3,10 +3,30 @@ import type { CardPreview as CardPreviewType } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
+import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { Check, Plus, Loader2, X, AlertTriangle, Clock } from 'lucide-react';
+import { Check, Plus, Loader2, X, AlertTriangle, Clock, Undo2 } from 'lucide-react';
+
+// Wrap the target word in <b> tags for Anki HTML rendering
+function boldWordInSentence(sentence: string, word: string): string {
+  if (!sentence || !word) return sentence;
+
+  // Try to find the word (case-insensitive for matching, preserves original case)
+  const lowerSentence = sentence.toLowerCase();
+  const lowerWord = word.toLowerCase();
+  const index = lowerSentence.indexOf(lowerWord);
+
+  if (index === -1) {
+    return sentence;
+  }
+
+  const before = sentence.slice(0, index);
+  const match = sentence.slice(index, index + word.length);
+  const after = sentence.slice(index + word.length);
+
+  return `${before}<b>${match}</b>${after}`;
+}
 
 interface CardPreviewProps {
   preview: CardPreviewType;
@@ -44,11 +64,15 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const [isQueued, setIsQueued] = useState(false);
+  // Track what deck/model the card was actually added to
+  const [addedToDeck, setAddedToDeck] = useState<string | null>(null);
+  const [addedNoteId, setAddedNoteId] = useState<number | null>(null);
 
   const { settings } = useSettingsStore();
-  const { addCard, addToPendingQueue, hasWord } = useSessionCards();
+  const { addCard, addToPendingQueue, removeCard, hasWord } = useSessionCards();
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
+  const deleteNote = useDeleteNote();
 
   // Check if word exists in session cards (in addition to Anki check from server)
   const existsInSession = hasWord(preview.word);
@@ -65,40 +89,66 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       return;
     }
 
+    const targetDeck = settings.defaultDeck;
+    const targetModel = settings.defaultModel;
+
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
       addToPendingQueue({
         ...preview,
-        deckName: settings.defaultDeck,
-        modelName: settings.defaultModel,
+        deckName: targetDeck,
+        modelName: targetModel,
       });
       setIsQueued(true);
+      setAddedToDeck(targetDeck);
       return;
     }
 
     try {
       const noteId = await createNote.mutateAsync({
-        deckName: settings.defaultDeck,
-        modelName: settings.defaultModel,
+        deckName: targetDeck,
+        modelName: targetModel,
         fields: {
           Word: preview.word,
           Definition: preview.definition,
-          Example: preview.exampleSentence,
+          Example: boldWordInSentence(preview.exampleSentence, preview.word),
           Translation: preview.sentenceTranslation,
         },
         tags: ['auto-generated'],
       });
       setIsAdded(true);
-      addCard(preview, noteId);
+      setAddedToDeck(targetDeck);
+      setAddedNoteId(noteId);
+      addCard(preview, targetDeck, targetModel, noteId);
     } catch (error) {
       console.error('Failed to create card, adding to queue:', error);
       // If Anki fails, add to pending queue
       addToPendingQueue({
         ...preview,
-        deckName: settings.defaultDeck,
-        modelName: settings.defaultModel,
+        deckName: targetDeck,
+        modelName: targetModel,
       });
       setIsQueued(true);
+      setAddedToDeck(targetDeck);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!addedNoteId) return;
+
+    try {
+      await deleteNote.mutateAsync(addedNoteId);
+      // Find and remove the card from session
+      const sessionCards = useSessionCards.getState().cards;
+      const cardToRemove = sessionCards.find((c) => c.noteId === addedNoteId);
+      if (cardToRemove) {
+        removeCard(cardToRemove.id);
+      }
+      setIsAdded(false);
+      setAddedNoteId(null);
+      setAddedToDeck(null);
+    } catch (error) {
+      console.error('Failed to undo card:', error);
     }
   };
 
@@ -154,10 +204,30 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       )}
       <CardFooter className="pt-2 pb-3 gap-2 flex-wrap">
         {isAdded ? (
-          <Badge variant="default" className="bg-green-600">
-            <Check className="h-3 w-3 mr-1" />
-            Added to {settings.defaultDeck}
-          </Badge>
+          <>
+            <Badge variant="default" className="bg-green-600">
+              <Check className="h-3 w-3 mr-1" />
+              Added to {addedToDeck}
+            </Badge>
+            {addedNoteId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUndo}
+                disabled={deleteNote.isPending}
+                className="h-6 text-xs"
+              >
+                {deleteNote.isPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Undo2 className="h-3 w-3 mr-1" />
+                    Undo
+                  </>
+                )}
+              </Button>
+            )}
+          </>
         ) : isQueued ? (
           <Badge variant="default" className="bg-orange-600">
             <Clock className="h-3 w-3 mr-1" />

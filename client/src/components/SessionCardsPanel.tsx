@@ -6,6 +6,23 @@ import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useState } from 'react';
 
+// Wrap the target word in <b> tags for Anki HTML rendering
+function boldWordInSentence(sentence: string, word: string): string {
+  if (!sentence || !word) return sentence;
+
+  const lowerSentence = sentence.toLowerCase();
+  const lowerWord = word.toLowerCase();
+  const index = lowerSentence.indexOf(lowerWord);
+
+  if (index === -1) return sentence;
+
+  const before = sentence.slice(0, index);
+  const match = sentence.slice(index, index + word.length);
+  const after = sentence.slice(index + word.length);
+
+  return `${before}<b>${match}</b>${after}`;
+}
+
 function PendingCardItem({
   card,
   onSync,
@@ -79,7 +96,7 @@ export function SessionCardsPanel() {
         fields: {
           Word: card.word,
           Definition: card.definition,
-          Example: card.exampleSentence,
+          Example: boldWordInSentence(card.exampleSentence, card.word),
           Translation: card.sentenceTranslation,
         },
         tags: ['auto-generated'],
@@ -87,7 +104,7 @@ export function SessionCardsPanel() {
 
       // Move from pending to synced
       removeFromPendingQueue(card.id);
-      addCard(card, noteId);
+      addCard(card, card.deckName, card.modelName, noteId);
     } catch (error) {
       console.error('Failed to sync card:', error);
     } finally {

@@ -102,6 +102,23 @@ ankiRouter.get('/notes/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/anki/notes/:id - Delete a note
+ankiRouter.delete('/notes/:id', async (req, res) => {
+  try {
+    const noteId = parseInt(req.params.id, 10);
+    if (isNaN(noteId)) {
+      res.status(400).json({ error: 'Invalid note ID' });
+      return;
+    }
+
+    await ankiService.deleteNote(noteId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
 // GET /api/anki/status - Check AnkiConnect status
 ankiRouter.get('/status', async (_req, res) => {
   try {

@@ -52,6 +52,17 @@ export function useCreateNote() {
   });
 }
 
+export function useDeleteNote() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (noteId: number) => ankiApi.deleteNote(noteId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['anki', 'notes', 'search'] });
+    },
+  });
+}
+
 export function useNote(noteId: number | undefined) {
   return useQuery({
     queryKey: ['anki', 'notes', noteId],

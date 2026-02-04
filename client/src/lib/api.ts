@@ -57,6 +57,8 @@ export const ankiApi = {
       body: JSON.stringify(note),
     }).then((r) => r.noteId),
   getNote: (id: number) => fetchJson<{ note: AnkiNote }>(`/anki/notes/${id}`).then((r) => r.note),
+  deleteNote: (id: number) =>
+    fetchJson<{ success: boolean }>(`/anki/notes/${id}`, { method: 'DELETE' }),
   getStatus: () => fetchJson<{ connected: boolean }>('/anki/status').then((r) => r.connected),
 };
 
