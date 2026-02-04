@@ -67,9 +67,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   // Track what deck/model the card was actually added to
   const [addedToDeck, setAddedToDeck] = useState<string | null>(null);
   const [addedNoteId, setAddedNoteId] = useState<number | null>(null);
+  const [pendingQueueId, setPendingQueueId] = useState<string | null>(null);
 
   const { settings } = useSettingsStore();
-  const { addCard, addToPendingQueue, removeCard, hasWord } = useSessionCards();
+  const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } =
+    useSessionCards();
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
@@ -94,13 +96,14 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
 
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
-      addToPendingQueue({
+      const queueId = addToPendingQueue({
         ...preview,
         deckName: targetDeck,
         modelName: targetModel,
       });
       setIsQueued(true);
       setAddedToDeck(targetDeck);
+      setPendingQueueId(queueId);
       return;
     }
 
@@ -123,13 +126,14 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
     } catch (error) {
       console.error('Failed to create card, adding to queue:', error);
       // If Anki fails, add to pending queue
-      addToPendingQueue({
+      const queueId = addToPendingQueue({
         ...preview,
         deckName: targetDeck,
         modelName: targetModel,
       });
       setIsQueued(true);
       setAddedToDeck(targetDeck);
+      setPendingQueueId(queueId);
     }
   };
 
@@ -150,6 +154,14 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
     } catch (error) {
       console.error('Failed to undo card:', error);
     }
+  };
+
+  const handleRemoveFromQueue = () => {
+    if (!pendingQueueId) return;
+    removeFromPendingQueue(pendingQueueId);
+    setIsQueued(false);
+    setPendingQueueId(null);
+    setAddedToDeck(null);
   };
 
   const handleDismiss = () => {
@@ -229,10 +241,21 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
             )}
           </>
         ) : isQueued ? (
-          <Badge variant="default" className="bg-orange-600">
-            <Clock className="h-3 w-3 mr-1" />
-            Queued (will sync when Anki connects)
-          </Badge>
+          <>
+            <Badge variant="default" className="bg-orange-600">
+              <Clock className="h-3 w-3 mr-1" />
+              Queued for {addedToDeck}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemoveFromQueue}
+              className="h-6 text-xs"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Remove
+            </Button>
+          </>
         ) : confirmDuplicate ? (
           <>
             <span className="text-sm text-yellow-600 dark:text-yellow-400 mr-2">

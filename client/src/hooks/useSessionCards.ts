@@ -35,7 +35,7 @@ interface SessionCardsState {
   clearCards: () => void;
 
   // Pending queue actions
-  addToPendingQueue: (card: Omit<PendingCard, 'id' | 'createdAt'>) => void;
+  addToPendingQueue: (card: Omit<PendingCard, 'id' | 'createdAt'>) => string; // Returns the ID
   removeFromPendingQueue: (id: string) => void;
   clearPendingQueue: () => void;
 
@@ -77,17 +77,20 @@ export const useSessionCards = create<SessionCardsState>()(
 
       clearCards: () => set({ cards: [] }),
 
-      addToPendingQueue: (card) =>
+      addToPendingQueue: (card) => {
+        const id = generateId();
         set((state) => ({
           pendingQueue: [
             ...state.pendingQueue,
             {
               ...card,
-              id: generateId(),
+              id,
               createdAt: Date.now(),
             },
           ],
-        })),
+        }));
+        return id;
+      },
 
       removeFromPendingQueue: (id) =>
         set((state) => ({
