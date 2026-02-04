@@ -77,19 +77,52 @@ export async function getNoteById(noteId: number): Promise<AnkiNote | null> {
   };
 }
 
+// Field mapping for different Anki models
+const FIELD_MAPPINGS: Record<string, Record<string, string>> = {
+  'Bangla (and reversed)': {
+    Word: 'Bangla',
+    Definition: 'Eng_trans',
+    Example: 'example sentence',
+    Translation: 'sentence-trans',
+  },
+  Basic: {
+    Word: 'Front',
+    Definition: 'Back',
+    Example: 'Front', // Basic only has Front/Back
+    Translation: 'Back',
+  },
+};
+
 export async function createCard(params: CreateCardParams): Promise<number> {
   const ankiClient = getClient();
+
+  // Get field mapping for this model, or use default names
+  const mapping = FIELD_MAPPINGS[params.model] || {};
+
+  // Map standard field names to model-specific field names
+  const fields: Record<string, string> = {};
+  if (params.word) {
+    fields[mapping.Word || 'Word'] = params.word;
+  }
+  if (params.definition) {
+    fields[mapping.Definition || 'Definition'] = params.definition;
+  }
+  if (params.exampleSentence) {
+    fields[mapping.Example || 'Example'] = params.exampleSentence;
+  }
+  if (params.sentenceTranslation) {
+    fields[mapping.Translation || 'Translation'] = params.sentenceTranslation;
+  }
+
+  console.log('[Anki] Creating card with model:', params.model);
+  console.log('[Anki] Field mapping:', mapping);
+  console.log('[Anki] Fields:', fields);
 
   const noteId = await ankiClient.note.addNote({
     note: {
       deckName: params.deck,
       modelName: params.model,
-      fields: {
-        Word: params.word,
-        Definition: params.definition,
-        Example: params.exampleSentence,
-        Translation: params.sentenceTranslation,
-      },
+      fields,
       tags: params.tags || ['auto-generated'],
     },
   });

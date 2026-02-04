@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Settings, AIProvider } from 'shared';
 import { DEFAULT_SETTINGS } from 'shared';
+import { settingsApi } from '@/lib/api';
 
 interface SettingsState {
   settings: Settings;
@@ -10,6 +11,7 @@ interface SettingsState {
   setDefaultDeck: (deck: string) => void;
   setDefaultModel: (model: string) => void;
   loadSettings: (settings: Settings) => void;
+  updateSettings: (updates: Partial<Settings>) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -41,4 +43,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings,
       isLoaded: true,
     }),
+
+  updateSettings: async (updates) => {
+    set((state) => ({
+      settings: { ...state.settings, ...updates },
+    }));
+    try {
+      await settingsApi.update(updates);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  },
 }));

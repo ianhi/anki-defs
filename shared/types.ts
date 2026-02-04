@@ -77,8 +77,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiProvider: 'claude',
   claudeApiKey: '',
   geminiApiKey: '',
-  defaultDeck: 'Bangla Vocabulary',
-  defaultModel: 'Basic',
+  defaultDeck: 'Bangla',
+  defaultModel: 'Bangla (and reversed)',
   ankiConnectUrl: 'http://localhost:8765',
 };
 

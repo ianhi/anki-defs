@@ -11,6 +11,7 @@ export interface StreamCallbacks {
 
 export async function getCurrentProvider(): Promise<AIProvider> {
   const settings = await getSettings();
+  console.log('[AI] Current provider:', settings.aiProvider);
   return settings.aiProvider;
 }
 
@@ -20,6 +21,7 @@ export async function streamCompletion(
   callbacks: StreamCallbacks
 ): Promise<void> {
   const provider = await getCurrentProvider();
+  console.log('[AI] streamCompletion using provider:', provider);
 
   if (provider === 'claude') {
     return claude.streamCompletion(systemPrompt, userMessage, callbacks);
@@ -30,6 +32,7 @@ export async function streamCompletion(
 
 export async function getCompletion(systemPrompt: string, userMessage: string): Promise<string> {
   const provider = await getCurrentProvider();
+  console.log('[AI] getCompletion using provider:', provider);
 
   if (provider === 'claude') {
     return claude.getCompletion(systemPrompt, userMessage);
@@ -45,14 +48,56 @@ export function resetClients(): void {
 
 // System prompts for different operations
 export const SYSTEM_PROMPTS = {
-  define: `You are a Bangla language expert helping someone learn vocabulary. When given a Bangla word:
+  // For single words - include examples
+  word: `You are a Bangla language tutor. Define the word directly and concisely.
 
-1. Provide the English definition
-2. Identify the part of speech
-3. Give 2-3 example sentences in Bangla with English translations
-4. Note any common collocations or usage patterns
+Format:
+**[word]** ([transliteration]) - [English meaning]
 
-Format your response as JSON:
+*[part of speech]*
+
+**Examples:**
+1. [Bangla sentence] — [English translation]
+2. [Bangla sentence] — [English translation]
+
+**Notes:** [Brief usage notes, grammar, or cultural context if relevant]
+
+Be direct. No preamble like "Let's break down..." or "Absolutely!". Start with the word itself.`,
+
+  // For sentences or phrases - no need for extra examples
+  sentence: `You are a Bangla language tutor. Analyze the sentence directly.
+
+Format:
+**Translation:** [English translation]
+
+**Breakdown:**
+- **[word1]** ([transliteration]) — [meaning]
+- **[word2]** ([transliteration]) — [meaning]
+[continue for key words]
+
+**Grammar:** [Brief explanation of sentence structure if notable]
+
+Be direct. No preamble. Start with the translation.`,
+
+  // Legacy chat prompt (kept for compatibility)
+  chat: `You are a Bangla language tutor. Help the user understand Bangla words and sentences.
+
+For single words: Give meaning, pronunciation, part of speech, 2-3 example sentences, and usage notes.
+For sentences: Translate, break down vocabulary, explain grammar.
+
+Be direct and concise. No preamble like "Let's break down..." or "Absolutely!". Use markdown formatting.`,
+
+  extractCard: `Extract flashcard data from the conversation. Return ONLY valid JSON with this exact structure:
+{
+  "word": "the Bangla word",
+  "definition": "concise English definition",
+  "exampleSentence": "one good example sentence in Bangla",
+  "sentenceTranslation": "English translation of the example"
+}
+
+Pick the best single example sentence. Keep the definition concise (under 10 words if possible).`,
+
+  define: `You are a Bangla language expert. When given a Bangla word, return ONLY valid JSON:
 {
   "word": "the original word",
   "lemma": "dictionary form if different",
@@ -64,13 +109,7 @@ Format your response as JSON:
   "notes": "any additional usage notes"
 }`,
 
-  analyze: `You are a Bangla language expert. Analyze the given Bangla sentence:
-
-1. Provide an English translation
-2. Break down each word with its lemma (dictionary form), part of speech, and meaning
-3. Note any grammatical patterns or constructions
-
-Format your response as JSON:
+  analyze: `You are a Bangla language expert. Analyze the given Bangla sentence and return ONLY valid JSON:
 {
   "translation": "English translation of the full sentence",
   "words": [
@@ -83,32 +122,4 @@ Format your response as JSON:
   ],
   "grammar": "any notable grammatical patterns"
 }`,
-
-  chat: `You are a helpful Bangla language learning assistant. Help the user learn Bangla vocabulary and grammar.
-
-When the user asks about a word:
-- Provide clear definitions
-- Give example sentences
-- Explain any relevant grammar
-
-When the user pastes a sentence:
-- Translate it
-- Break down the vocabulary
-- Explain the grammar
-
-Be encouraging and helpful. If the user makes mistakes, gently correct them.
-
-If you identify a word that should be added to the user's flashcard deck, suggest creating a card with:
-- The Bangla word
-- English definition
-- An example sentence
-- The sentence translation
-
-Format card suggestions as:
-[CARD]
-Word: বাংলা শব্দ
-Definition: English meaning
-Example: বাংলা বাক্য
-Translation: English sentence
-[/CARD]`,
 };

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { chatApi } from '@/lib/api';
 import type { Message, CardPreview } from 'shared';
 
@@ -10,8 +10,15 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const streamingRef = useRef(false);
 
   const sendMessage = useCallback(async (content: string, deck?: string) => {
+    // Prevent duplicate calls (React StrictMode can double-invoke)
+    if (streamingRef.current) {
+      return;
+    }
+    streamingRef.current = true;
+
     setError(null);
 
     // Add user message
@@ -62,6 +69,7 @@ export function useChat() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsStreaming(false);
+      streamingRef.current = false;
     }
   }, []);
 

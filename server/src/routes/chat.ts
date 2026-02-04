@@ -1,5 +1,6 @@
 import { Router, type Response } from 'express';
 import * as aiService from '../services/ai.js';
+import * as gemini from '../services/gemini.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
 import type { ChatStreamRequest, DefineRequest, AnalyzeRequest, SSEEvent, AnkiNote } from 'shared';
@@ -15,11 +16,17 @@ interface ParsedWord {
 
 // Helper to send SSE events
 function sendSSE(res: Response, event: SSEEvent): void {
+  console.log(
+    '[Chat] SSE:',
+    event.type,
+    typeof event.data === 'string' ? event.data.substring(0, 30) + '...' : event.data
+  );
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
 // POST /api/chat/stream - SSE endpoint for streaming AI responses
 chatRouter.post('/stream', async (req, res) => {
+  console.log('[Chat] POST /stream');
   const { newMessage, deck } = req.body as ChatStreamRequest;
 
   if (!newMessage) {
@@ -36,37 +43,73 @@ chatRouter.post('/stream', async (req, res) => {
   const settings = await getSettings();
   const targetDeck = deck || settings.defaultDeck;
 
-  // Check if it looks like a single word (for Anki lookup)
-  const isSingleWord = !newMessage.includes(' ') && newMessage.length < 30;
+  // Determine if this is a single word or a sentence/phrase
+  const trimmed = newMessage.trim();
+  const isSingleWord = !trimmed.includes(' ') && trimmed.length < 30;
+
+  // Select the appropriate prompt based on input type
+  const systemPrompt = isSingleWord
+    ? aiService.SYSTEM_PROMPTS.word
+    : aiService.SYSTEM_PROMPTS.sentence;
+
+  let wordExistsInAnki = false;
 
   if (isSingleWord) {
     try {
       const existingNote = await ankiService.searchWord(newMessage, targetDeck);
       if (existingNote) {
-        sendSSE(res, {
-          type: 'text',
-          data: `I found "${newMessage}" in your deck "${targetDeck}".\n\n`,
-        });
+        wordExistsInAnki = true;
+        // Don't show the "already in deck" message inline - handle in card preview
       }
     } catch {
-      // Anki not available, continue without check
+      // Anki not available
     }
   }
 
+  // Collect the full response for card extraction
+  let fullResponse = '';
+
   // Stream AI response
-  await aiService.streamCompletion(aiService.SYSTEM_PROMPTS.chat, newMessage, {
-    onText: (text) => {
-      sendSSE(res, { type: 'text', data: text });
-    },
-    onDone: () => {
-      sendSSE(res, { type: 'done', data: null });
-      res.end();
-    },
-    onError: (error) => {
-      sendSSE(res, { type: 'error', data: error.message });
-      res.end();
-    },
-  });
+  try {
+    await aiService.streamCompletion(systemPrompt, newMessage, {
+      onText: (text) => {
+        fullResponse += text;
+        sendSSE(res, { type: 'text', data: text });
+      },
+      onDone: async () => {
+        console.log('[Chat] Stream done, extracting card data...');
+
+        // Extract card data for single words (even if exists - let user decide)
+        if (isSingleWord) {
+          try {
+            const cardData = await gemini.extractCardData(newMessage, fullResponse);
+            sendSSE(res, {
+              type: 'card_preview',
+              data: {
+                ...cardData,
+                alreadyExists: wordExistsInAnki,
+              },
+            });
+          } catch (error) {
+            console.error('[Chat] Card extraction failed:', error);
+            // Don't fail the whole request, just skip card preview
+          }
+        }
+
+        sendSSE(res, { type: 'done', data: null });
+        res.end();
+      },
+      onError: (error) => {
+        console.error('[Chat] Stream error:', error);
+        sendSSE(res, { type: 'error', data: error.message });
+        res.end();
+      },
+    });
+  } catch (error) {
+    console.error('[Chat] Unexpected error:', error);
+    sendSSE(res, { type: 'error', data: String(error) });
+    res.end();
+  }
 });
 
 // POST /api/chat/define - Get definition for a word (non-streaming)
@@ -82,7 +125,6 @@ chatRouter.post('/define', async (req, res) => {
     const settings = await getSettings();
     const targetDeck = deck || settings.defaultDeck;
 
-    // Check if word exists in Anki
     let existsInAnki = false;
     let noteId: number | undefined;
 
@@ -96,35 +138,24 @@ chatRouter.post('/define', async (req, res) => {
       // Anki not available
     }
 
-    // Get AI definition
     const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.define, word);
 
     let parsed;
     try {
       parsed = JSON.parse(response);
     } catch {
-      // If not valid JSON, return raw response
-      res.json({
-        word,
-        definition: response,
-        existsInAnki,
-        noteId,
-      });
+      res.json({ word, definition: response, existsInAnki, noteId });
       return;
     }
 
-    res.json({
-      ...parsed,
-      existsInAnki,
-      noteId,
-    });
+    res.json({ ...parsed, existsInAnki, noteId });
   } catch (error) {
-    console.error('Error defining word:', error);
+    console.error('[Chat] Error defining word:', error);
     res.status(500).json({ error: 'Failed to get definition' });
   }
 });
 
-// POST /api/chat/analyze - Analyze sentence, identify unknown words
+// POST /api/chat/analyze - Analyze sentence
 chatRouter.post('/analyze', async (req, res) => {
   const { sentence, deck } = req.body as AnalyzeRequest;
 
@@ -137,22 +168,16 @@ chatRouter.post('/analyze', async (req, res) => {
     const settings = await getSettings();
     const targetDeck = deck || settings.defaultDeck;
 
-    // Get AI analysis
     const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.analyze, sentence);
 
     let parsed: { translation?: string; words?: ParsedWord[]; grammar?: string };
     try {
       parsed = JSON.parse(response);
     } catch {
-      res.json({
-        originalSentence: sentence,
-        translation: response,
-        words: [],
-      });
+      res.json({ originalSentence: sentence, translation: response, words: [] });
       return;
     }
 
-    // Check which words exist in Anki
     const words = parsed.words || [];
     const lemmas = words.map((w) => w.lemma);
 
@@ -163,7 +188,6 @@ chatRouter.post('/analyze', async (req, res) => {
       // Anki not available
     }
 
-    // Add Anki status to each word
     const enrichedWords = words.map((w) => ({
       ...w,
       existsInAnki: ankiResults.has(w.lemma),
@@ -177,7 +201,7 @@ chatRouter.post('/analyze', async (req, res) => {
       grammar: parsed.grammar,
     });
   } catch (error) {
-    console.error('Error analyzing sentence:', error);
+    console.error('[Chat] Error analyzing sentence:', error);
     res.status(500).json({ error: 'Failed to analyze sentence' });
   }
 });
