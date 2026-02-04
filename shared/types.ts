@@ -4,7 +4,7 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  cardPreview?: CardPreview;
+  cardPreviews?: CardPreview[];
   wordAnalysis?: WordAnalysis;
   sentenceAnalysis?: SentenceAnalysis;
 }
@@ -87,6 +87,7 @@ export interface ChatStreamRequest {
   messages: Message[];
   newMessage: string;
   deck?: string;
+  highlightedWords?: string[];
 }
 
 export interface DefineRequest {

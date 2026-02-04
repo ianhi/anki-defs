@@ -27,7 +27,7 @@ function sendSSE(res: Response, event: SSEEvent): void {
 // POST /api/chat/stream - SSE endpoint for streaming AI responses
 chatRouter.post('/stream', async (req, res) => {
   console.log('[Chat] POST /stream');
-  const { newMessage, deck } = req.body as ChatStreamRequest;
+  const { newMessage, deck, highlightedWords } = req.body as ChatStreamRequest;
 
   if (!newMessage) {
     res.status(400).json({ error: 'newMessage is required' });
@@ -46,21 +46,33 @@ chatRouter.post('/stream', async (req, res) => {
   // Determine if this is a single word or a sentence/phrase
   const trimmed = newMessage.trim();
   const isSingleWord = !trimmed.includes(' ') && trimmed.length < 30;
+  const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
   // Select the appropriate prompt based on input type
-  const systemPrompt = isSingleWord
-    ? aiService.SYSTEM_PROMPTS.word
-    : aiService.SYSTEM_PROMPTS.sentence;
+  let systemPrompt: string;
+  let userMessage: string;
 
-  let wordExistsInAnki = false;
+  if (hasHighlightedWords) {
+    // User highlighted specific words in a sentence - focus on those
+    systemPrompt = aiService.SYSTEM_PROMPTS.focusedWords;
+    userMessage = `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
+    console.log('[Chat] Using focused words prompt for:', highlightedWords);
+  } else if (isSingleWord) {
+    systemPrompt = aiService.SYSTEM_PROMPTS.word;
+    userMessage = newMessage;
+  } else {
+    systemPrompt = aiService.SYSTEM_PROMPTS.sentence;
+    userMessage = newMessage;
+  }
 
-  if (isSingleWord) {
+  // Check Anki for highlighted words or single word
+  const wordsToCheck = hasHighlightedWords ? highlightedWords : isSingleWord ? [newMessage] : [];
+  const ankiResults = new Map<string, boolean>();
+
+  for (const word of wordsToCheck) {
     try {
-      const existingNote = await ankiService.searchWord(newMessage, targetDeck);
-      if (existingNote) {
-        wordExistsInAnki = true;
-        // Don't show the "already in deck" message inline - handle in card preview
-      }
+      const existingNote = await ankiService.searchWord(word, targetDeck);
+      ankiResults.set(word, !!existingNote);
     } catch {
       // Anki not available
     }
@@ -71,7 +83,7 @@ chatRouter.post('/stream', async (req, res) => {
 
   // Stream AI response
   try {
-    await aiService.streamCompletion(systemPrompt, newMessage, {
+    await aiService.streamCompletion(systemPrompt, userMessage, {
       onText: (text) => {
         fullResponse += text;
         sendSSE(res, { type: 'text', data: text });
@@ -79,20 +91,26 @@ chatRouter.post('/stream', async (req, res) => {
       onDone: async () => {
         console.log('[Chat] Stream done, extracting card data...');
 
-        // Extract card data for single words (even if exists - let user decide)
-        if (isSingleWord) {
+        // Extract card data for each focus word or single word
+        const wordsForCards = hasHighlightedWords
+          ? highlightedWords
+          : isSingleWord
+            ? [newMessage]
+            : [];
+
+        for (const word of wordsForCards) {
           try {
-            const cardData = await gemini.extractCardData(newMessage, fullResponse);
+            const cardData = await gemini.extractCardData(word, fullResponse);
             sendSSE(res, {
               type: 'card_preview',
               data: {
                 ...cardData,
-                alreadyExists: wordExistsInAnki,
+                alreadyExists: ankiResults.get(word) || false,
               },
             });
           } catch (error) {
-            console.error('[Chat] Card extraction failed:', error);
-            // Don't fail the whole request, just skip card preview
+            console.error(`[Chat] Card extraction failed for "${word}":`, error);
+            // Don't fail the whole request, just skip this card
           }
         }
 

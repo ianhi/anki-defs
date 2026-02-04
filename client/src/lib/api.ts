@@ -76,14 +76,15 @@ export const chatApi = {
 
   stream: async function* (
     message: string,
-    deck?: string
+    deck?: string,
+    highlightedWords?: string[]
   ): AsyncGenerator<SSEEvent, void, unknown> {
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ newMessage: message, deck }),
+      body: JSON.stringify({ newMessage: message, deck, highlightedWords }),
     });
 
     if (!response.ok) {

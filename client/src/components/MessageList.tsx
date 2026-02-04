@@ -99,9 +99,11 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                 </>
               )}
 
-              {message.cardPreview && (
-                <div className="mt-4 -mx-1">
-                  <CardPreview preview={message.cardPreview} />
+              {message.cardPreviews && message.cardPreviews.length > 0 && (
+                <div className="mt-4 -mx-1 space-y-3">
+                  {message.cardPreviews.map((preview, idx) => (
+                    <CardPreview key={`${preview.word}-${idx}`} preview={preview} />
+                  ))}
                 </div>
               )}
             </div>

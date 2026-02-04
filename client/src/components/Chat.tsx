@@ -7,8 +7,8 @@ export function Chat() {
   const { messages, isStreaming, error, sendMessage } = useChat();
   const { settings } = useSettingsStore();
 
-  const handleSend = (content: string) => {
-    sendMessage(content, settings.defaultDeck);
+  const handleSend = (content: string, highlightedWords?: string[]) => {
+    sendMessage(content, settings.defaultDeck, highlightedWords);
   };
 
   return (
