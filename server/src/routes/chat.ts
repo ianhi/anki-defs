@@ -36,6 +36,13 @@ function extractVocabularyList(response: string): string[] {
     .filter((w) => w.length > 0 && !w.includes('*'));
 }
 
+// Extract sentence translation from AI response
+function extractSentenceTranslation(response: string): string {
+  // Look for "**Translation:**" or "**Sentence Translation:**" line
+  const match = response.match(/\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)/i);
+  return match?.[1]?.trim() || '';
+}
+
 // POST /api/chat/stream - SSE endpoint for streaming AI responses
 chatRouter.post('/stream', async (req, res) => {
   console.log('[Chat] POST /stream');
@@ -127,9 +134,21 @@ chatRouter.post('/stream', async (req, res) => {
           }
         }
 
+        // Use different extraction based on input type
+        const useSentenceMode = !isSingleWord;
+        const sentenceTranslation = useSentenceMode ? extractSentenceTranslation(fullResponse) : '';
+
         for (const word of wordsForCards) {
           try {
-            const cardData = await gemini.extractCardData(word, fullResponse);
+            const cardData = useSentenceMode
+              ? await gemini.extractCardDataFromSentence(
+                  word,
+                  newMessage, // original sentence as example
+                  sentenceTranslation,
+                  fullResponse
+                )
+              : await gemini.extractCardData(word, fullResponse);
+
             sendSSE(res, {
               type: 'card_preview',
               data: {

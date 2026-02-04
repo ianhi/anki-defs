@@ -79,12 +79,12 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
   }
 }
 
-// Structured output for card extraction
+// Structured output for card extraction - single word mode (extract from AI examples)
 export async function extractCardData(
   word: string,
   explanation: string
 ): Promise<Omit<CardPreview, 'alreadyExists' | 'noteId'>> {
-  console.log('[Gemini] Extracting card data for:', word);
+  console.log('[Gemini] Extracting card data for single word:', word);
 
   const genai = await getClient();
 
@@ -106,7 +106,7 @@ export async function extractCardData(
           },
           exampleSentence: {
             type: Type.STRING,
-            description: 'One natural example sentence in Bangla',
+            description: 'One natural example sentence in Bangla from the explanation',
           },
           sentenceTranslation: {
             type: Type.STRING,
@@ -126,6 +126,50 @@ export async function extractCardData(
     definition: data.definition || '',
     exampleSentence: data.exampleSentence || '',
     sentenceTranslation: data.sentenceTranslation || '',
+  };
+}
+
+// Structured output for card extraction - sentence mode (use original sentence as example)
+export async function extractCardDataFromSentence(
+  word: string,
+  originalSentence: string,
+  sentenceTranslation: string,
+  explanation: string
+): Promise<Omit<CardPreview, 'alreadyExists' | 'noteId'>> {
+  console.log('[Gemini] Extracting card data for word in sentence:', word);
+
+  const genai = await getClient();
+
+  const response = await genai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: `Extract the definition for the Bangla word "${word}" from this explanation:\n\n${explanation}\n\nThe example sentence is already provided: "${originalSentence}"`,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          word: {
+            type: Type.STRING,
+            description: 'The Bangla word (lemmatized/dictionary form)',
+          },
+          definition: {
+            type: Type.STRING,
+            description: 'Concise English definition (2-5 words, ideal for flashcard)',
+          },
+        },
+        required: ['word', 'definition'],
+      },
+    },
+  });
+
+  const data = JSON.parse(response.text ?? '{}');
+  console.log('[Gemini] Card data extracted:', data);
+
+  return {
+    word: data.word || word,
+    definition: data.definition || '',
+    exampleSentence: originalSentence,
+    sentenceTranslation: sentenceTranslation,
   };
 }
 
