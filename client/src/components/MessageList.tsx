@@ -1,4 +1,4 @@
-import { useRef, useEffect, memo } from 'react';
+import { useRef, useEffect } from 'react';
 import type { Message } from 'shared';
 import ReactMarkdown from 'react-markdown';
 import { CardPreview } from './CardPreview';
@@ -10,14 +10,20 @@ interface MessageListProps {
   isStreaming: boolean;
 }
 
-// Memoize individual messages to prevent re-renders during streaming
-const AssistantMessage = memo(function AssistantMessage({ content }: { content: string }) {
+// Render assistant message - use markdown only when not streaming
+function AssistantMessage({ content, isStreaming }: { content: string; isStreaming: boolean }) {
+  // During streaming, show plain text to avoid broken markdown rendering
+  if (isStreaming) {
+    return <div className="whitespace-pre-wrap text-base leading-relaxed">{content}</div>;
+  }
+
+  // After streaming completes, render with markdown
   return (
     <div className="prose prose-base dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3">
       <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   );
-});
+}
 
 export function MessageList({ messages, isStreaming }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -73,7 +79,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                 <div className="whitespace-pre-wrap">{message.content}</div>
               ) : (
                 <>
-                  <AssistantMessage content={message.content} />
+                  <AssistantMessage
+                    content={message.content}
+                    isStreaming={showStreamingIndicator}
+                  />
                   {showStreamingIndicator && !message.content && (
                     <div className="flex gap-1 py-2">
                       <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />

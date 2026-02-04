@@ -10,57 +10,66 @@ export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const streamingRef = useRef(false);
+
+  // Use a ref to track the current request ID and prevent duplicates
+  const currentRequestRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(async (content: string, deck?: string) => {
+    // Generate unique request ID
+    const requestId = generateId();
+
     // Prevent duplicate calls (React StrictMode can double-invoke)
-    if (streamingRef.current) {
+    if (currentRequestRef.current !== null) {
+      console.log('[Chat] Ignoring duplicate request, already streaming');
       return;
     }
-    streamingRef.current = true;
+    currentRequestRef.current = requestId;
 
     setError(null);
 
+    // Generate message IDs upfront
+    const userMsgId = generateId();
+    const assistantMsgId = generateId();
+
     // Add user message
     const userMessage: Message = {
-      id: generateId(),
+      id: userMsgId,
       role: 'user',
       content,
       timestamp: Date.now(),
     };
-    setMessages((prev) => [...prev, userMessage]);
 
     // Create assistant message placeholder
     const assistantMessage: Message = {
-      id: generateId(),
+      id: assistantMsgId,
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
     };
-    setMessages((prev) => [...prev, assistantMessage]);
 
+    setMessages((prev) => [...prev, userMessage, assistantMessage]);
     setIsStreaming(true);
 
     try {
       for await (const event of chatApi.stream(content, deck)) {
+        // Check if this request was cancelled
+        if (currentRequestRef.current !== requestId) {
+          console.log('[Chat] Request cancelled, stopping stream');
+          return;
+        }
+
         if (event.type === 'text' && typeof event.data === 'string') {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const lastMessage = updated[updated.length - 1];
-            if (lastMessage && lastMessage.role === 'assistant') {
-              lastMessage.content += event.data;
-            }
-            return updated;
-          });
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
+            )
+          );
         } else if (event.type === 'card_preview') {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const lastMessage = updated[updated.length - 1];
-            if (lastMessage && lastMessage.role === 'assistant') {
-              lastMessage.cardPreview = event.data as CardPreview;
-            }
-            return updated;
-          });
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId ? { ...msg, cardPreview: event.data as CardPreview } : msg
+            )
+          );
         } else if (event.type === 'error') {
           setError(event.data as string);
         }
@@ -68,14 +77,18 @@ export function useChat() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
-      setIsStreaming(false);
-      streamingRef.current = false;
+      // Only clear if this is still the current request
+      if (currentRequestRef.current === requestId) {
+        setIsStreaming(false);
+        currentRequestRef.current = null;
+      }
     }
   }, []);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
+    currentRequestRef.current = null;
   }, []);
 
   return {
