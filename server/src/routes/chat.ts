@@ -24,6 +24,18 @@ function sendSSE(res: Response, event: SSEEvent): void {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
+// Extract vocabulary list from AI response (for sentence mode)
+function extractVocabularyList(response: string): string[] {
+  // Look for "**Vocabulary:**" line and extract comma-separated words
+  const match = response.match(/\*\*Vocabulary:\*\*\s*([^\n]+)/i);
+  if (!match || !match[1]) return [];
+
+  return match[1]
+    .split(',')
+    .map((w) => w.trim())
+    .filter((w) => w.length > 0 && !w.includes('*'));
+}
+
 // POST /api/chat/stream - SSE endpoint for streaming AI responses
 chatRouter.post('/stream', async (req, res) => {
   console.log('[Chat] POST /stream');
@@ -91,12 +103,29 @@ chatRouter.post('/stream', async (req, res) => {
       onDone: async () => {
         console.log('[Chat] Stream done, extracting card data...');
 
-        // Extract card data for each focus word or single word
-        const wordsForCards = hasHighlightedWords
-          ? highlightedWords
-          : isSingleWord
-            ? [newMessage]
-            : [];
+        // Determine which words to generate cards for
+        let wordsForCards: string[];
+        if (hasHighlightedWords) {
+          wordsForCards = highlightedWords;
+        } else if (isSingleWord) {
+          wordsForCards = [newMessage];
+        } else {
+          // For sentences, extract vocabulary list from AI response
+          wordsForCards = extractVocabularyList(fullResponse);
+          console.log('[Chat] Extracted vocabulary from sentence:', wordsForCards);
+        }
+
+        // Check Anki for any words we haven't checked yet (sentence vocab)
+        for (const word of wordsForCards) {
+          if (!ankiResults.has(word)) {
+            try {
+              const existingNote = await ankiService.searchWord(word, targetDeck);
+              ankiResults.set(word, !!existingNote);
+            } catch {
+              // Anki not available
+            }
+          }
+        }
 
         for (const word of wordsForCards) {
           try {
