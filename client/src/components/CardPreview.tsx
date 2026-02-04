@@ -3,10 +3,10 @@ import type { CardPreview as CardPreviewType } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { useCreateNote } from '@/hooks/useAnki';
+import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { Check, Plus, Loader2, X, AlertTriangle } from 'lucide-react';
+import { Check, Plus, Loader2, X, AlertTriangle, Clock } from 'lucide-react';
 
 interface CardPreviewProps {
   preview: CardPreviewType;
@@ -23,7 +23,6 @@ function highlightWord(sentence: string, word: string): React.ReactNode {
   const index = lowerSentence.indexOf(lowerWord);
 
   if (index === -1) {
-    // Word not found directly, return as-is
     return sentence;
   }
 
@@ -44,9 +43,16 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   const [isAdded, setIsAdded] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+  const [isQueued, setIsQueued] = useState(false);
+
   const { settings } = useSettingsStore();
-  const { addCard } = useSessionCards();
+  const { addCard, addToPendingQueue, hasWord } = useSessionCards();
+  const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
+
+  // Check if word exists in session cards (in addition to Anki check from server)
+  const existsInSession = hasWord(preview.word);
+  const alreadyExists = preview.alreadyExists || existsInSession;
 
   if (isDismissed) {
     return null;
@@ -54,8 +60,19 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
 
   const handleAddCard = async () => {
     // If word exists and user hasn't confirmed, show confirmation
-    if (preview.alreadyExists && !confirmDuplicate) {
+    if (alreadyExists && !confirmDuplicate) {
       setConfirmDuplicate(true);
+      return;
+    }
+
+    // If Anki is not connected, add to pending queue
+    if (!ankiConnected) {
+      addToPendingQueue({
+        ...preview,
+        deckName: settings.defaultDeck,
+        modelName: settings.defaultModel,
+      });
+      setIsQueued(true);
       return;
     }
 
@@ -72,14 +89,16 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
         tags: ['auto-generated'],
       });
       setIsAdded(true);
-      addCard({
-        ...preview,
-        id: String(noteId),
-        createdAt: Date.now(),
-        noteId,
-      });
+      addCard(preview, noteId);
     } catch (error) {
-      console.error('Failed to create card:', error);
+      console.error('Failed to create card, adding to queue:', error);
+      // If Anki fails, add to pending queue
+      addToPendingQueue({
+        ...preview,
+        deckName: settings.defaultDeck,
+        modelName: settings.defaultModel,
+      });
+      setIsQueued(true);
     }
   };
 
@@ -90,7 +109,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
 
   return (
     <Card
-      className={`bg-background ${preview.alreadyExists ? 'border-yellow-500/50' : 'border-primary/20'}`}
+      className={`bg-background ${alreadyExists ? 'border-yellow-500/50' : 'border-primary/20'}`}
     >
       <CardHeader className="pb-2 pt-3">
         <div className="flex items-center justify-between">
@@ -98,17 +117,22 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
             <CardTitle className="text-lg">{preview.word}</CardTitle>
             <span className="text-muted-foreground">—</span>
             <span className="text-base">{preview.definition}</span>
-            {preview.alreadyExists && (
+            {alreadyExists && (
               <Badge
                 variant="outline"
                 className="border-yellow-500 text-yellow-600 dark:text-yellow-400"
               >
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                In deck
+                {existsInSession && !preview.alreadyExists ? 'In session' : 'In deck'}
+              </Badge>
+            )}
+            {!ankiConnected && !isAdded && !isQueued && (
+              <Badge variant="outline" className="border-orange-500 text-orange-600">
+                Anki offline
               </Badge>
             )}
           </div>
-          {!isAdded && (
+          {!isAdded && !isQueued && (
             <Button
               variant="ghost"
               size="icon"
@@ -133,6 +157,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
           <Badge variant="default" className="bg-green-600">
             <Check className="h-3 w-3 mr-1" />
             Added to {settings.defaultDeck}
+          </Badge>
+        ) : isQueued ? (
+          <Badge variant="default" className="bg-orange-600">
+            <Clock className="h-3 w-3 mr-1" />
+            Queued (will sync when Anki connects)
           </Badge>
         ) : confirmDuplicate ? (
           <>
@@ -166,7 +195,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add to Anki
+                  {ankiConnected ? 'Add to Anki' : 'Queue for Anki'}
                 </>
               )}
             </Button>

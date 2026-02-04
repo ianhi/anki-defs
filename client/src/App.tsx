@@ -10,7 +10,8 @@ import { useSessionCards } from './hooks/useSessionCards';
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCards, setShowCards] = useState(false);
-  const { cards } = useSessionCards();
+  const { cards, pendingQueue } = useSessionCards();
+  const totalCards = cards.length + pendingQueue.length;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
@@ -29,9 +30,15 @@ export default function App() {
               className="gap-2"
             >
               <Layers className="h-4 w-4" />
-              {cards.length > 0 && (
-                <span className="bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
-                  {cards.length}
+              {totalCards > 0 && (
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    pendingQueue.length > 0
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-primary text-primary-foreground'
+                  }`}
+                >
+                  {totalCards}
                 </span>
               )}
             </Button>
