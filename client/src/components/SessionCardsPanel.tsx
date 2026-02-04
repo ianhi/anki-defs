@@ -184,7 +184,7 @@ export function SessionCardsPanel() {
                 <div className="flex items-center gap-1">
                   <Badge variant="secondary" className="text-xs">
                     <Check className="h-3 w-3 mr-1" />
-                    {card.syncedToAnki ? 'In Anki' : 'Added'}
+                    In Anki
                   </Badge>
                   <Button
                     variant="ghost"

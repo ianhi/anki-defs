@@ -1,21 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { CardPreview } from 'shared';
+import type { CardContent } from 'shared';
 
-export interface SessionCard extends CardPreview {
-  id: string;
+// A card that has been added to Anki this session
+export interface SessionCard extends CardContent {
+  id: string; // Internal tracking ID
   createdAt: number;
-  noteId?: number;
-  syncedToAnki: boolean;
-  deckName: string; // The deck this card was actually added to
+  noteId: number; // The Anki note ID
+  deckName: string; // The deck this card was added to
   modelName: string;
 }
 
-export interface PendingCard extends CardPreview {
-  id: string;
+// A card waiting to be synced to Anki (queued when Anki unavailable)
+export interface PendingCard extends CardContent {
+  id: string; // Internal tracking ID
   createdAt: number;
-  deckName: string;
-  modelName: string;
+  deckName: string; // Target deck
+  modelName: string; // Target model
 }
 
 interface SessionCardsState {
@@ -25,17 +26,12 @@ interface SessionCardsState {
   pendingQueue: PendingCard[];
 
   // Actions
-  addCard: (
-    card: Omit<SessionCard, 'id' | 'createdAt' | 'syncedToAnki' | 'deckName' | 'modelName'>,
-    deckName: string,
-    modelName: string,
-    noteId?: number
-  ) => void;
+  addCard: (card: CardContent, deckName: string, modelName: string, noteId: number) => void;
   removeCard: (id: string) => void;
   clearCards: () => void;
 
   // Pending queue actions
-  addToPendingQueue: (card: Omit<PendingCard, 'id' | 'createdAt'>) => string; // Returns the ID
+  addToPendingQueue: (card: CardContent, deckName: string, modelName: string) => string; // Returns the ID
   removeFromPendingQueue: (id: string) => void;
   clearPendingQueue: () => void;
 
@@ -59,11 +55,13 @@ export const useSessionCards = create<SessionCardsState>()(
           cards: [
             ...state.cards,
             {
-              ...card,
+              word: card.word,
+              definition: card.definition,
+              exampleSentence: card.exampleSentence,
+              sentenceTranslation: card.sentenceTranslation,
               id: generateId(),
               createdAt: Date.now(),
               noteId,
-              syncedToAnki: !!noteId,
               deckName,
               modelName,
             },
@@ -77,15 +75,20 @@ export const useSessionCards = create<SessionCardsState>()(
 
       clearCards: () => set({ cards: [] }),
 
-      addToPendingQueue: (card) => {
+      addToPendingQueue: (card, deckName, modelName) => {
         const id = generateId();
         set((state) => ({
           pendingQueue: [
             ...state.pendingQueue,
             {
-              ...card,
+              word: card.word,
+              definition: card.definition,
+              exampleSentence: card.exampleSentence,
+              sentenceTranslation: card.sentenceTranslation,
               id,
               createdAt: Date.now(),
+              deckName,
+              modelName,
             },
           ],
         }));

@@ -9,13 +9,18 @@ export interface Message {
   sentenceAnalysis?: SentenceAnalysis;
 }
 
-export interface CardPreview {
+// Core card content (what makes up a flashcard)
+export interface CardContent {
   word: string;
   definition: string;
   exampleSentence: string;
   sentenceTranslation: string;
-  alreadyExists: boolean;
-  noteId?: number;
+}
+
+// Card preview from AI response (includes Anki check results)
+export interface CardPreview extends CardContent {
+  alreadyExists: boolean; // Whether word already exists in Anki deck
+  existingNoteId?: number; // If exists, the note ID in Anki
 }
 
 export interface WordAnalysis {

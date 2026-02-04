@@ -96,11 +96,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
 
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
-      const queueId = addToPendingQueue({
-        ...preview,
-        deckName: targetDeck,
-        modelName: targetModel,
-      });
+      const queueId = addToPendingQueue(preview, targetDeck, targetModel);
       setIsQueued(true);
       setAddedToDeck(targetDeck);
       setPendingQueueId(queueId);
@@ -126,11 +122,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
     } catch (error) {
       console.error('Failed to create card, adding to queue:', error);
       // If Anki fails, add to pending queue
-      const queueId = addToPendingQueue({
-        ...preview,
-        deckName: targetDeck,
-        modelName: targetModel,
-      });
+      const queueId = addToPendingQueue(preview, targetDeck, targetModel);
       setIsQueued(true);
       setAddedToDeck(targetDeck);
       setPendingQueueId(queueId);
