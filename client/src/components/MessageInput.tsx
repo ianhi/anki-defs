@@ -1,6 +1,6 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
-import { Send, Highlighter } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 interface MessageInputProps {
   onSend: (message: string, highlightedWords?: string[]) => void;
@@ -102,8 +102,7 @@ export function MessageInput({
       <div className="max-w-4xl mx-auto space-y-2">
         {highlightedWords.length > 0 && (
           <div className="flex items-center gap-2 text-sm">
-            <Highlighter className="h-4 w-4 text-yellow-500" />
-            <span className="text-muted-foreground">Focus words:</span>
+            <span className="text-muted-foreground">Focus:</span>
             <div className="flex gap-1 flex-wrap">
               {highlightedWords.map((word, i) => (
                 <span
@@ -128,24 +127,10 @@ export function MessageInput({
             rows={1}
             className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={handleHighlight}
-            disabled={disabled}
-            title="Highlight selection (Ctrl+B)"
-          >
-            <Highlighter className="h-4 w-4" />
-          </Button>
           <Button onClick={handleSubmit} disabled={disabled || !value.trim()} size="icon">
             <Send className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Select text and press <kbd className="px-1 py-0.5 bg-muted rounded">Ctrl+B</kbd> to mark
-          unknown words for focused definitions
-        </p>
       </div>
     </div>
   );
