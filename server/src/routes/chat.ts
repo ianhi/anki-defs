@@ -1,13 +1,20 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import * as aiService from '../services/ai.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
-import type { ChatStreamRequest, DefineRequest, AnalyzeRequest, SSEEvent } from 'shared';
+import type { ChatStreamRequest, DefineRequest, AnalyzeRequest, SSEEvent, AnkiNote } from 'shared';
 
 export const chatRouter = Router();
 
+interface ParsedWord {
+  word: string;
+  lemma: string;
+  partOfSpeech: string;
+  meaning: string;
+}
+
 // Helper to send SSE events
-function sendSSE(res: any, event: SSEEvent): void {
+function sendSSE(res: Response, event: SSEEvent): void {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
@@ -41,7 +48,7 @@ chatRouter.post('/stream', async (req, res) => {
           data: `I found "${newMessage}" in your deck "${targetDeck}".\n\n`,
         });
       }
-    } catch (error) {
+    } catch {
       // Anki not available, continue without check
     }
   }
@@ -133,7 +140,7 @@ chatRouter.post('/analyze', async (req, res) => {
     // Get AI analysis
     const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.analyze, sentence);
 
-    let parsed;
+    let parsed: { translation?: string; words?: ParsedWord[]; grammar?: string };
     try {
       parsed = JSON.parse(response);
     } catch {
@@ -147,9 +154,9 @@ chatRouter.post('/analyze', async (req, res) => {
 
     // Check which words exist in Anki
     const words = parsed.words || [];
-    const lemmas = words.map((w: any) => w.lemma);
+    const lemmas = words.map((w) => w.lemma);
 
-    let ankiResults = new Map<string, any>();
+    let ankiResults = new Map<string, AnkiNote>();
     try {
       ankiResults = await ankiService.searchWords(lemmas, targetDeck);
     } catch {
@@ -157,7 +164,7 @@ chatRouter.post('/analyze', async (req, res) => {
     }
 
     // Add Anki status to each word
-    const enrichedWords = words.map((w: any) => ({
+    const enrichedWords = words.map((w) => ({
       ...w,
       existsInAnki: ankiResults.has(w.lemma),
       noteId: ankiResults.get(w.lemma)?.noteId,

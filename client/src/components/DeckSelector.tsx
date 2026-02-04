@@ -1,3 +1,4 @@
+import { type ChangeEvent } from 'react';
 import { useDecks } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { Select } from './ui/Select';
@@ -35,7 +36,7 @@ export function DeckSelector() {
       <Select
         id="deck-select"
         value={settings.defaultDeck}
-        onChange={(e) => setDefaultDeck(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => setDefaultDeck(e.target.value)}
       >
         {decks?.map((deck) => (
           <option key={deck} value={deck}>

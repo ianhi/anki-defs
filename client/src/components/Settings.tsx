@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
@@ -8,13 +8,13 @@ import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import type { AIProvider } from 'shared';
+import type { AIProvider, Settings as SettingsType } from 'shared';
 import { Check, X, Loader2 } from 'lucide-react';
 
 export function Settings() {
   const queryClient = useQueryClient();
-  const { settings, loadSettings, setSettings } = useSettingsStore();
-  const [localSettings, setLocalSettings] = useState(settings);
+  const { settings, loadSettings } = useSettingsStore();
+  const [localSettings, setLocalSettings] = useState<SettingsType>(settings);
   const [hasChanges, setHasChanges] = useState(false);
 
   const { data: serverSettings, isLoading } = useQuery({
@@ -43,7 +43,7 @@ export function Settings() {
     }
   }, [serverSettings, loadSettings]);
 
-  const handleChange = (key: string, value: string) => {
+  const handleChange = (key: keyof SettingsType, value: string) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -76,12 +76,10 @@ export function Settings() {
         <Label>AnkiConnect Status</Label>
         <div className="flex items-center gap-2">
           {ankiConnected ? (
-            <>
-              <Badge variant="success" className="flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                Connected
-              </Badge>
-            </>
+            <Badge variant="success" className="flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Connected
+            </Badge>
           ) : (
             <>
               <Badge variant="destructive" className="flex items-center gap-1">
@@ -100,7 +98,9 @@ export function Settings() {
         <Select
           id="ai-provider"
           value={localSettings.aiProvider}
-          onChange={(e) => handleChange('aiProvider', e.target.value as AIProvider)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            handleChange('aiProvider', e.target.value as AIProvider)
+          }
         >
           <option value="claude">Claude</option>
           <option value="gemini">Gemini</option>
@@ -114,7 +114,9 @@ export function Settings() {
           id="claude-key"
           type="password"
           value={localSettings.claudeApiKey}
-          onChange={(e) => handleChange('claudeApiKey', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('claudeApiKey', e.target.value)
+          }
           placeholder="sk-ant-..."
         />
       </div>
@@ -126,7 +128,9 @@ export function Settings() {
           id="gemini-key"
           type="password"
           value={localSettings.geminiApiKey}
-          onChange={(e) => handleChange('geminiApiKey', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('geminiApiKey', e.target.value)
+          }
           placeholder="AI..."
         />
       </div>
@@ -137,14 +141,16 @@ export function Settings() {
         <Select
           id="default-deck"
           value={localSettings.defaultDeck}
-          onChange={(e) => handleChange('defaultDeck', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            handleChange('defaultDeck', e.target.value)
+          }
           disabled={!decks || decks.length === 0}
         >
           {decks?.map((deck) => (
             <option key={deck} value={deck}>
               {deck}
             </option>
-          )) || <option>No decks available</option>}
+          )) ?? <option>No decks available</option>}
         </Select>
       </div>
 
@@ -154,14 +160,16 @@ export function Settings() {
         <Select
           id="default-model"
           value={localSettings.defaultModel}
-          onChange={(e) => handleChange('defaultModel', e.target.value)}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            handleChange('defaultModel', e.target.value)
+          }
           disabled={!models || models.length === 0}
         >
           {models?.map((model) => (
             <option key={model} value={model}>
               {model}
             </option>
-          )) || <option>No models available</option>}
+          )) ?? <option>No models available</option>}
         </Select>
       </div>
 

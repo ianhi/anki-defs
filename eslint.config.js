@@ -22,12 +22,20 @@ export default [
         },
       },
       globals: {
+        // Node globals
         console: 'readonly',
         process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        Buffer: 'readonly',
+        // Timer globals
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        // Fetch API globals
         fetch: 'readonly',
         Response: 'readonly',
         Request: 'readonly',
@@ -37,22 +45,42 @@ export default [
         AbortController: 'readonly',
         ReadableStream: 'readonly',
         TextDecoder: 'readonly',
+        // Built-in types
         Map: 'readonly',
         Set: 'readonly',
         Promise: 'readonly',
+        // Browser globals
         document: 'readonly',
         window: 'readonly',
         localStorage: 'readonly',
+        // DOM element types
         HTMLElement: 'readonly',
         HTMLInputElement: 'readonly',
         HTMLTextAreaElement: 'readonly',
+        HTMLButtonElement: 'readonly',
+        HTMLSelectElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        HTMLLabelElement: 'readonly',
+        HTMLHeadingElement: 'readonly',
+        HTMLParagraphElement: 'readonly',
+        HTMLFormElement: 'readonly',
+        HTMLAnchorElement: 'readonly',
+        HTMLSpanElement: 'readonly',
+        // Event types
         KeyboardEvent: 'readonly',
         MouseEvent: 'readonly',
         Event: 'readonly',
         EventTarget: 'readonly',
+        // Other DOM types
         Element: 'readonly',
         Node: 'readonly',
+        NodeList: 'readonly',
+        // TypeScript/Node types
         NodeJS: 'readonly',
+        // Web API types
+        RequestInit: 'readonly',
+        BodyInit: 'readonly',
+        FormData: 'readonly',
       },
     },
     plugins: {
@@ -63,6 +91,7 @@ export default [
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off',
       'no-console': 'off',
     },
   },

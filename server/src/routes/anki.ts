@@ -107,7 +107,7 @@ ankiRouter.get('/status', async (_req, res) => {
   try {
     const connected = await ankiService.testConnection();
     res.json({ connected });
-  } catch (error) {
+  } catch {
     res.json({ connected: false });
   }
 });

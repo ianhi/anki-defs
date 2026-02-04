@@ -40,9 +40,7 @@ export function CardPreview({ preview }: CardPreviewProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{preview.word}</CardTitle>
-          {preview.alreadyExists && (
-            <Badge variant="secondary">Already in deck</Badge>
-          )}
+          {preview.alreadyExists && <Badge variant="secondary">Already in deck</Badge>}
         </div>
       </CardHeader>
       <CardContent className="space-y-3 pb-3">
