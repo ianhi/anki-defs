@@ -16,7 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.word2anki.data.models.Deck
+import com.word2anki.ui.theme.Word2AnkiTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,5 +78,63 @@ fun DeckSelector(
                 }
             }
         }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+private val sampleDecks = listOf(
+    Deck(id = 1, name = "Bangla Vocabulary"),
+    Deck(id = 2, name = "Bangla Sentences"),
+    Deck(id = 3, name = "Daily Words"),
+    Deck(id = 4, name = "Advanced Grammar")
+)
+
+@Preview(showBackground = true, name = "With Selection")
+@Composable
+private fun DeckSelectorWithSelectionPreview() {
+    Word2AnkiTheme {
+        DeckSelector(
+            decks = sampleDecks,
+            selectedDeck = sampleDecks[0],
+            onDeckSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "No Selection")
+@Composable
+private fun DeckSelectorNoSelectionPreview() {
+    Word2AnkiTheme {
+        DeckSelector(
+            decks = sampleDecks,
+            selectedDeck = null,
+            onDeckSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Empty Decks")
+@Composable
+private fun DeckSelectorEmptyPreview() {
+    Word2AnkiTheme {
+        DeckSelector(
+            decks = emptyList(),
+            selectedDeck = null,
+            onDeckSelected = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Disabled")
+@Composable
+private fun DeckSelectorDisabledPreview() {
+    Word2AnkiTheme {
+        DeckSelector(
+            decks = sampleDecks,
+            selectedDeck = sampleDecks[1],
+            onDeckSelected = {},
+            enabled = false
+        )
     }
 }

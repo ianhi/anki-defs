@@ -16,7 +16,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.word2anki.ui.theme.Word2AnkiTheme
 
 @Composable
 fun MessageInput(
@@ -61,5 +63,57 @@ fun MessageInput(
                 }
             )
         }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+@Preview(showBackground = true, name = "Empty Input")
+@Composable
+private fun MessageInputEmptyPreview() {
+    Word2AnkiTheme {
+        MessageInput(
+            value = "",
+            onValueChange = {},
+            onSend = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "With Text")
+@Composable
+private fun MessageInputWithTextPreview() {
+    Word2AnkiTheme {
+        MessageInput(
+            value = "সুন্দর",
+            onValueChange = {},
+            onSend = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Disabled")
+@Composable
+private fun MessageInputDisabledPreview() {
+    Word2AnkiTheme {
+        MessageInput(
+            value = "",
+            onValueChange = {},
+            onSend = {},
+            enabled = false,
+            placeholder = "Configure API key to start..."
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Multi-line")
+@Composable
+private fun MessageInputMultiLinePreview() {
+    Word2AnkiTheme {
+        MessageInput(
+            value = "আমি বাংলা শিখছি এবং এই বাক্যটি বুঝতে চাই।",
+            onValueChange = {},
+            onSend = {}
+        )
     }
 }

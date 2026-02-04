@@ -41,9 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.word2anki.data.models.Deck
+import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.ui.components.DeckSelector
 import com.word2anki.viewmodel.SettingsViewModel
 
@@ -291,6 +293,223 @@ fun SettingsScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+}
+
+// ==================== PREVIEW CONTENT ====================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreenContent(
+    apiKeyInput: String,
+    showApiKey: Boolean,
+    decks: List<Deck>,
+    selectedDeck: Deck?,
+    onApiKeyChange: (String) -> Unit,
+    onToggleShowApiKey: () -> Unit,
+    onSaveApiKey: () -> Unit,
+    onDeckSelected: (Deck) -> Unit,
+    onRefreshDecks: () -> Unit,
+    onClearSettings: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // API Key Section
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Google Gemini API",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Enter your Gemini API key to enable AI-powered definitions.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = onApiKeyChange,
+                        label = { Text("API Key") },
+                        placeholder = { Text("Enter your Gemini API key") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        visualTransformation = if (showApiKey) {
+                            VisualTransformation.None
+                        } else {
+                            PasswordVisualTransformation()
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = onToggleShowApiKey) {
+                                Icon(
+                                    imageVector = if (showApiKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (showApiKey) "Hide" else "Show"
+                                )
+                            }
+                        }
+                    )
+                    Button(
+                        onClick = onSaveApiKey,
+                        enabled = apiKeyInput.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Save API Key")
+                    }
+                }
+            }
+
+            // Deck Selection Section
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "AnkiDroid Settings",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Select the default deck where new cards will be added.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                    DeckSelector(
+                        decks = decks,
+                        selectedDeck = selectedDeck,
+                        onDeckSelected = onDeckSelected,
+                        enabled = decks.isNotEmpty()
+                    )
+                }
+            }
+
+            // About Section
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(text = "About", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "word2anki v1.0", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Create Anki flashcards from AI-generated vocabulary definitions.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+private val previewDecks = listOf(
+    Deck(id = 1, name = "Bangla Vocabulary"),
+    Deck(id = 2, name = "Bangla Sentences"),
+    Deck(id = 3, name = "Daily Words")
+)
+
+@Preview(showBackground = true, name = "Settings - With Data")
+@Composable
+private fun SettingsScreenPreview() {
+    Word2AnkiTheme {
+        SettingsScreenContent(
+            apiKeyInput = "AIzaSy...hidden",
+            showApiKey = false,
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            onApiKeyChange = {},
+            onToggleShowApiKey = {},
+            onSaveApiKey = {},
+            onDeckSelected = {},
+            onRefreshDecks = {},
+            onClearSettings = {},
+            onNavigateBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Settings - Empty State")
+@Composable
+private fun SettingsScreenEmptyPreview() {
+    Word2AnkiTheme {
+        SettingsScreenContent(
+            apiKeyInput = "",
+            showApiKey = false,
+            decks = emptyList(),
+            selectedDeck = null,
+            onApiKeyChange = {},
+            onToggleShowApiKey = {},
+            onSaveApiKey = {},
+            onDeckSelected = {},
+            onRefreshDecks = {},
+            onClearSettings = {},
+            onNavigateBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Settings - API Key Visible")
+@Composable
+private fun SettingsScreenApiVisiblePreview() {
+    Word2AnkiTheme {
+        SettingsScreenContent(
+            apiKeyInput = "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+            showApiKey = true,
+            decks = previewDecks,
+            selectedDeck = previewDecks[1],
+            onApiKeyChange = {},
+            onToggleShowApiKey = {},
+            onSaveApiKey = {},
+            onDeckSelected = {},
+            onRefreshDecks = {},
+            onClearSettings = {},
+            onNavigateBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Settings - Dark Theme", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun SettingsScreenDarkPreview() {
+    Word2AnkiTheme(darkTheme = true) {
+        SettingsScreenContent(
+            apiKeyInput = "AIzaSy...",
+            showApiKey = false,
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            onApiKeyChange = {},
+            onToggleShowApiKey = {},
+            onSaveApiKey = {},
+            onDeckSelected = {},
+            onRefreshDecks = {},
+            onClearSettings = {},
+            onNavigateBack = {}
         )
     }
 }

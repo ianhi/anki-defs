@@ -30,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.word2anki.data.models.CardPreview
+import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.ui.theme.AddedBadgeColor
 import com.word2anki.ui.theme.CardPreviewBackground
 import com.word2anki.ui.theme.CardPreviewBackgroundDark
@@ -174,5 +176,89 @@ private fun StatusBadge(
                 color = backgroundColor
             )
         }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+@Preview(showBackground = true, name = "Card - Ready to Add")
+@Composable
+private fun CardPreviewReadyPreview() {
+    Word2AnkiTheme {
+        CardPreviewComponent(
+            cardPreview = CardPreview(
+                word = "সুন্দর",
+                definition = "Beautiful, pretty, nice",
+                exampleSentence = "এই ফুলটি খুব সুন্দর।",
+                sentenceTranslation = "This flower is very beautiful."
+            ),
+            onAddCard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Card - Already Added")
+@Composable
+private fun CardPreviewAddedPreview() {
+    Word2AnkiTheme {
+        CardPreviewComponent(
+            cardPreview = CardPreview(
+                word = "ভালোবাসা",
+                definition = "Love, affection",
+                exampleSentence = "মায়ের ভালোবাসা অতুলনীয়।",
+                sentenceTranslation = "A mother's love is incomparable.",
+                isAdded = true
+            ),
+            onAddCard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Card - Already Exists")
+@Composable
+private fun CardPreviewExistsPreview() {
+    Word2AnkiTheme {
+        CardPreviewComponent(
+            cardPreview = CardPreview(
+                word = "পানি",
+                definition = "Water",
+                exampleSentence = "আমি পানি খাচ্ছি।",
+                sentenceTranslation = "I am drinking water.",
+                alreadyExists = true
+            ),
+            onAddCard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Card - Minimal")
+@Composable
+private fun CardPreviewMinimalPreview() {
+    Word2AnkiTheme {
+        CardPreviewComponent(
+            cardPreview = CardPreview(
+                word = "হ্যাঁ",
+                definition = "Yes",
+                exampleSentence = "",
+                sentenceTranslation = ""
+            ),
+            onAddCard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Card - Dark Theme", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun CardPreviewDarkPreview() {
+    Word2AnkiTheme(darkTheme = true) {
+        CardPreviewComponent(
+            cardPreview = CardPreview(
+                word = "রাত",
+                definition = "Night",
+                exampleSentence = "রাত অনেক সুন্দর।",
+                sentenceTranslation = "The night is very beautiful."
+            ),
+            onAddCard = {}
+        )
     }
 }

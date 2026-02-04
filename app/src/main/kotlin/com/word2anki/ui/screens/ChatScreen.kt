@@ -46,9 +46,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.word2anki.data.models.CardPreview
+import com.word2anki.data.models.Deck
+import com.word2anki.data.models.Message
+import com.word2anki.data.models.MessageRole
 import com.word2anki.ui.components.DeckSelector
+import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.ui.components.MessageBubble
 import com.word2anki.ui.components.MessageInput
 import com.word2anki.viewmodel.ChatViewModel
@@ -320,4 +326,272 @@ private fun TipItem(text: String) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     )
+}
+
+// ==================== PREVIEW CONTENT ====================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatScreenContent(
+    messages: List<Message>,
+    inputText: String,
+    decks: List<Deck>,
+    selectedDeck: Deck?,
+    apiKeyConfigured: Boolean,
+    isAnkiAvailable: Boolean,
+    hasAnkiPermission: Boolean,
+    showClearButton: Boolean,
+    onInputChange: (String) -> Unit,
+    onSend: () -> Unit,
+    onDeckSelected: (Deck) -> Unit,
+    onAddCard: (CardPreview) -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onClearChat: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("word2anki") },
+                actions = {
+                    if (showClearButton) {
+                        IconButton(onClick = onClearChat) {
+                            Icon(Icons.Default.Delete, contentDescription = "Clear chat")
+                        }
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            // Deck selector
+            if (isAnkiAvailable && hasAnkiPermission && decks.isNotEmpty()) {
+                DeckSelector(
+                    decks = decks,
+                    selectedDeck = selectedDeck,
+                    onDeckSelected = onDeckSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            // Warning banners
+            if (!apiKeyConfigured) {
+                WarningBanner(
+                    message = "Please configure your Gemini API key in settings.",
+                    actionLabel = "Settings",
+                    onAction = onNavigateToSettings
+                )
+            }
+
+            if (!isAnkiAvailable) {
+                WarningBanner(
+                    message = "AnkiDroid is not installed.",
+                    actionLabel = "Install",
+                    onAction = {}
+                )
+            }
+
+            // Messages or empty state
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                if (messages.isEmpty()) {
+                    EmptyState(modifier = Modifier.fillMaxSize())
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(messages, key = { it.id }) { message ->
+                            MessageBubble(
+                                message = message,
+                                onAddCard = { onAddCard(it) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Input field
+            MessageInput(
+                value = inputText,
+                onValueChange = onInputChange,
+                onSend = onSend,
+                enabled = apiKeyConfigured,
+                placeholder = if (!apiKeyConfigured) "Configure API key..." else "Enter a word or sentence..."
+            )
+        }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+private val previewDecks = listOf(
+    Deck(id = 1, name = "Bangla Vocabulary"),
+    Deck(id = 2, name = "Bangla Sentences")
+)
+
+private val previewMessages = listOf(
+    Message(
+        id = "1",
+        role = MessageRole.USER,
+        content = "সুন্দর"
+    ),
+    Message(
+        id = "2",
+        role = MessageRole.ASSISTANT,
+        content = "**সুন্দর** (shundor) — Beautiful, pretty, nice\n\n*Adjective*\n\n**Examples:**\n1. এই ফুলটি খুব সুন্দর। — This flower is very beautiful.\n2. তোমার বাড়ি সুন্দর। — Your house is nice.",
+        cardPreview = CardPreview(
+            word = "সুন্দর",
+            definition = "Beautiful, pretty, nice",
+            exampleSentence = "এই ফুলটি খুব সুন্দর।",
+            sentenceTranslation = "This flower is very beautiful."
+        )
+    )
+)
+
+@Preview(showBackground = true, name = "Chat - Empty State")
+@Composable
+private fun ChatScreenEmptyPreview() {
+    Word2AnkiTheme {
+        ChatScreenContent(
+            messages = emptyList(),
+            inputText = "",
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            apiKeyConfigured = true,
+            isAnkiAvailable = true,
+            hasAnkiPermission = true,
+            showClearButton = false,
+            onInputChange = {},
+            onSend = {},
+            onDeckSelected = {},
+            onAddCard = {},
+            onNavigateToSettings = {},
+            onClearChat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Chat - With Messages", heightDp = 700)
+@Composable
+private fun ChatScreenWithMessagesPreview() {
+    Word2AnkiTheme {
+        ChatScreenContent(
+            messages = previewMessages,
+            inputText = "",
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            apiKeyConfigured = true,
+            isAnkiAvailable = true,
+            hasAnkiPermission = true,
+            showClearButton = true,
+            onInputChange = {},
+            onSend = {},
+            onDeckSelected = {},
+            onAddCard = {},
+            onNavigateToSettings = {},
+            onClearChat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Chat - No API Key")
+@Composable
+private fun ChatScreenNoApiKeyPreview() {
+    Word2AnkiTheme {
+        ChatScreenContent(
+            messages = emptyList(),
+            inputText = "",
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            apiKeyConfigured = false,
+            isAnkiAvailable = true,
+            hasAnkiPermission = true,
+            showClearButton = false,
+            onInputChange = {},
+            onSend = {},
+            onDeckSelected = {},
+            onAddCard = {},
+            onNavigateToSettings = {},
+            onClearChat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Chat - No AnkiDroid")
+@Composable
+private fun ChatScreenNoAnkiPreview() {
+    Word2AnkiTheme {
+        ChatScreenContent(
+            messages = emptyList(),
+            inputText = "",
+            decks = emptyList(),
+            selectedDeck = null,
+            apiKeyConfigured = true,
+            isAnkiAvailable = false,
+            hasAnkiPermission = false,
+            showClearButton = false,
+            onInputChange = {},
+            onSend = {},
+            onDeckSelected = {},
+            onAddCard = {},
+            onNavigateToSettings = {},
+            onClearChat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Chat - Dark Theme", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES, heightDp = 700)
+@Composable
+private fun ChatScreenDarkPreview() {
+    Word2AnkiTheme(darkTheme = true) {
+        ChatScreenContent(
+            messages = previewMessages,
+            inputText = "পানি",
+            decks = previewDecks,
+            selectedDeck = previewDecks[0],
+            apiKeyConfigured = true,
+            isAnkiAvailable = true,
+            hasAnkiPermission = true,
+            showClearButton = true,
+            onInputChange = {},
+            onSend = {},
+            onDeckSelected = {},
+            onAddCard = {},
+            onNavigateToSettings = {},
+            onClearChat = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Warning Banner")
+@Composable
+private fun WarningBannerPreview() {
+    Word2AnkiTheme {
+        WarningBanner(
+            message = "Please configure your Gemini API key in settings.",
+            actionLabel = "Settings",
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Empty State")
+@Composable
+private fun EmptyStatePreview() {
+    Word2AnkiTheme {
+        EmptyState()
+    }
 }

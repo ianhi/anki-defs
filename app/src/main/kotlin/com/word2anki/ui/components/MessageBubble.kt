@@ -19,8 +19,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.word2anki.data.models.CardPreview
+import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.data.models.Message
 import com.word2anki.data.models.MessageRole
 import com.word2anki.ui.theme.AssistantBubbleColor
@@ -90,5 +92,92 @@ fun MessageBubble(
                 )
             }
         }
+    }
+}
+
+// ==================== PREVIEWS ====================
+
+@Preview(showBackground = true, name = "User Message")
+@Composable
+private fun UserMessagePreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.USER,
+                content = "সুন্দর"
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Assistant Message - Short")
+@Composable
+private fun AssistantMessageShortPreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.ASSISTANT,
+                content = "**সুন্দর** (shundor) — Beautiful, pretty, nice\n\n*Adjective*"
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Assistant Message - With Card", widthDp = 360)
+@Composable
+private fun AssistantMessageWithCardPreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.ASSISTANT,
+                content = "**সুন্দর** (shundor) — Beautiful, pretty, nice\n\n*Adjective*\n\n**Examples:**\n1. এই ফুলটি খুব সুন্দর। — This flower is very beautiful.\n2. তোমার বাড়ি সুন্দর। — Your house is nice.",
+                cardPreview = CardPreview(
+                    word = "সুন্দর",
+                    definition = "Beautiful, pretty, nice",
+                    exampleSentence = "এই ফুলটি খুব সুন্দর।",
+                    sentenceTranslation = "This flower is very beautiful."
+                )
+            ),
+            onAddCard = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "User Message - Sentence")
+@Composable
+private fun UserMessageSentencePreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.USER,
+                content = "আমি বাংলা শিখছি এবং এটা খুব **কঠিন**।"
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Theme - User", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun UserMessageDarkPreview() {
+    Word2AnkiTheme(darkTheme = true) {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.USER,
+                content = "পানি"
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Dark Theme - Assistant", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun AssistantMessageDarkPreview() {
+    Word2AnkiTheme(darkTheme = true) {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.ASSISTANT,
+                content = "**পানি** (pani) — Water\n\n*Noun*"
+            )
+        )
     }
 }
