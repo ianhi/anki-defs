@@ -236,49 +236,41 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun updateLastMessage(content: String, isStreaming: Boolean, isError: Boolean = false) {
-        val messages = _uiState.value.messages.toMutableList()
-        if (messages.isNotEmpty()) {
-            val lastMessage = messages.last()
-            if (lastMessage.role == MessageRole.ASSISTANT) {
-                messages[messages.lastIndex] = lastMessage.copy(
-                    content = content,
-                    isStreaming = isStreaming,
-                    isError = isError
-                )
-                _uiState.value = _uiState.value.copy(messages = messages)
-            }
-        }
+        updateMessage(
+            findIndex = { it.lastIndex.takeIf { i -> i >= 0 && it[i].role == MessageRole.ASSISTANT } },
+            transform = { it.copy(content = content, isStreaming = isStreaming, isError = isError) }
+        )
     }
 
     private fun updateLastMessageWithCard(cardPreview: CardPreview) {
-        val messages = _uiState.value.messages.toMutableList()
-        if (messages.isNotEmpty()) {
-            val lastMessage = messages.last()
-            if (lastMessage.role == MessageRole.ASSISTANT) {
-                messages[messages.lastIndex] = lastMessage.copy(
-                    cardPreview = cardPreview
-                )
-                _uiState.value = _uiState.value.copy(messages = messages)
-            }
-        }
+        updateMessage(
+            findIndex = { it.lastIndex.takeIf { i -> i >= 0 && it[i].role == MessageRole.ASSISTANT } },
+            transform = { it.copy(cardPreview = cardPreview) }
+        )
     }
 
     fun updateCardPreview(messageId: String, updatedCard: CardPreview) {
-        val messages = _uiState.value.messages.toMutableList()
-        val index = messages.indexOfFirst { it.id == messageId }
-        if (index != -1) {
-            messages[index] = messages[index].copy(cardPreview = updatedCard)
-            _uiState.value = _uiState.value.copy(messages = messages)
-        }
+        updateMessage(
+            findIndex = { messages -> messages.indexOfFirst { it.id == messageId }.takeIf { it != -1 } },
+            transform = { it.copy(cardPreview = updatedCard) }
+        )
     }
 
     fun dismissCard(messageId: String) {
+        updateMessage(
+            findIndex = { messages -> messages.indexOfFirst { it.id == messageId }.takeIf { it != -1 } },
+            transform = { it.copy(cardPreview = null) }
+        )
+    }
+
+    private inline fun updateMessage(
+        findIndex: (List<Message>) -> Int?,
+        transform: (Message) -> Message
+    ) {
         val messages = _uiState.value.messages.toMutableList()
-        val index = messages.indexOfFirst { it.id == messageId }
-        if (index != -1) {
-            messages[index] = messages[index].copy(cardPreview = null)
-            _uiState.value = _uiState.value.copy(messages = messages)
-        }
+        val index = findIndex(messages) ?: return
+        messages[index] = transform(messages[index])
+        _uiState.value = _uiState.value.copy(messages = messages)
     }
 
     fun addCardToAnki(cardPreview: CardPreview) {
@@ -344,21 +336,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
                 if (noteId != null) {
-                    // Update card preview to show it was added
-                    val messages = _uiState.value.messages.toMutableList()
-                    val index = messages.indexOfLast {
-                        it.cardPreview?.word == cardPreview.word
-                    }
-                    if (index != -1) {
-                        val message = messages[index]
-                        messages[index] = message.copy(
-                            cardPreview = cardPreview.copy(isAdded = true)
-                        )
-                        _uiState.value = _uiState.value.copy(
-                            messages = messages,
-                            error = null
-                        )
-                    }
+                    updateMessage(
+                        findIndex = { msgs ->
+                            msgs.indexOfLast { it.cardPreview?.word == cardPreview.word }
+                                .takeIf { it != -1 }
+                        },
+                        transform = { it.copy(cardPreview = cardPreview.copy(isAdded = true)) }
+                    )
+                    _uiState.value = _uiState.value.copy(error = null)
                     _cardAddedEvent.value = "\"${cardPreview.word}\" added to ${selectedDeck.name}"
                 } else {
                     _uiState.value = _uiState.value.copy(

@@ -20,7 +20,7 @@ class GeminiService(private val apiKey: String) {
 
     private val model: GenerativeModel by lazy {
         GenerativeModel(
-            modelName = "gemini-2.5-flash",
+            modelName = MODEL_NAME,
             apiKey = apiKey,
             generationConfig = generationConfig {
                 temperature = 0.7f
@@ -31,7 +31,7 @@ class GeminiService(private val apiKey: String) {
 
     private val extractionModel: GenerativeModel by lazy {
         GenerativeModel(
-            modelName = "gemini-2.5-flash",
+            modelName = MODEL_NAME,
             apiKey = apiKey,
             generationConfig = generationConfig {
                 temperature = 0.1f
@@ -50,14 +50,14 @@ class GeminiService(private val apiKey: String) {
 
         return flow {
             withTimeout(STREAMING_TIMEOUT_MS) {
+                val chat: com.google.ai.client.generativeai.Chat
+                val message: String
+
                 if (history.isEmpty()) {
                     // First message: prepend system prompt + type hint
                     val typeHint = PromptTemplates.getTypeHint(input)
-                    val fullPrompt = "$systemPrompt\n\n$typeHint$input"
-                    val chat = model.startChat()
-                    chat.sendMessageStream(fullPrompt).collect { response ->
-                        response.text?.let { emit(it) }
-                    }
+                    chat = model.startChat()
+                    message = "$systemPrompt\n\n$typeHint$input"
                 } else {
                     // Multi-turn: prepend system prompt to the first user message in history
                     val chatHistory = history.mapIndexed { index, msg ->
@@ -70,10 +70,12 @@ class GeminiService(private val apiKey: String) {
                             text(messageContent)
                         }
                     }
-                    val chat = model.startChat(chatHistory)
-                    chat.sendMessageStream(input).collect { response ->
-                        response.text?.let { emit(it) }
-                    }
+                    chat = model.startChat(chatHistory)
+                    message = input
+                }
+
+                chat.sendMessageStream(message).collect { response ->
+                    response.text?.let { emit(it) }
                 }
             }
         }
@@ -104,6 +106,7 @@ class GeminiService(private val apiKey: String) {
     }
 
     companion object {
+        private const val MODEL_NAME = "gemini-2.5-flash"
         private const val STREAMING_TIMEOUT_MS = 60_000L
         private const val EXTRACTION_TIMEOUT_MS = 15_000L
 
