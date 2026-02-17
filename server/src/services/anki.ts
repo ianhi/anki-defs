@@ -55,8 +55,14 @@ export async function searchWords(
 ): Promise<Map<string, AnkiNote>> {
   const results = new Map<string, AnkiNote>();
 
-  for (const word of words) {
-    const note = await searchWord(word, deckName);
+  const entries = await Promise.all(
+    words.map(async (word) => {
+      const note = await searchWord(word, deckName);
+      return [word, note] as const;
+    })
+  );
+
+  for (const [word, note] of entries) {
     if (note) {
       results.set(word, note);
     }
