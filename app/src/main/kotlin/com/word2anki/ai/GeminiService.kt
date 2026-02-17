@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.flow
 
 /**
  * Service for interacting with Google's Gemini API.
+ *
+ * Note: Using SDK 0.9.0 which doesn't support systemInstruction parameter
+ * with newer models. System prompt is prepended to the first user message instead.
  */
 class GeminiService(private val apiKey: String) {
 
@@ -21,8 +24,7 @@ class GeminiService(private val apiKey: String) {
             generationConfig = generationConfig {
                 temperature = 0.7f
                 maxOutputTokens = 1024
-            },
-            systemInstruction = content { text(PromptTemplates.getUnifiedSystemPrompt()) }
+            }
         )
     }
 
@@ -39,21 +41,31 @@ class GeminiService(private val apiKey: String) {
 
     /**
      * Generate a streaming response with conversation history for multi-turn context.
+     * System prompt is prepended to the first user message since SDK 0.9.0 doesn't
+     * reliably support the systemInstruction parameter with newer models.
      */
     fun generateStreamingResponse(input: String, history: List<Message> = emptyList()): Flow<String> {
+        val systemPrompt = PromptTemplates.getUnifiedSystemPrompt()
+
         return flow {
             if (history.isEmpty()) {
-                // First message: add type hint and use simple generation
+                // First message: prepend system prompt + type hint
                 val typeHint = PromptTemplates.getTypeHint(input)
+                val fullPrompt = "$systemPrompt\n\n$typeHint$input"
                 val chat = model.startChat()
-                chat.sendMessageStream("$typeHint$input").collect { response ->
+                chat.sendMessageStream(fullPrompt).collect { response ->
                     response.text?.let { emit(it) }
                 }
             } else {
-                // Multi-turn: build history and send via chat
-                val chatHistory = history.map { msg ->
+                // Multi-turn: prepend system prompt to the first user message in history
+                val chatHistory = history.mapIndexed { index, msg ->
+                    val messageContent = if (index == 0 && msg.role == MessageRole.USER) {
+                        "$systemPrompt\n\n${msg.content}"
+                    } else {
+                        msg.content
+                    }
                     content(role = if (msg.role == MessageRole.USER) "user" else "model") {
-                        text(msg.content)
+                        text(messageContent)
                     }
                 }
                 val chat = model.startChat(chatHistory)
