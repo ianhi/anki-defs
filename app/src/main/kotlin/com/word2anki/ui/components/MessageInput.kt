@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +27,8 @@ fun MessageInput(
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     enabled: Boolean = true,
+    isGenerating: Boolean = false,
+    onStopGeneration: (() -> Unit)? = null,
     placeholder: String = "Enter a word or sentence...",
     modifier: Modifier = Modifier
 ) {
@@ -49,19 +52,29 @@ fun MessageInput(
             shape = MaterialTheme.shapes.large
         )
 
-        IconButton(
-            onClick = onSend,
-            enabled = value.isNotBlank() && enabled
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send",
-                tint = if (value.isNotBlank() && enabled) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                }
-            )
+        if (isGenerating && onStopGeneration != null) {
+            IconButton(onClick = onStopGeneration) {
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = "Stop generation",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        } else {
+            IconButton(
+                onClick = onSend,
+                enabled = value.isNotBlank() && enabled
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = "Send",
+                    tint = if (value.isNotBlank() && enabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    }
+                )
+            }
         }
     }
 }

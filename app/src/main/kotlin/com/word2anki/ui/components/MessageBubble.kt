@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ fun MessageBubble(
     onEditCard: ((String, CardPreview) -> Unit)? = null,
     onDismissCard: ((String) -> Unit)? = null,
     onWordLookup: ((String) -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == MessageRole.USER
@@ -89,6 +91,18 @@ fun MessageBubble(
                         text = message.content,
                         style = MaterialTheme.typography.bodyLarge
                     )
+                }
+            }
+
+            // Show retry button for error messages
+            val isError = !isUser && !message.isStreaming && message.content.let {
+                it.startsWith("Error:") || it.startsWith("Invalid API key") ||
+                    it.startsWith("API rate limit") || it.startsWith("Network error") ||
+                    it.startsWith("Request timed out") || it.startsWith("Response was blocked")
+            }
+            if (isError && onRetry != null) {
+                TextButton(onClick = onRetry) {
+                    Text("Retry", color = MaterialTheme.colorScheme.primary)
                 }
             }
 

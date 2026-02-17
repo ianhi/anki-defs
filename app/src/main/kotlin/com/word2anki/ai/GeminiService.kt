@@ -8,6 +8,7 @@ import com.word2anki.data.models.Message
 import com.word2anki.data.models.MessageRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withTimeout
 
 /**
  * Service for interacting with Google's Gemini API.
@@ -48,29 +49,31 @@ class GeminiService(private val apiKey: String) {
         val systemPrompt = PromptTemplates.getUnifiedSystemPrompt()
 
         return flow {
-            if (history.isEmpty()) {
-                // First message: prepend system prompt + type hint
-                val typeHint = PromptTemplates.getTypeHint(input)
-                val fullPrompt = "$systemPrompt\n\n$typeHint$input"
-                val chat = model.startChat()
-                chat.sendMessageStream(fullPrompt).collect { response ->
-                    response.text?.let { emit(it) }
-                }
-            } else {
-                // Multi-turn: prepend system prompt to the first user message in history
-                val chatHistory = history.mapIndexed { index, msg ->
-                    val messageContent = if (index == 0 && msg.role == MessageRole.USER) {
-                        "$systemPrompt\n\n${msg.content}"
-                    } else {
-                        msg.content
+            withTimeout(STREAMING_TIMEOUT_MS) {
+                if (history.isEmpty()) {
+                    // First message: prepend system prompt + type hint
+                    val typeHint = PromptTemplates.getTypeHint(input)
+                    val fullPrompt = "$systemPrompt\n\n$typeHint$input"
+                    val chat = model.startChat()
+                    chat.sendMessageStream(fullPrompt).collect { response ->
+                        response.text?.let { emit(it) }
                     }
-                    content(role = if (msg.role == MessageRole.USER) "user" else "model") {
-                        text(messageContent)
+                } else {
+                    // Multi-turn: prepend system prompt to the first user message in history
+                    val chatHistory = history.mapIndexed { index, msg ->
+                        val messageContent = if (index == 0 && msg.role == MessageRole.USER) {
+                            "$systemPrompt\n\n${msg.content}"
+                        } else {
+                            msg.content
+                        }
+                        content(role = if (msg.role == MessageRole.USER) "user" else "model") {
+                            text(messageContent)
+                        }
                     }
-                }
-                val chat = model.startChat(chatHistory)
-                chat.sendMessageStream(input).collect { response ->
-                    response.text?.let { emit(it) }
+                    val chat = model.startChat(chatHistory)
+                    chat.sendMessageStream(input).collect { response ->
+                        response.text?.let { emit(it) }
+                    }
                 }
             }
         }
@@ -88,17 +91,22 @@ class GeminiService(private val apiKey: String) {
             return simpleExtraction
         }
 
-        // Fall back to AI extraction
+        // Fall back to AI extraction with timeout
         return try {
-            val extractionPrompt = CardExtractor.buildExtractionPrompt(userInput, aiResponse)
-            val response = extractionModel.generateContent(extractionPrompt)
-            response.text?.let { CardExtractor.parseCardJson(it) }
+            withTimeout(EXTRACTION_TIMEOUT_MS) {
+                val extractionPrompt = CardExtractor.buildExtractionPrompt(userInput, aiResponse)
+                val response = extractionModel.generateContent(extractionPrompt)
+                response.text?.let { CardExtractor.parseCardJson(it) }
+            }
         } catch (e: Exception) {
             simpleExtraction // Return simple extraction if available, even if incomplete
         }
     }
 
     companion object {
+        private const val STREAMING_TIMEOUT_MS = 60_000L
+        private const val EXTRACTION_TIMEOUT_MS = 15_000L
+
         /**
          * Validate if an API key appears to be valid format.
          * Does not make an API call.

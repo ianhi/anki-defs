@@ -131,6 +131,8 @@ fun ChatScreen(
             viewModel.updateInputText(word)
             viewModel.sendMessage()
         },
+        onStopGeneration = { viewModel.cancelGeneration() },
+        onRetry = { viewModel.retryLastMessage() },
         onNavigateToSettings = onNavigateToSettings,
         onShowClearDialog = { showClearDialog = it },
         onClearChat = {
@@ -168,6 +170,8 @@ private fun ChatScreenContent(
     onEditCard: (String, CardPreview) -> Unit = { _, _ -> },
     onDismissCard: (String) -> Unit = {},
     onWordLookup: (String) -> Unit = {},
+    onStopGeneration: () -> Unit = {},
+    onRetry: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onShowClearDialog: (Boolean) -> Unit = {},
     onClearChat: () -> Unit = {},
@@ -265,7 +269,8 @@ private fun ChatScreenContent(
                                 },
                                 onEditCard = onEditCard,
                                 onDismissCard = onDismissCard,
-                                onWordLookup = onWordLookup
+                                onWordLookup = onWordLookup,
+                                onRetry = onRetry
                             )
                         }
                     }
@@ -278,6 +283,8 @@ private fun ChatScreenContent(
                 onValueChange = onInputChange,
                 onSend = onSend,
                 enabled = !isGenerating && apiKeyConfigured,
+                isGenerating = isGenerating,
+                onStopGeneration = onStopGeneration,
                 placeholder = if (!apiKeyConfigured) {
                     "Configure API key to start..."
                 } else {

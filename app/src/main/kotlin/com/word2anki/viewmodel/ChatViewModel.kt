@@ -11,7 +11,9 @@ import com.word2anki.data.models.Deck
 import com.word2anki.data.models.Message
 import com.word2anki.data.models.MessageRole
 import com.word2anki.data.models.Settings
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -123,6 +125,42 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(inputText = text)
     }
 
+    fun retryLastMessage() {
+        val messages = _uiState.value.messages
+        // Find the last user message to retry
+        val lastUserMsg = messages.lastOrNull { it.role == MessageRole.USER } ?: return
+        // Remove the failed assistant response (last message if it's from assistant)
+        val trimmed = if (messages.last().role == MessageRole.ASSISTANT) {
+            messages.dropLast(1)
+        } else {
+            messages
+        }
+        _uiState.value = _uiState.value.copy(
+            messages = trimmed,
+            inputText = lastUserMsg.content
+        )
+        // Resend — remove the user message too since sendMessage will re-add it
+        _uiState.value = _uiState.value.copy(
+            messages = trimmed.dropLast(1)
+        )
+        sendMessage()
+    }
+
+    fun cancelGeneration() {
+        generationJob?.cancel()
+        generationJob = null
+        // Mark the last assistant message as no longer streaming
+        val messages = _uiState.value.messages.toMutableList()
+        if (messages.isNotEmpty() && messages.last().role == MessageRole.ASSISTANT) {
+            val last = messages.last()
+            if (last.isStreaming) {
+                val content = last.content.ifEmpty { "(Cancelled)" }
+                messages[messages.lastIndex] = last.copy(content = content, isStreaming = false)
+            }
+        }
+        _uiState.value = _uiState.value.copy(messages = messages, isGenerating = false)
+    }
+
     fun sendMessage() {
         val text = _uiState.value.inputText.trim()
         if (text.isBlank()) return
@@ -142,7 +180,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val finalResponse = streamResponse(service, text)
                 extractAndAttachCard(service, text, finalResponse)
             } catch (e: Exception) {
-                val errorMessage = "Error: ${e.message ?: "Unknown error occurred"}"
+                val errorMessage = formatError(e)
                 updateLastMessage(errorMessage, isStreaming = false)
             } finally {
                 _uiState.value = _uiState.value.copy(isGenerating = false)
@@ -339,6 +377,31 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    private fun formatError(e: Exception): String {
+        val message = e.message ?: ""
+        return when {
+            e is TimeoutCancellationException ->
+                "Request timed out. Please check your internet connection and try again."
+            e is CancellationException -> "(Cancelled)"
+            message.contains("API key", ignoreCase = true) ||
+                message.contains("401") ||
+                message.contains("UNAUTHENTICATED", ignoreCase = true) ->
+                "Invalid API key. Please check your Gemini API key in settings."
+            message.contains("429") ||
+                message.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ||
+                message.contains("quota", ignoreCase = true) ->
+                "API rate limit reached. Please wait a moment and try again."
+            message.contains("network", ignoreCase = true) ||
+                message.contains("connect", ignoreCase = true) ||
+                message.contains("UnknownHostException", ignoreCase = true) ->
+                "Network error. Please check your internet connection."
+            message.contains("safety", ignoreCase = true) ||
+                message.contains("blocked", ignoreCase = true) ->
+                "Response was blocked by safety filters. Try rephrasing your input."
+            else -> "Error: ${message.ifEmpty { "Unknown error occurred" }}"
+        }
     }
 
     override fun onCleared() {
