@@ -119,6 +119,20 @@ private fun MessageInputDisabledPreview() {
     }
 }
 
+@Preview(showBackground = true, name = "Generating (Stop Button)")
+@Composable
+private fun MessageInputGeneratingPreview() {
+    Word2AnkiTheme {
+        MessageInput(
+            value = "",
+            onValueChange = {},
+            onSend = {},
+            isGenerating = true,
+            onStopGeneration = {}
+        )
+    }
+}
+
 @Preview(showBackground = true, name = "Multi-line")
 @Composable
 private fun MessageInputMultiLinePreview() {

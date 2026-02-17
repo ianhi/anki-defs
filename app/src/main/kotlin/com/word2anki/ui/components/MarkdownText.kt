@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 /**
  * Text component that renders markdown formatting:
  * - **bold** and *italic* text
+ * - Headers (## Header) rendered as bold text
  * - Horizontal rules (---) rendered as empty lines
  * - Bullet lists (- item) with indentation
  * - Numbered lists (1. item)
@@ -75,6 +76,14 @@ private fun parseMarkdown(text: String): AnnotatedString {
                 // Horizontal rule
                 trimmed.length >= 3 && trimmed.all { it == '-' } -> {
                     // Render as empty line (visual separator)
+                }
+                // Headers: # text, ## text, ### text
+                HEADER.matchesAt(trimmed, 0) -> {
+                    val match = HEADER.find(trimmed)!!
+                    val headerText = trimmed.substring(match.range.last + 1)
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append(headerText)
+                    }
                 }
                 // Bullet list item: - text
                 trimmed.startsWith("- ") -> {
@@ -135,6 +144,7 @@ private fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
 }
 
 private val NUMBERED_LIST = Regex("^(\\d+\\.) ")
+private val HEADER = Regex("^#{1,6} ")
 
 internal fun extractWordAt(text: String, offset: Int): String {
     if (offset < 0 || offset >= text.length) return ""

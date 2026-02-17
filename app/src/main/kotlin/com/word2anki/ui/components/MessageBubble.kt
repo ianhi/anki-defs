@@ -189,6 +189,34 @@ private fun UserMessageDarkPreview() {
     }
 }
 
+@Preview(showBackground = true, name = "Error Message with Retry")
+@Composable
+private fun ErrorMessagePreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.ASSISTANT,
+                content = "Network error. Please check your internet connection."
+            ),
+            onRetry = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Streaming Message")
+@Composable
+private fun StreamingMessagePreview() {
+    Word2AnkiTheme {
+        MessageBubble(
+            message = Message(
+                role = MessageRole.ASSISTANT,
+                content = "**সুন্দর** (shundor) — Beautiful",
+                isStreaming = true
+            )
+        )
+    }
+}
+
 @Preview(showBackground = true, name = "Dark Theme - Assistant", uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun AssistantMessageDarkPreview() {

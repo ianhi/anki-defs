@@ -155,8 +155,7 @@ fun ChatScreen(
         onEditCard = { messageId, card -> viewModel.updateCardPreview(messageId, card) },
         onDismissCard = { messageId -> viewModel.dismissCard(messageId) },
         onWordLookup = { word ->
-            viewModel.updateInputText(word)
-            viewModel.sendMessage()
+            viewModel.sendMessage(word)
         },
         onStopGeneration = { viewModel.cancelGeneration() },
         onRetry = { viewModel.retryLastMessage() },

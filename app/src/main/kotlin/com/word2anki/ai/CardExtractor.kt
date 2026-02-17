@@ -9,7 +9,6 @@ import org.json.JSONObject
 object CardExtractor {
 
     private val BOLD_WORD = Regex("\\*\\*([^*]+)\\*\\*")
-    private val DEFINITION_SEPARATOR = Regex(" [—–-] ")
     private val DASH_SEPARATOR = Regex(" [—–-] ")
 
     /**
@@ -59,7 +58,7 @@ object CardExtractor {
                 // Look for definition pattern using various separators:
                 // **word** - definition, **word** — definition, **word** (trans) — definition
                 if (definition.isEmpty() && trimmedLine.contains(word)) {
-                    val defMatch = DEFINITION_SEPARATOR.find(trimmedLine)
+                    val defMatch = DASH_SEPARATOR.find(trimmedLine)
                     if (defMatch != null) {
                         definition = trimmedLine.substring(defMatch.range.last + 1).trim()
                     }

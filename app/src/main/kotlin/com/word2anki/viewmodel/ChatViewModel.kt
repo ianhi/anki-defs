@@ -165,7 +165,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendMessage() {
-        val text = _uiState.value.inputText.trim()
+        sendMessage(_uiState.value.inputText.trim())
+    }
+
+    fun sendMessage(text: String) {
         if (text.isBlank()) return
 
         val service = geminiService
