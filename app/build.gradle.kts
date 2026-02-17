@@ -75,8 +75,8 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     // Testing
-    testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("io.mockk:mockk:1.13.9")
-    testImplementation("org.json:json:20231013")
+    testImplementation(libs.test.junit)
+    testImplementation(libs.test.coroutines)
+    testImplementation(libs.test.mockk)
+    testImplementation(libs.test.json)
 }
