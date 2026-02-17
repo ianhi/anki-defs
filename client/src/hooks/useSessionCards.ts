@@ -122,7 +122,7 @@ export const useSessionCards = create<SessionCardsState>()(
     {
       name: 'bangla-session-cards',
       partialize: (state) => ({
-        // Only persist the pending queue (cards waiting for Anki)
+        cards: state.cards,
         pendingQueue: state.pendingQueue,
       }),
     }

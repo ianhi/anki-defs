@@ -118,7 +118,13 @@ export async function extractCardData(
     },
   });
 
-  const data = JSON.parse(response.text ?? '{}');
+  let data: Record<string, string>;
+  try {
+    data = JSON.parse(response.text ?? '{}');
+  } catch {
+    console.error('[Gemini] Failed to parse card extraction response:', response.text);
+    data = {};
+  }
   console.log('[Gemini] Card data extracted:', data);
 
   return {
@@ -162,7 +168,13 @@ export async function extractCardDataFromSentence(
     },
   });
 
-  const data = JSON.parse(response.text ?? '{}');
+  let data: Record<string, string>;
+  try {
+    data = JSON.parse(response.text ?? '{}');
+  } catch {
+    console.error('[Gemini] Failed to parse sentence card extraction response:', response.text);
+    data = {};
+  }
   console.log('[Gemini] Card data extracted:', data);
 
   return {
@@ -227,5 +239,10 @@ export async function getWordDefinition(word: string): Promise<WordDefinition> {
     },
   });
 
-  return JSON.parse(response.text ?? '{}');
+  try {
+    return JSON.parse(response.text ?? '{}');
+  } catch {
+    console.error('[Gemini] Failed to parse word definition response:', response.text);
+    throw new Error(`Failed to parse definition for "${word}": malformed AI response`);
+  }
 }

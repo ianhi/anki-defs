@@ -6,27 +6,8 @@ import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
+import { boldWordInSentence } from '@/lib/utils';
 import { Check, Plus, Loader2, X, AlertTriangle, Clock, Undo2 } from 'lucide-react';
-
-// Wrap the target word in <b> tags for Anki HTML rendering
-function boldWordInSentence(sentence: string, word: string): string {
-  if (!sentence || !word) return sentence;
-
-  // Try to find the word (case-insensitive for matching, preserves original case)
-  const lowerSentence = sentence.toLowerCase();
-  const lowerWord = word.toLowerCase();
-  const index = lowerSentence.indexOf(lowerWord);
-
-  if (index === -1) {
-    return sentence;
-  }
-
-  const before = sentence.slice(0, index);
-  const match = sentence.slice(index, index + word.length);
-  const after = sentence.slice(index + word.length);
-
-  return `${before}<b>${match}</b>${after}`;
-}
 
 interface CardPreviewProps {
   preview: CardPreviewType;

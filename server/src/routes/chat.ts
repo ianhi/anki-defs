@@ -92,8 +92,8 @@ chatRouter.post('/stream', async (req, res) => {
     try {
       const existingNote = await ankiService.searchWord(word, targetDeck);
       ankiResults.set(word, !!existingNote);
-    } catch {
-      // Anki not available
+    } catch (error) {
+      console.warn('[Chat] Anki search failed:', error);
     }
   }
 
@@ -128,8 +128,8 @@ chatRouter.post('/stream', async (req, res) => {
             try {
               const existingNote = await ankiService.searchWord(word, targetDeck);
               ankiResults.set(word, !!existingNote);
-            } catch {
-              // Anki not available
+            } catch (error) {
+              console.warn('[Chat] Anki search failed:', error);
             }
           }
         }
@@ -200,8 +200,8 @@ chatRouter.post('/define', async (req, res) => {
         existsInAnki = true;
         noteId = existingNote.noteId;
       }
-    } catch {
-      // Anki not available
+    } catch (error) {
+      console.warn('[Chat] Anki search failed:', error);
     }
 
     const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.define, word);
@@ -250,8 +250,8 @@ chatRouter.post('/analyze', async (req, res) => {
     let ankiResults = new Map<string, AnkiNote>();
     try {
       ankiResults = await ankiService.searchWords(lemmas, targetDeck);
-    } catch {
-      // Anki not available
+    } catch (error) {
+      console.warn('[Chat] Anki search failed:', error);
     }
 
     const enrichedWords = words.map((w) => ({

@@ -4,24 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
+import { boldWordInSentence } from '@/lib/utils';
 import { useState } from 'react';
-
-// Wrap the target word in <b> tags for Anki HTML rendering
-function boldWordInSentence(sentence: string, word: string): string {
-  if (!sentence || !word) return sentence;
-
-  const lowerSentence = sentence.toLowerCase();
-  const lowerWord = word.toLowerCase();
-  const index = lowerSentence.indexOf(lowerWord);
-
-  if (index === -1) return sentence;
-
-  const before = sentence.slice(0, index);
-  const match = sentence.slice(index, index + word.length);
-  const after = sentence.slice(index + word.length);
-
-  return `${before}<b>${match}</b>${after}`;
-}
 
 function PendingCardItem({
   card,

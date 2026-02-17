@@ -42,7 +42,9 @@ export async function searchNotes(query: string): Promise<AnkiNote[]> {
 }
 
 export async function searchWord(word: string, deckName: string): Promise<AnkiNote | null> {
-  const query = `deck:"${deckName}" "${word}"`;
+  const escapedDeck = deckName.replace(/"/g, '\\"');
+  const escapedWord = word.replace(/"/g, '\\"');
+  const query = `deck:"${escapedDeck}" "${escapedWord}"`;
   const notes = await searchNotes(query);
   return notes[0] ?? null;
 }
