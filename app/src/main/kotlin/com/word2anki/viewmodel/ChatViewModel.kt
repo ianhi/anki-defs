@@ -169,9 +169,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun streamResponse(service: GeminiService, text: String): String {
-        // Build conversation history (exclude the placeholder assistant message at the end)
+        // Build conversation history: only completed message pairs before the current exchange
         val allMessages = _uiState.value.messages
-        val history = allMessages.dropLast(1).dropLast(1) // Drop placeholder + current user msg
+        val history = allMessages.filter {
+            !it.isStreaming && it.content.isNotBlank()
+        }.dropLast(1) // Drop the current user message (the one we're about to send)
         val responseBuilder = StringBuilder()
         service.generateStreamingResponse(text, history).collect { chunk ->
             responseBuilder.append(chunk)
