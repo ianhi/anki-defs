@@ -200,17 +200,12 @@ class AnkiRepository(private val context: Context) {
         try {
             val values = ContentValues().apply {
                 put(FlashCardsContract.Note.MID, modelId)
+                put("deckId", deckId)
                 put(FlashCardsContract.Note.FLDS, fields.joinToString(FlashCardsContract.FIELD_SEPARATOR.toString()))
                 tags?.let { put(FlashCardsContract.Note.TAGS, it.joinToString(" ")) }
             }
 
-            // The deck is specified via URI path segment
-            val deckUri = Uri.withAppendedPath(
-                FlashCardsContract.Note.CONTENT_URI,
-                deckId.toString()
-            )
-
-            val resultUri = contentResolver.insert(deckUri, values)
+            val resultUri = contentResolver.insert(FlashCardsContract.Note.CONTENT_URI, values)
             resultUri?.lastPathSegment?.toLongOrNull()
         } catch (e: Exception) {
             null
