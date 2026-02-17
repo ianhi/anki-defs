@@ -83,4 +83,11 @@ class ChatViewModelTest {
         val result = ChatViewModel.formatError(error)
         assertEquals("Error: Unknown error occurred", result)
     }
+
+    @Test
+    fun `formatError detects API key keyword`() {
+        val error = Exception("API key not valid. Please pass a valid API key.")
+        val result = ChatViewModel.formatError(error)
+        assertTrue(result.contains("API key", ignoreCase = true))
+    }
 }
