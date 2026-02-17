@@ -44,12 +44,6 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun updateDefaultModel(modelId: Long) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.DEFAULT_MODEL_ID] = modelId
-        }
-    }
-
     suspend fun clearSettings() {
         context.dataStore.edit { preferences ->
             preferences.clear()

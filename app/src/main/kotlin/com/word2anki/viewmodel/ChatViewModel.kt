@@ -93,7 +93,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadDecks() {
+    private fun loadDecks() {
         viewModelScope.launch {
             try {
                 val decks = ankiRepository.getDecks()
@@ -360,6 +360,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearChat() {
         generationJob?.cancel()
+        lastProcessedSharedText = null
         _uiState.update { it.copy(messages = emptyList(), isGenerating = false) }
     }
 

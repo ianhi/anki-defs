@@ -9,7 +9,6 @@ import com.word2anki.data.models.Deck
 import com.word2anki.data.models.NoteModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 
 private const val TAG = "AnkiRepository"
 
@@ -45,13 +44,14 @@ class AnkiRepository(private val context: Context) {
         }
     }
 
+    private val isAvailable: Boolean
+        get() = isAnkiDroidInstalled() && hasAnkiPermission()
+
     /**
      * Get all available decks from AnkiDroid.
      */
     suspend fun getDecks(): List<Deck> = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext emptyList()
-        }
+        if (!isAvailable) return@withContext emptyList()
 
         try {
             val cursor = contentResolver.query(
@@ -87,10 +87,8 @@ class AnkiRepository(private val context: Context) {
     /**
      * Get available note models from AnkiDroid.
      */
-    suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext emptyList()
-        }
+    private suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext emptyList()
 
         try {
             val cursor = contentResolver.query(
@@ -119,47 +117,11 @@ class AnkiRepository(private val context: Context) {
     }
 
     /**
-     * Get field names for a specific model.
-     */
-    suspend fun getModelFieldNames(modelId: Long): List<String> = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext emptyList()
-        }
-
-        try {
-            val cursor = contentResolver.query(
-                FlashCardsContract.Model.CONTENT_URI,
-                arrayOf(FlashCardsContract.Model.FIELD_NAMES),
-                "${FlashCardsContract.Model._ID} = ?",
-                arrayOf(modelId.toString()),
-                null
-            ) ?: return@withContext emptyList()
-
-            cursor.use {
-                if (it.moveToFirst()) {
-                    val fieldNamesIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.FIELD_NAMES)
-                    val fieldNames = it.getString(fieldNamesIndex)
-                    // Field names are stored as JSON array string like ["Front", "Back"]
-                    val jsonArray = JSONArray(fieldNames)
-                    (0 until jsonArray.length()).map { i -> jsonArray.getString(i) }
-                } else {
-                    emptyList()
-                }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to get model field names for model $modelId", e)
-            emptyList()
-        }
-    }
-
-    /**
      * Check if a note with the given word already exists in the specified deck.
      * Uses Anki's browser search syntax.
      */
     suspend fun noteExists(word: String, deckName: String): Boolean = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext false
-        }
+        if (!isAvailable) return@withContext false
 
         try {
             // Use Anki browser search syntax to find notes.
@@ -196,9 +158,7 @@ class AnkiRepository(private val context: Context) {
         fields: List<String>,
         tags: Set<String>? = null
     ): Long? = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext null
-        }
+        if (!isAvailable) return@withContext null
 
         try {
             val values = ContentValues().apply {
@@ -227,11 +187,7 @@ class AnkiRepository(private val context: Context) {
             ?: models.firstOrNull()?.id
     }
 
-    /**
-     * Find a note model by name.
-     * @return The model ID if found, null otherwise.
-     */
-    suspend fun findModelByName(name: String): Long? = withContext(Dispatchers.IO) {
+    private suspend fun findModelByName(name: String): Long? = withContext(Dispatchers.IO) {
         val models = getModels()
         models.find { it.name == name }?.id
     }
@@ -240,15 +196,13 @@ class AnkiRepository(private val context: Context) {
      * Create a new note model in AnkiDroid.
      * @return The model ID if created, null otherwise.
      */
-    suspend fun createModel(
+    private suspend fun createModel(
         name: String,
         fields: List<String>,
         frontTemplate: String,
         backTemplate: String
     ): Long? = withContext(Dispatchers.IO) {
-        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
-            return@withContext null
-        }
+        if (!isAvailable) return@withContext null
 
         try {
             val values = ContentValues().apply {
