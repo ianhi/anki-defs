@@ -13,10 +13,12 @@ import com.word2anki.data.models.MessageRole
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 data class ChatUiState(
@@ -40,8 +42,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    private val _cardAddedEvent = MutableStateFlow<String?>(null)
-    val cardAddedEvent: StateFlow<String?> = _cardAddedEvent.asStateFlow()
+    private val _cardAddedEvent = Channel<String>(Channel.BUFFERED)
+    val cardAddedEvent = _cardAddedEvent.receiveAsFlow()
 
     private var geminiService: GeminiService? = null
     private var currentApiKey: String = ""
@@ -280,58 +282,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val selectedDeck = _uiState.value.selectedDeck
                 if (selectedDeck == null) {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Please select a deck first"
-                    )
+                    _uiState.value = _uiState.value.copy(error = "Please select a deck first")
                     return@launch
                 }
 
-                // Try word2anki 4-field model first, fall back to Basic
-                val word2ankiModelId = ankiRepository.ensureWord2AnkiModel()
-
-                val modelId: Long
-                val fields: List<String>
-
-                if (word2ankiModelId != null) {
-                    // Use 4-field model: English, Bangla, ExampleSentence, SentenceTranslation
-                    modelId = word2ankiModelId
-                    fields = listOf(
-                        cardPreview.word,
-                        cardPreview.definition,
-                        cardPreview.exampleSentence,
-                        cardPreview.sentenceTranslation
-                    )
-                } else {
-                    // Fall back to Basic model (Front, Back)
-                    val settings = settingsRepository.settingsFlow.first()
-                    modelId = if (settings.defaultModelId != 0L) {
-                        settings.defaultModelId
-                    } else {
-                        ankiRepository.getBasicModelId() ?: run {
-                            _uiState.value = _uiState.value.copy(
-                                error = "No note models available in AnkiDroid"
-                            )
-                            return@launch
-                        }
-                    }
-
-                    val front = cardPreview.word
-                    val back = buildString {
-                        append(cardPreview.definition)
-                        if (cardPreview.exampleSentence.isNotBlank()) {
-                            append("<br><br><i>${cardPreview.exampleSentence}</i>")
-                            if (cardPreview.sentenceTranslation.isNotBlank()) {
-                                append("<br>${cardPreview.sentenceTranslation}")
-                            }
-                        }
-                    }
-                    fields = listOf(front, back)
-                }
-
+                val noteFields = buildNoteFields(cardPreview) ?: return@launch
                 val noteId = ankiRepository.addNote(
-                    modelId = modelId,
+                    modelId = noteFields.first,
                     deckId = selectedDeck.id,
-                    fields = fields,
+                    fields = noteFields.second,
                     tags = setOf("word2anki")
                 )
 
@@ -344,20 +303,55 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         transform = { it.copy(cardPreview = cardPreview.copy(isAdded = true)) }
                     )
                     _uiState.value = _uiState.value.copy(error = null)
-                    _cardAddedEvent.value = "\"${cardPreview.word}\" added to ${selectedDeck.name}"
+                    _cardAddedEvent.send("\"${cardPreview.word}\" added to ${selectedDeck.name}")
                 } else {
-                    _uiState.value = _uiState.value.copy(
-                        error = "Failed to add card to AnkiDroid"
-                    )
+                    _uiState.value = _uiState.value.copy(error = "Failed to add card to AnkiDroid")
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Error adding card: ${e.message}"
-                )
+                _uiState.value = _uiState.value.copy(error = "Error adding card: ${e.message}")
             } finally {
                 _uiState.value = _uiState.value.copy(isAddingCard = false)
             }
         }
+    }
+
+    /**
+     * Resolve the note model and build field values for a card.
+     * Returns Pair(modelId, fields) or null if no model is available.
+     */
+    private suspend fun buildNoteFields(cardPreview: CardPreview): Pair<Long, List<String>>? {
+        // Try word2anki 4-field model first
+        val word2ankiModelId = ankiRepository.ensureWord2AnkiModel()
+        if (word2ankiModelId != null) {
+            return word2ankiModelId to listOf(
+                cardPreview.word,
+                cardPreview.definition,
+                cardPreview.exampleSentence,
+                cardPreview.sentenceTranslation
+            )
+        }
+
+        // Fall back to Basic model (Front, Back)
+        val settings = settingsRepository.settingsFlow.first()
+        val modelId = if (settings.defaultModelId != 0L) {
+            settings.defaultModelId
+        } else {
+            ankiRepository.getBasicModelId() ?: run {
+                _uiState.value = _uiState.value.copy(error = "No note models available in AnkiDroid")
+                return null
+            }
+        }
+
+        val back = buildString {
+            append(cardPreview.definition)
+            if (cardPreview.exampleSentence.isNotBlank()) {
+                append("<br><br><i>${cardPreview.exampleSentence}</i>")
+                if (cardPreview.sentenceTranslation.isNotBlank()) {
+                    append("<br>${cardPreview.sentenceTranslation}")
+                }
+            }
+        }
+        return modelId to listOf(cardPreview.word, back)
     }
 
     fun clearChat() {
@@ -370,10 +364,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    fun clearCardAddedEvent() {
-        _cardAddedEvent.value = null
     }
 
     override fun onCleared() {

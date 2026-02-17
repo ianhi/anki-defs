@@ -113,11 +113,9 @@ fun ChatScreen(
     }
 
     // Handle card added confirmation
-    val cardAddedEvent by viewModel.cardAddedEvent.collectAsState()
-    LaunchedEffect(cardAddedEvent) {
-        cardAddedEvent?.let {
+    LaunchedEffect(Unit) {
+        viewModel.cardAddedEvent.collect {
             snackbarHostState.showSnackbar(it)
-            viewModel.clearCardAddedEvent()
         }
     }
 
