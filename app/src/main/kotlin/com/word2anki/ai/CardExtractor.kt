@@ -51,9 +51,15 @@ object CardExtractor {
             var definition = ""
             var exampleSentence = ""
             var sentenceTranslation = ""
+            var foundExamplesHeader = false
 
             for (line in lines) {
                 val trimmedLine = line.trim()
+
+                // Track when we've passed an Examples header
+                if (trimmedLine.contains("Example", ignoreCase = true) && trimmedLine.contains("**")) {
+                    foundExamplesHeader = true
+                }
 
                 // Look for definition pattern using various separators:
                 // **word** - definition, **word** — definition, **word** (trans) — definition
@@ -64,8 +70,9 @@ object CardExtractor {
                     }
                 }
 
-                // Look for example sentences (numbered list or after **Examples:**)
-                if (exampleSentence.isEmpty() &&
+                // Look for example sentences (numbered list or bullet, preferably after Examples header)
+                // Also accept 1. lines after we've found a definition (common in simpler responses)
+                if (exampleSentence.isEmpty() && (foundExamplesHeader || definition.isNotEmpty()) &&
                     (trimmedLine.startsWith("1.") || trimmedLine.startsWith("- "))) {
                     val exampleText = trimmedLine
                         .removePrefix("1.")

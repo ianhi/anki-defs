@@ -28,7 +28,8 @@ data class ChatUiState(
     val isAnkiAvailable: Boolean = false,
     val hasAnkiPermission: Boolean = false,
     val error: String? = null,
-    val apiKeyConfigured: Boolean = false
+    val apiKeyConfigured: Boolean = false,
+    val isAddingCard: Boolean = false
 )
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,6 +44,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val cardAddedEvent: StateFlow<String?> = _cardAddedEvent.asStateFlow()
 
     private var geminiService: GeminiService? = null
+    private var currentApiKey: String = ""
     private var generationJob: Job? = null
 
     init {
@@ -50,9 +52,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             // Observe settings changes
             settingsRepository.settingsFlow.collect { settings ->
                 if (settings.geminiApiKey.isNotBlank()) {
-                    geminiService = GeminiService(settings.geminiApiKey)
+                    // Only recreate service if key changed
+                    if (settings.geminiApiKey != currentApiKey) {
+                        currentApiKey = settings.geminiApiKey
+                        geminiService = GeminiService(settings.geminiApiKey)
+                    }
                     _uiState.value = _uiState.value.copy(apiKeyConfigured = true)
                 } else {
+                    currentApiKey = ""
+                    geminiService = null
                     _uiState.value = _uiState.value.copy(apiKeyConfigured = false)
                 }
 
@@ -149,7 +157,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendMessage(text: String) {
-        if (text.isBlank()) return
+        if (text.isBlank() || _uiState.value.isGenerating) return
 
         val service = geminiService
         if (service == null) {
@@ -268,16 +276,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun addCardToAnki(cardPreview: CardPreview) {
+        if (_uiState.value.isAddingCard) return
         viewModelScope.launch {
-            val selectedDeck = _uiState.value.selectedDeck
-            if (selectedDeck == null) {
-                _uiState.value = _uiState.value.copy(
-                    error = "Please select a deck first"
-                )
-                return@launch
-            }
-
+            _uiState.value = _uiState.value.copy(isAddingCard = true)
             try {
+                val selectedDeck = _uiState.value.selectedDeck
+                if (selectedDeck == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "Please select a deck first"
+                    )
+                    return@launch
+                }
+
                 // Try word2anki 4-field model first, fall back to Basic
                 val word2ankiModelId = ankiRepository.ensureWord2AnkiModel()
 
@@ -353,6 +363,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = _uiState.value.copy(
                     error = "Error adding card: ${e.message}"
                 )
+            } finally {
+                _uiState.value = _uiState.value.copy(isAddingCard = false)
             }
         }
     }
