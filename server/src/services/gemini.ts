@@ -37,7 +37,7 @@ export async function streamCompletion(
     const genai = await getClient();
 
     const response = await genai.models.generateContentStream({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: userMessage,
       config: {
         systemInstruction: systemPrompt,
@@ -64,7 +64,7 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
     const genai = await getClient();
 
     const response = await genai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       contents: userMessage,
       config: {
         systemInstruction: systemPrompt,
@@ -89,7 +89,7 @@ export async function extractCardData(
   const genai = await getClient();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash-lite',
     contents: `Extract flashcard data from this explanation of the Bangla word "${word}":\n\n${explanation}`,
     config: {
       responseMimeType: 'application/json',
@@ -147,7 +147,7 @@ export async function extractCardDataFromSentence(
   const genai = await getClient();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash-lite',
     contents: `Extract the definition for the Bangla word "${word}" from this explanation:\n\n${explanation}\n\nThe example sentence is already provided: "${originalSentence}"`,
     config: {
       responseMimeType: 'application/json',
@@ -204,7 +204,7 @@ export async function getWordDefinition(word: string): Promise<WordDefinition> {
   const genai = await getClient();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash-lite',
     contents: `Define this Bangla word: "${word}"`,
     config: {
       responseMimeType: 'application/json',

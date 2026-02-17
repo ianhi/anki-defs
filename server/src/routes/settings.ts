@@ -14,6 +14,9 @@ settingsRouter.get('/', async (_req, res) => {
       ...settings,
       claudeApiKey: settings.claudeApiKey ? '••••••••' + settings.claudeApiKey.slice(-4) : '',
       geminiApiKey: settings.geminiApiKey ? '••••••••' + settings.geminiApiKey.slice(-4) : '',
+      openRouterApiKey: settings.openRouterApiKey
+        ? '••••••••' + settings.openRouterApiKey.slice(-4)
+        : '',
     };
     res.json(sanitized);
   } catch (error) {
@@ -34,11 +37,19 @@ settingsRouter.put('/', async (req, res) => {
     if (updates.geminiApiKey?.startsWith('••••')) {
       delete updates.geminiApiKey;
     }
+    if (updates.openRouterApiKey?.startsWith('••••')) {
+      delete updates.openRouterApiKey;
+    }
 
     const updated = await settingsService.saveSettings(updates);
 
     // Reset AI clients if provider or keys changed
-    if (updates.aiProvider || updates.claudeApiKey || updates.geminiApiKey) {
+    if (
+      updates.aiProvider ||
+      updates.claudeApiKey ||
+      updates.geminiApiKey ||
+      updates.openRouterApiKey
+    ) {
       resetClients();
     }
 
@@ -47,6 +58,9 @@ settingsRouter.put('/', async (req, res) => {
       ...updated,
       claudeApiKey: updated.claudeApiKey ? '••••••••' + updated.claudeApiKey.slice(-4) : '',
       geminiApiKey: updated.geminiApiKey ? '••••••••' + updated.geminiApiKey.slice(-4) : '',
+      openRouterApiKey: updated.openRouterApiKey
+        ? '••••••••' + updated.openRouterApiKey.slice(-4)
+        : '',
     };
 
     res.json(sanitized);

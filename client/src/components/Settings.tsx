@@ -104,36 +104,79 @@ export function Settings() {
         >
           <option value="claude">Claude</option>
           <option value="gemini">Gemini</option>
+          <option value="openrouter">OpenRouter</option>
         </Select>
       </div>
 
       {/* Claude API Key */}
-      <div className="space-y-2">
-        <Label htmlFor="claude-key">Claude API Key</Label>
-        <Input
-          id="claude-key"
-          type="password"
-          value={localSettings.claudeApiKey}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            handleChange('claudeApiKey', e.target.value)
-          }
-          placeholder="sk-ant-..."
-        />
-      </div>
+      {localSettings.aiProvider === 'claude' && (
+        <div className="space-y-2">
+          <Label htmlFor="claude-key">Claude API Key</Label>
+          <Input
+            id="claude-key"
+            type="password"
+            value={localSettings.claudeApiKey}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              handleChange('claudeApiKey', e.target.value)
+            }
+            placeholder="sk-ant-..."
+          />
+        </div>
+      )}
 
       {/* Gemini API Key */}
-      <div className="space-y-2">
-        <Label htmlFor="gemini-key">Gemini API Key</Label>
-        <Input
-          id="gemini-key"
-          type="password"
-          value={localSettings.geminiApiKey}
-          onChange={(e: ChangeEvent<HTMLInputElement>) =>
-            handleChange('geminiApiKey', e.target.value)
-          }
-          placeholder="AI..."
-        />
-      </div>
+      {localSettings.aiProvider === 'gemini' && (
+        <div className="space-y-2">
+          <Label htmlFor="gemini-key">Gemini API Key</Label>
+          <Input
+            id="gemini-key"
+            type="password"
+            value={localSettings.geminiApiKey}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              handleChange('geminiApiKey', e.target.value)
+            }
+            placeholder="AI..."
+          />
+        </div>
+      )}
+
+      {/* OpenRouter API Key */}
+      {localSettings.aiProvider === 'openrouter' && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="openrouter-key">OpenRouter API Key</Label>
+            <Input
+              id="openrouter-key"
+              type="password"
+              value={localSettings.openRouterApiKey}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                handleChange('openRouterApiKey', e.target.value)
+              }
+              placeholder="sk-or-..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="openrouter-model">OpenRouter Model</Label>
+            <Select
+              id="openrouter-model"
+              value={localSettings.openRouterModel}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                handleChange('openRouterModel', e.target.value)
+              }
+            >
+              <option value="google/gemini-2.5-flash">Gemini 2.5 Flash ($0.30/$2.50)</option>
+              <option value="openai/gpt-4.1-nano">GPT-4.1 Nano ($0.10/$0.40)</option>
+              <option value="openai/gpt-4.1-mini">GPT-4.1 Mini ($0.40/$1.60)</option>
+              <option value="meta-llama/llama-4-maverick:free">Llama 4 Maverick (Free)</option>
+              <option value="mistralai/mistral-small-3.1-24b-instruct:free">
+                Mistral Small 3.1 (Free)
+              </option>
+              <option value="deepseek/deepseek-v3.2">DeepSeek V3.2 ($0.24/$0.38)</option>
+            </Select>
+          </div>
+        </>
+      )}
 
       {/* Default Deck */}
       <div className="space-y-2">

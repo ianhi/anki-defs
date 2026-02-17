@@ -67,12 +67,14 @@ export interface CreateCardParams {
 }
 
 // Settings types
-export type AIProvider = 'claude' | 'gemini';
+export type AIProvider = 'claude' | 'gemini' | 'openrouter';
 
 export interface Settings {
   aiProvider: AIProvider;
   claudeApiKey: string;
   geminiApiKey: string;
+  openRouterApiKey: string;
+  openRouterModel: string;
   defaultDeck: string;
   defaultModel: string;
   ankiConnectUrl: string;
@@ -82,6 +84,8 @@ export const DEFAULT_SETTINGS: Settings = {
   aiProvider: 'claude',
   claudeApiKey: '',
   geminiApiKey: '',
+  openRouterApiKey: '',
+  openRouterModel: 'google/gemini-2.5-flash',
   defaultDeck: 'Bangla',
   defaultModel: 'Bangla (and reversed)',
   ankiConnectUrl: 'http://localhost:8765',

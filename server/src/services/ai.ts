@@ -1,6 +1,7 @@
 import { getSettings } from './settings.js';
 import * as claude from './claude.js';
 import * as gemini from './gemini.js';
+import * as openrouter from './openrouter.js';
 import type { AIProvider } from 'shared';
 
 export interface StreamCallbacks {
@@ -25,6 +26,8 @@ export async function streamCompletion(
 
   if (provider === 'claude') {
     return claude.streamCompletion(systemPrompt, userMessage, callbacks);
+  } else if (provider === 'openrouter') {
+    return openrouter.streamCompletion(systemPrompt, userMessage, callbacks);
   } else {
     return gemini.streamCompletion(systemPrompt, userMessage, callbacks);
   }
@@ -36,6 +39,8 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
 
   if (provider === 'claude') {
     return claude.getCompletion(systemPrompt, userMessage);
+  } else if (provider === 'openrouter') {
+    return openrouter.getCompletion(systemPrompt, userMessage);
   } else {
     return gemini.getCompletion(systemPrompt, userMessage);
   }
@@ -44,6 +49,7 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
 export function resetClients(): void {
   claude.resetClient();
   gemini.resetClient();
+  openrouter.resetClient();
 }
 
 // System prompts for different operations
