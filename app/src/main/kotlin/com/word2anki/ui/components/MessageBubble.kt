@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +46,9 @@ fun MessageBubble(
     val isUser = message.role == MessageRole.USER
     val isDarkTheme = isSystemInDarkTheme()
     val configuration = LocalConfiguration.current
-    val maxWidth = (configuration.screenWidthDp * 0.85f).dp
+    val maxWidth = remember(configuration.screenWidthDp) {
+        (configuration.screenWidthDp * 0.85f).dp
+    }
 
     val bubbleColor = when {
         isUser && isDarkTheme -> UserBubbleColorDark
@@ -198,7 +201,8 @@ private fun ErrorMessagePreview() {
         MessageBubble(
             message = Message(
                 role = MessageRole.ASSISTANT,
-                content = "Network error. Please check your internet connection."
+                content = "Network error. Please check your internet connection.",
+                isError = true
             ),
             onRetry = {}
         )

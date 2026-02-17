@@ -42,8 +42,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    private val _cardAddedEvent = Channel<String>(Channel.BUFFERED)
-    val cardAddedEvent = _cardAddedEvent.receiveAsFlow()
+    private val _snackbarEvent = Channel<String>(Channel.BUFFERED)
+    val snackbarEvent = _snackbarEvent.receiveAsFlow()
 
     private var geminiService: GeminiService? = null
     private var currentApiKey: String = ""
@@ -303,7 +303,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         transform = { it.copy(cardPreview = cardPreview.copy(isAdded = true)) }
                     )
                     _uiState.value = _uiState.value.copy(error = null)
-                    _cardAddedEvent.send("\"${cardPreview.word}\" added to ${selectedDeck.name}")
+                    _snackbarEvent.send("\"${cardPreview.word}\" added to ${selectedDeck.name}")
                 } else {
                     _uiState.value = _uiState.value.copy(error = "Failed to add card to AnkiDroid")
                 }
@@ -320,6 +320,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
      * Returns Pair(modelId, fields) or null if no model is available.
      */
     private suspend fun buildNoteFields(cardPreview: CardPreview): Pair<Long, List<String>>? {
+        if (cardPreview.word.isBlank() || cardPreview.definition.isBlank()) {
+            _uiState.value = _uiState.value.copy(error = "Card must have a word and definition")
+            return null
+        }
+
         // Try word2anki 4-field model first
         val word2ankiModelId = ankiRepository.ensureWord2AnkiModel()
         if (word2ankiModelId != null) {

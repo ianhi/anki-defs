@@ -67,11 +67,10 @@ fun SettingsScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Handle save success
-    LaunchedEffect(uiState.saveSuccess) {
-        if (uiState.saveSuccess) {
-            snackbarHostState.showSnackbar("Settings saved")
-            viewModel.clearSaveSuccess()
+    // Handle save success snackbar (one-shot event via Channel)
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect {
+            snackbarHostState.showSnackbar(it)
         }
     }
 

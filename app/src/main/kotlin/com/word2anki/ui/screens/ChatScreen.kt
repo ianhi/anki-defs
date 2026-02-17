@@ -114,7 +114,7 @@ fun ChatScreen(
 
     // Handle card added confirmation
     LaunchedEffect(Unit) {
-        viewModel.cardAddedEvent.collect {
+        viewModel.snackbarEvent.collect {
             snackbarHostState.showSnackbar(it)
         }
     }

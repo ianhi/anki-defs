@@ -7,10 +7,12 @@ import com.word2anki.data.AnkiRepository
 import com.word2anki.data.SettingsRepository
 import com.word2anki.data.models.Deck
 import com.word2anki.data.models.Settings
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -18,8 +20,7 @@ data class SettingsUiState(
     val decks: List<Deck> = emptyList(),
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
-    val error: String? = null,
-    val saveSuccess: Boolean = false
+    val error: String? = null
 )
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
@@ -29,6 +30,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    private val _snackbarEvent = Channel<String>(Channel.BUFFERED)
+    val snackbarEvent = _snackbarEvent.receiveAsFlow()
 
     val settings: StateFlow<Settings> = settingsRepository.settingsFlow.stateIn(
         scope = viewModelScope,
@@ -60,57 +64,38 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateApiKey(apiKey: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
-            try {
-                settingsRepository.updateGeminiApiKey(apiKey)
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    saveSuccess = true,
-                    error = null
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    error = "Failed to save API key: ${e.message}"
-                )
-            }
+        saveWithFeedback("Settings saved", "Failed to save API key") {
+            settingsRepository.updateGeminiApiKey(apiKey)
         }
     }
 
     fun updateDefaultDeck(deck: Deck) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
-            try {
-                settingsRepository.updateDefaultDeck(deck.id, deck.name)
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    saveSuccess = true,
-                    error = null
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    error = "Failed to save deck preference: ${e.message}"
-                )
-            }
+        saveWithFeedback("Deck preference saved", "Failed to save deck preference") {
+            settingsRepository.updateDefaultDeck(deck.id, deck.name)
         }
     }
 
     fun clearAllSettings() {
+        saveWithFeedback("Settings cleared", "Failed to clear settings") {
+            settingsRepository.clearSettings()
+        }
+    }
+
+    private fun saveWithFeedback(
+        successMessage: String,
+        errorPrefix: String,
+        action: suspend () -> Unit
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
             try {
-                settingsRepository.clearSettings()
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    saveSuccess = true,
-                    error = null
-                )
+                action()
+                _uiState.value = _uiState.value.copy(isSaving = false, error = null)
+                _snackbarEvent.send(successMessage)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    error = "Failed to clear settings: ${e.message}"
+                    error = "$errorPrefix: ${e.message}"
                 )
             }
         }
@@ -118,10 +103,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    fun clearSaveSuccess() {
-        _uiState.value = _uiState.value.copy(saveSuccess = false)
     }
 
     fun refreshDecks() {
