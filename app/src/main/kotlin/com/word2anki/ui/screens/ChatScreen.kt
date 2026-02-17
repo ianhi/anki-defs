@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,7 +59,6 @@ import com.word2anki.ui.components.MessageBubble
 import com.word2anki.ui.components.MessageInput
 import com.word2anki.viewmodel.ChatViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
     onNavigateToSettings: () -> Unit,
@@ -97,13 +96,69 @@ fun ChatScreen(
         }
     }
 
+    ChatScreenContent(
+        messages = uiState.messages,
+        inputText = uiState.inputText,
+        decks = uiState.decks,
+        selectedDeck = uiState.selectedDeck,
+        apiKeyConfigured = uiState.apiKeyConfigured,
+        isAnkiAvailable = uiState.isAnkiAvailable,
+        hasAnkiPermission = uiState.hasAnkiPermission,
+        isGenerating = uiState.isGenerating,
+        showClearDialog = showClearDialog,
+        snackbarHostState = snackbarHostState,
+        listState = listState,
+        onInputChange = { viewModel.updateInputText(it) },
+        onSend = { viewModel.sendMessage() },
+        onDeckSelected = { viewModel.selectDeck(it) },
+        onAddCard = { viewModel.addCardToAnki(it) },
+        onNavigateToSettings = onNavigateToSettings,
+        onShowClearDialog = { showClearDialog = it },
+        onClearChat = {
+            viewModel.clearChat()
+            showClearDialog = false
+        },
+        onRetryAnkiPermission = { viewModel.checkAnkiStatus() },
+        onInstallAnki = {
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                data = Uri.parse("https://play.google.com/store/apps/details?id=com.ichi2.anki")
+            }
+            context.startActivity(intent)
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatScreenContent(
+    messages: List<Message>,
+    inputText: String,
+    decks: List<Deck>,
+    selectedDeck: Deck?,
+    apiKeyConfigured: Boolean,
+    isAnkiAvailable: Boolean,
+    hasAnkiPermission: Boolean,
+    isGenerating: Boolean = false,
+    showClearDialog: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    listState: LazyListState = rememberLazyListState(),
+    onInputChange: (String) -> Unit = {},
+    onSend: () -> Unit = {},
+    onDeckSelected: (Deck) -> Unit = {},
+    onAddCard: (CardPreview) -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onShowClearDialog: (Boolean) -> Unit = {},
+    onClearChat: () -> Unit = {},
+    onRetryAnkiPermission: () -> Unit = {},
+    onInstallAnki: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("word2anki") },
                 actions = {
-                    if (uiState.messages.isNotEmpty()) {
-                        IconButton(onClick = { showClearDialog = true }) {
+                    if (messages.isNotEmpty()) {
+                        IconButton(onClick = { onShowClearDialog(true) }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Clear chat"
@@ -128,11 +183,11 @@ fun ChatScreen(
                 .imePadding()
         ) {
             // Deck selector
-            if (uiState.isAnkiAvailable && uiState.hasAnkiPermission && uiState.decks.isNotEmpty()) {
+            if (isAnkiAvailable && hasAnkiPermission && decks.isNotEmpty()) {
                 DeckSelector(
-                    decks = uiState.decks,
-                    selectedDeck = uiState.selectedDeck,
-                    onDeckSelected = { viewModel.selectDeck(it) },
+                    decks = decks,
+                    selectedDeck = selectedDeck,
+                    onDeckSelected = onDeckSelected,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -140,7 +195,7 @@ fun ChatScreen(
             }
 
             // Warning banners
-            if (!uiState.apiKeyConfigured) {
+            if (!apiKeyConfigured) {
                 WarningBanner(
                     message = "Please configure your Gemini API key in settings to use AI definitions.",
                     actionLabel = "Settings",
@@ -148,22 +203,17 @@ fun ChatScreen(
                 )
             }
 
-            if (!uiState.isAnkiAvailable) {
+            if (!isAnkiAvailable) {
                 WarningBanner(
                     message = "AnkiDroid is not installed. Install it to save flashcards.",
                     actionLabel = "Install",
-                    onAction = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://play.google.com/store/apps/details?id=com.ichi2.anki")
-                        }
-                        context.startActivity(intent)
-                    }
+                    onAction = onInstallAnki
                 )
-            } else if (!uiState.hasAnkiPermission) {
+            } else if (!hasAnkiPermission) {
                 WarningBanner(
                     message = "AnkiDroid permission required. Grant permission to save flashcards.",
                     actionLabel = "Retry",
-                    onAction = { viewModel.checkAnkiStatus() }
+                    onAction = onRetryAnkiPermission
                 )
             }
 
@@ -173,7 +223,7 @@ fun ChatScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                if (uiState.messages.isEmpty()) {
+                if (messages.isEmpty()) {
                     EmptyState(modifier = Modifier.fillMaxSize())
                 } else {
                     LazyColumn(
@@ -183,13 +233,13 @@ fun ChatScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(
-                            items = uiState.messages,
+                            items = messages,
                             key = { it.id }
                         ) { message ->
                             MessageBubble(
                                 message = message,
                                 onAddCard = { cardPreview ->
-                                    viewModel.addCardToAnki(cardPreview)
+                                    onAddCard(cardPreview)
                                 }
                             )
                         }
@@ -199,11 +249,11 @@ fun ChatScreen(
 
             // Input field
             MessageInput(
-                value = uiState.inputText,
-                onValueChange = { viewModel.updateInputText(it) },
-                onSend = { viewModel.sendMessage() },
-                enabled = !uiState.isGenerating && uiState.apiKeyConfigured,
-                placeholder = if (!uiState.apiKeyConfigured) {
+                value = inputText,
+                onValueChange = onInputChange,
+                onSend = onSend,
+                enabled = !isGenerating && apiKeyConfigured,
+                placeholder = if (!apiKeyConfigured) {
                     "Configure API key to start..."
                 } else {
                     "Enter a word or sentence..."
@@ -215,21 +265,16 @@ fun ChatScreen(
     // Clear chat confirmation dialog
     if (showClearDialog) {
         AlertDialog(
-            onDismissRequest = { showClearDialog = false },
+            onDismissRequest = { onShowClearDialog(false) },
             title = { Text("Clear Chat?") },
             text = { Text("This will remove all messages from the current chat session.") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.clearChat()
-                        showClearDialog = false
-                    }
-                ) {
+                TextButton(onClick = onClearChat) {
                     Text("Clear", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
+                TextButton(onClick = { onShowClearDialog(false) }) {
                     Text("Cancel")
                 }
             }
@@ -328,113 +373,6 @@ private fun TipItem(text: String) {
     )
 }
 
-// ==================== PREVIEW CONTENT ====================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ChatScreenContent(
-    messages: List<Message>,
-    inputText: String,
-    decks: List<Deck>,
-    selectedDeck: Deck?,
-    apiKeyConfigured: Boolean,
-    isAnkiAvailable: Boolean,
-    hasAnkiPermission: Boolean,
-    showClearButton: Boolean,
-    onInputChange: (String) -> Unit,
-    onSend: () -> Unit,
-    onDeckSelected: (Deck) -> Unit,
-    onAddCard: (CardPreview) -> Unit,
-    onNavigateToSettings: () -> Unit,
-    onClearChat: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("word2anki") },
-                actions = {
-                    if (showClearButton) {
-                        IconButton(onClick = onClearChat) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear chat")
-                        }
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Deck selector
-            if (isAnkiAvailable && hasAnkiPermission && decks.isNotEmpty()) {
-                DeckSelector(
-                    decks = decks,
-                    selectedDeck = selectedDeck,
-                    onDeckSelected = onDeckSelected,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            // Warning banners
-            if (!apiKeyConfigured) {
-                WarningBanner(
-                    message = "Please configure your Gemini API key in settings.",
-                    actionLabel = "Settings",
-                    onAction = onNavigateToSettings
-                )
-            }
-
-            if (!isAnkiAvailable) {
-                WarningBanner(
-                    message = "AnkiDroid is not installed.",
-                    actionLabel = "Install",
-                    onAction = {}
-                )
-            }
-
-            // Messages or empty state
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                if (messages.isEmpty()) {
-                    EmptyState(modifier = Modifier.fillMaxSize())
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(messages, key = { it.id }) { message ->
-                            MessageBubble(
-                                message = message,
-                                onAddCard = { onAddCard(it) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Input field
-            MessageInput(
-                value = inputText,
-                onValueChange = onInputChange,
-                onSend = onSend,
-                enabled = apiKeyConfigured,
-                placeholder = if (!apiKeyConfigured) "Configure API key..." else "Enter a word or sentence..."
-            )
-        }
-    }
-}
-
 // ==================== PREVIEWS ====================
 
 private val previewDecks = listOf(
@@ -472,14 +410,7 @@ private fun ChatScreenEmptyPreview() {
             selectedDeck = previewDecks[0],
             apiKeyConfigured = true,
             isAnkiAvailable = true,
-            hasAnkiPermission = true,
-            showClearButton = false,
-            onInputChange = {},
-            onSend = {},
-            onDeckSelected = {},
-            onAddCard = {},
-            onNavigateToSettings = {},
-            onClearChat = {}
+            hasAnkiPermission = true
         )
     }
 }
@@ -495,14 +426,7 @@ private fun ChatScreenWithMessagesPreview() {
             selectedDeck = previewDecks[0],
             apiKeyConfigured = true,
             isAnkiAvailable = true,
-            hasAnkiPermission = true,
-            showClearButton = true,
-            onInputChange = {},
-            onSend = {},
-            onDeckSelected = {},
-            onAddCard = {},
-            onNavigateToSettings = {},
-            onClearChat = {}
+            hasAnkiPermission = true
         )
     }
 }
@@ -518,14 +442,7 @@ private fun ChatScreenNoApiKeyPreview() {
             selectedDeck = previewDecks[0],
             apiKeyConfigured = false,
             isAnkiAvailable = true,
-            hasAnkiPermission = true,
-            showClearButton = false,
-            onInputChange = {},
-            onSend = {},
-            onDeckSelected = {},
-            onAddCard = {},
-            onNavigateToSettings = {},
-            onClearChat = {}
+            hasAnkiPermission = true
         )
     }
 }
@@ -541,14 +458,7 @@ private fun ChatScreenNoAnkiPreview() {
             selectedDeck = null,
             apiKeyConfigured = true,
             isAnkiAvailable = false,
-            hasAnkiPermission = false,
-            showClearButton = false,
-            onInputChange = {},
-            onSend = {},
-            onDeckSelected = {},
-            onAddCard = {},
-            onNavigateToSettings = {},
-            onClearChat = {}
+            hasAnkiPermission = false
         )
     }
 }
@@ -564,14 +474,7 @@ private fun ChatScreenDarkPreview() {
             selectedDeck = previewDecks[0],
             apiKeyConfigured = true,
             isAnkiAvailable = true,
-            hasAnkiPermission = true,
-            showClearButton = true,
-            onInputChange = {},
-            onSend = {},
-            onDeckSelected = {},
-            onAddCard = {},
-            onNavigateToSettings = {},
-            onClearChat = {}
+            hasAnkiPermission = true
         )
     }
 }

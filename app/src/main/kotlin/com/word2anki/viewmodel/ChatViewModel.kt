@@ -135,56 +135,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        // Add user message
-        val userMessage = Message(
-            role = MessageRole.USER,
-            content = text
-        )
-
-        // Add placeholder for assistant message
-        val assistantMessage = Message(
-            role = MessageRole.ASSISTANT,
-            content = "",
-            isStreaming = true
-        )
-
-        _uiState.value = _uiState.value.copy(
-            messages = _uiState.value.messages + userMessage + assistantMessage,
-            inputText = "",
-            isGenerating = true,
-            error = null
-        )
+        addUserAndPlaceholderMessages(text)
 
         generationJob = viewModelScope.launch {
             try {
-                val responseBuilder = StringBuilder()
-
-                service.generateStreamingResponse(text).collect { chunk ->
-                    responseBuilder.append(chunk)
-                    updateLastMessage(responseBuilder.toString(), isStreaming = true)
-                }
-
-                // Mark streaming as complete
-                updateLastMessage(responseBuilder.toString(), isStreaming = false)
-
-                // Extract card preview
-                val finalResponse = responseBuilder.toString()
-                val cardPreview = service.extractCard(text, finalResponse)
-
-                // Check if card already exists
-                val selectedDeck = _uiState.value.selectedDeck
-                val previewWithExistsCheck = if (cardPreview != null && selectedDeck != null) {
-                    val exists = ankiRepository.noteExists(cardPreview.word, selectedDeck.name)
-                    cardPreview.copy(alreadyExists = exists)
-                } else {
-                    cardPreview
-                }
-
-                // Update message with card preview
-                if (previewWithExistsCheck != null) {
-                    updateLastMessageWithCard(previewWithExistsCheck)
-                }
-
+                val finalResponse = streamResponse(service, text)
+                extractAndAttachCard(service, text, finalResponse)
             } catch (e: Exception) {
                 val errorMessage = "Error: ${e.message ?: "Unknown error occurred"}"
                 updateLastMessage(errorMessage, isStreaming = false)
@@ -192,6 +148,49 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = _uiState.value.copy(isGenerating = false)
             }
         }
+    }
+
+    private fun addUserAndPlaceholderMessages(text: String) {
+        val userMessage = Message(
+            role = MessageRole.USER,
+            content = text
+        )
+        val assistantMessage = Message(
+            role = MessageRole.ASSISTANT,
+            content = "",
+            isStreaming = true
+        )
+        _uiState.value = _uiState.value.copy(
+            messages = _uiState.value.messages + userMessage + assistantMessage,
+            inputText = "",
+            isGenerating = true,
+            error = null
+        )
+    }
+
+    private suspend fun streamResponse(service: GeminiService, text: String): String {
+        val responseBuilder = StringBuilder()
+        service.generateStreamingResponse(text).collect { chunk ->
+            responseBuilder.append(chunk)
+            updateLastMessage(responseBuilder.toString(), isStreaming = true)
+        }
+        val finalResponse = responseBuilder.toString()
+        updateLastMessage(finalResponse, isStreaming = false)
+        return finalResponse
+    }
+
+    private suspend fun extractAndAttachCard(service: GeminiService, userInput: String, response: String) {
+        val cardPreview = service.extractCard(userInput, response) ?: return
+
+        val selectedDeck = _uiState.value.selectedDeck
+        val checkedPreview = if (selectedDeck != null) {
+            val exists = ankiRepository.noteExists(cardPreview.word, selectedDeck.name)
+            cardPreview.copy(alreadyExists = exists)
+        } else {
+            cardPreview
+        }
+
+        updateLastMessageWithCard(checkedPreview)
     }
 
     private fun updateLastMessage(content: String, isStreaming: Boolean) {

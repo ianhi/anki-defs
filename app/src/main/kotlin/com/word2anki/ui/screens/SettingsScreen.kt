@@ -49,7 +49,6 @@ import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.ui.components.DeckSelector
 import com.word2anki.viewmodel.SettingsViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
@@ -82,6 +81,56 @@ fun SettingsScreen(
         }
     }
 
+    val selectedDeck = if (settings.defaultDeckId != 0L) {
+        Deck(settings.defaultDeckId, settings.defaultDeckName)
+    } else {
+        null
+    }
+
+    SettingsScreenContent(
+        apiKeyInput = apiKeyInput,
+        showApiKey = showApiKey,
+        decks = uiState.decks,
+        selectedDeck = selectedDeck,
+        isLoading = uiState.isLoading,
+        showClearDialog = showClearDialog,
+        snackbarHostState = snackbarHostState,
+        saveEnabled = apiKeyInput.isNotBlank() && apiKeyInput != settings.geminiApiKey,
+        onApiKeyChange = { apiKeyInput = it },
+        onToggleShowApiKey = { showApiKey = !showApiKey },
+        onSaveApiKey = { viewModel.updateApiKey(apiKeyInput) },
+        onDeckSelected = { viewModel.updateDefaultDeck(it) },
+        onRefreshDecks = { viewModel.refreshDecks() },
+        onShowClearDialog = { showClearDialog = it },
+        onClearSettings = {
+            viewModel.clearAllSettings()
+            apiKeyInput = ""
+            showClearDialog = false
+        },
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreenContent(
+    apiKeyInput: String,
+    showApiKey: Boolean,
+    decks: List<Deck>,
+    selectedDeck: Deck?,
+    isLoading: Boolean = false,
+    showClearDialog: Boolean = false,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    saveEnabled: Boolean = apiKeyInput.isNotBlank(),
+    onApiKeyChange: (String) -> Unit = {},
+    onToggleShowApiKey: () -> Unit = {},
+    onSaveApiKey: () -> Unit = {},
+    onDeckSelected: (Deck) -> Unit = {},
+    onRefreshDecks: () -> Unit = {},
+    onShowClearDialog: (Boolean) -> Unit = {},
+    onClearSettings: () -> Unit = {},
+    onNavigateBack: () -> Unit = {}
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -128,7 +177,7 @@ fun SettingsScreen(
 
                     OutlinedTextField(
                         value = apiKeyInput,
-                        onValueChange = { apiKeyInput = it },
+                        onValueChange = onApiKeyChange,
                         label = { Text("API Key") },
                         placeholder = { Text("Enter your Gemini API key") },
                         modifier = Modifier.fillMaxWidth(),
@@ -140,7 +189,7 @@ fun SettingsScreen(
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         trailingIcon = {
-                            IconButton(onClick = { showApiKey = !showApiKey }) {
+                            IconButton(onClick = onToggleShowApiKey) {
                                 Icon(
                                     imageVector = if (showApiKey) {
                                         Icons.Default.VisibilityOff
@@ -154,8 +203,8 @@ fun SettingsScreen(
                     )
 
                     Button(
-                        onClick = { viewModel.updateApiKey(apiKeyInput) },
-                        enabled = apiKeyInput.isNotBlank() && apiKeyInput != settings.geminiApiKey,
+                        onClick = onSaveApiKey,
+                        enabled = saveEnabled,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Save API Key")
@@ -182,20 +231,14 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
 
-                    val selectedDeck = if (settings.defaultDeckId != 0L) {
-                        Deck(settings.defaultDeckId, settings.defaultDeckName)
-                    } else {
-                        null
-                    }
-
                     DeckSelector(
-                        decks = uiState.decks,
+                        decks = decks,
                         selectedDeck = selectedDeck,
-                        onDeckSelected = { viewModel.updateDefaultDeck(it) },
-                        enabled = uiState.decks.isNotEmpty()
+                        onDeckSelected = onDeckSelected,
+                        enabled = decks.isNotEmpty()
                     )
 
-                    if (uiState.decks.isEmpty() && !uiState.isLoading) {
+                    if (decks.isEmpty() && !isLoading) {
                         Text(
                             text = "No decks found. Make sure AnkiDroid is installed and has granted permissions.",
                             style = MaterialTheme.typography.bodySmall,
@@ -203,7 +246,7 @@ fun SettingsScreen(
                         )
 
                         OutlinedButton(
-                            onClick = { viewModel.refreshDecks() },
+                            onClick = onRefreshDecks,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Refresh Decks")
@@ -226,7 +269,7 @@ fun SettingsScreen(
                     )
 
                     OutlinedButton(
-                        onClick = { showClearDialog = true },
+                        onClick = { onShowClearDialog(true) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
@@ -272,157 +315,22 @@ fun SettingsScreen(
     // Clear settings confirmation dialog
     if (showClearDialog) {
         AlertDialog(
-            onDismissRequest = { showClearDialog = false },
+            onDismissRequest = { onShowClearDialog(false) },
             title = { Text("Clear All Settings?") },
             text = {
                 Text("This will remove your API key and all preferences. This action cannot be undone.")
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.clearAllSettings()
-                        apiKeyInput = ""
-                        showClearDialog = false
-                    }
-                ) {
+                TextButton(onClick = onClearSettings) {
                     Text("Clear", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
+                TextButton(onClick = { onShowClearDialog(false) }) {
                     Text("Cancel")
                 }
             }
         )
-    }
-}
-
-// ==================== PREVIEW CONTENT ====================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SettingsScreenContent(
-    apiKeyInput: String,
-    showApiKey: Boolean,
-    decks: List<Deck>,
-    selectedDeck: Deck?,
-    onApiKeyChange: (String) -> Unit,
-    onToggleShowApiKey: () -> Unit,
-    onSaveApiKey: () -> Unit,
-    onDeckSelected: (Deck) -> Unit,
-    onRefreshDecks: () -> Unit,
-    onClearSettings: () -> Unit,
-    onNavigateBack: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // API Key Section
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Google Gemini API",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Enter your Gemini API key to enable AI-powered definitions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    OutlinedTextField(
-                        value = apiKeyInput,
-                        onValueChange = onApiKeyChange,
-                        label = { Text("API Key") },
-                        placeholder = { Text("Enter your Gemini API key") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (showApiKey) {
-                            VisualTransformation.None
-                        } else {
-                            PasswordVisualTransformation()
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = onToggleShowApiKey) {
-                                Icon(
-                                    imageVector = if (showApiKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    contentDescription = if (showApiKey) "Hide" else "Show"
-                                )
-                            }
-                        }
-                    )
-                    Button(
-                        onClick = onSaveApiKey,
-                        enabled = apiKeyInput.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Save API Key")
-                    }
-                }
-            }
-
-            // Deck Selection Section
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "AnkiDroid Settings",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        text = "Select the default deck where new cards will be added.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                    DeckSelector(
-                        decks = decks,
-                        selectedDeck = selectedDeck,
-                        onDeckSelected = onDeckSelected,
-                        enabled = decks.isNotEmpty()
-                    )
-                }
-            }
-
-            // About Section
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(text = "About", style = MaterialTheme.typography.titleMedium)
-                    Text(text = "word2anki v1.0", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        text = "Create Anki flashcards from AI-generated vocabulary definitions.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -442,14 +350,7 @@ private fun SettingsScreenPreview() {
             apiKeyInput = "AIzaSy...hidden",
             showApiKey = false,
             decks = previewDecks,
-            selectedDeck = previewDecks[0],
-            onApiKeyChange = {},
-            onToggleShowApiKey = {},
-            onSaveApiKey = {},
-            onDeckSelected = {},
-            onRefreshDecks = {},
-            onClearSettings = {},
-            onNavigateBack = {}
+            selectedDeck = previewDecks[0]
         )
     }
 }
@@ -462,14 +363,7 @@ private fun SettingsScreenEmptyPreview() {
             apiKeyInput = "",
             showApiKey = false,
             decks = emptyList(),
-            selectedDeck = null,
-            onApiKeyChange = {},
-            onToggleShowApiKey = {},
-            onSaveApiKey = {},
-            onDeckSelected = {},
-            onRefreshDecks = {},
-            onClearSettings = {},
-            onNavigateBack = {}
+            selectedDeck = null
         )
     }
 }
@@ -482,14 +376,7 @@ private fun SettingsScreenApiVisiblePreview() {
             apiKeyInput = "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             showApiKey = true,
             decks = previewDecks,
-            selectedDeck = previewDecks[1],
-            onApiKeyChange = {},
-            onToggleShowApiKey = {},
-            onSaveApiKey = {},
-            onDeckSelected = {},
-            onRefreshDecks = {},
-            onClearSettings = {},
-            onNavigateBack = {}
+            selectedDeck = previewDecks[1]
         )
     }
 }
@@ -502,14 +389,7 @@ private fun SettingsScreenDarkPreview() {
             apiKeyInput = "AIzaSy...",
             showApiKey = false,
             decks = previewDecks,
-            selectedDeck = previewDecks[0],
-            onApiKeyChange = {},
-            onToggleShowApiKey = {},
-            onSaveApiKey = {},
-            onDeckSelected = {},
-            onRefreshDecks = {},
-            onClearSettings = {},
-            onNavigateBack = {}
+            selectedDeck = previewDecks[0]
         )
     }
 }

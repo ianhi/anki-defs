@@ -45,12 +45,8 @@ class GeminiService(private val apiKey: String) {
         val fullPrompt = "$systemPrompt\n\nUser: $input"
 
         return flow {
-            try {
-                model.generateContentStream(fullPrompt).collect { response ->
-                    response.text?.let { emit(it) }
-                }
-            } catch (e: Exception) {
-                emit("Error: ${e.message ?: "Failed to generate response"}")
+            model.generateContentStream(fullPrompt).collect { response ->
+                response.text?.let { emit(it) }
             }
         }
     }

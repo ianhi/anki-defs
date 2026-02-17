@@ -118,8 +118,8 @@ class CardExtractorTest {
 
         val card = CardExtractor.extractFromResponse(userInput, aiResponse)
 
-        // May return partial extraction or null depending on content
-        // The important thing is it doesn't crash
+        // Unstructured text has no "word - definition" pattern, so extraction returns null
+        assertNull(card)
     }
 
     @Test

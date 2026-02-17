@@ -158,8 +158,11 @@ class AnkiRepository(private val context: Context) {
         }
 
         try {
-            // Use Anki browser search syntax to find notes
-            val searchQuery = "deck:\"$deckName\" \"$word\""
+            // Use Anki browser search syntax to find notes.
+            // Escape quotes and backslashes to prevent query injection.
+            val safeDeckName = deckName.replace("\\", "\\\\").replace("\"", "\\\"")
+            val safeWord = word.replace("\\", "\\\\").replace("\"", "\\\"")
+            val searchQuery = "deck:\"$safeDeckName\" \"$safeWord\""
             val cursor = contentResolver.query(
                 FlashCardsContract.Note.CONTENT_URI,
                 arrayOf(FlashCardsContract.Note._ID),

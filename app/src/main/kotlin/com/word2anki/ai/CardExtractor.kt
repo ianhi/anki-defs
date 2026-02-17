@@ -62,10 +62,11 @@ object CardExtractor {
 
                 // Look for example sentences (numbered list or after **Examples:**)
                 if (trimmedLine.startsWith("1.") || trimmedLine.startsWith("- ")) {
+                    // Split on em-dash or en-dash or spaced hyphen to separate example from translation
                     val exampleParts = trimmedLine
                         .removePrefix("1.")
                         .removePrefix("- ")
-                        .split(" — ", " - ")
+                        .split(Regex(" [—–-] "))
                     if (exampleParts.isNotEmpty() && exampleSentence.isEmpty()) {
                         exampleSentence = exampleParts[0].trim()
                         if (exampleParts.size > 1) {

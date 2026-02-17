@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    ) { _ ->
         // Permission result will be handled by the ViewModel
     }
 
