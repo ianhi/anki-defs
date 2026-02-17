@@ -1,5 +1,9 @@
 # word2anki - Development Guide
 
+## Development Process
+
+**Document as you go.** Updating documentation is part of completing any change — not a separate cleanup step. When you make a code change, update the relevant docs (this file, `PROGRESS.md`, `FUTURE_FEATURES.md`) in the same commit. We should never have to come back and clean up docs afterwards.
+
 ## Project Overview
 
 word2anki is a native Android app that helps users create Anki flashcards from AI-generated vocabulary definitions. It integrates with AnkiDroid via its ContentProvider API and uses Google's Gemini API for generating definitions.
@@ -66,16 +70,18 @@ Required permission: `com.ichi2.anki.permission.READ_WRITE_DATABASE`
 
 ### AI Integration
 
-- `GeminiService.kt`: Handles streaming responses from Gemini API
+- `GeminiService.kt`: Handles streaming responses from Gemini API with multi-turn conversation context
 - `PromptTemplates.kt`: Contains prompts for different input types:
   - Single word → Word definition
   - Multi-word → Sentence analysis
   - **highlighted** words → Focused word analysis
-- `CardExtractor.kt`: Parses AI responses to extract flashcard data
+- `CardExtractor.kt`: Parses AI responses to extract flashcard data (split into focused helpers: `extractWord`, `extractDefinition`, `extractExample`)
 
 ### State Management
 
 - ViewModels expose `StateFlow` for UI state
+- One-shot events (snackbars, save confirmations) use `Channel<String>` — NOT StateFlow, which replays on recomposition
+- All state mutations use `_uiState.update { it.copy(...) }` for atomic read-modify-write (prevents race conditions during concurrent coroutine updates)
 - Settings persisted in DataStore Preferences
 - Chat messages are in-memory only (no persistence)
 
@@ -284,12 +290,17 @@ Users must provide their own Gemini API key:
 
 ## Testing
 
-### Unit Tests
+### Unit Tests (95 tests, 7 test classes)
 
 Located in `app/src/test/kotlin/com/word2anki/`
 
-- `PromptTemplatesTest.kt`: Test prompt type detection
-- `CardExtractorTest.kt`: Test card data extraction
+- `ai/PromptTemplatesTest.kt` (23 tests): Prompt type detection, template content
+- `ai/CardExtractorTest.kt` (24 tests): JSON extraction, heuristic fallback, helper functions
+- `viewmodel/ChatViewModelTest.kt` (12 tests): Error formatting, message handling
+- `viewmodel/SettingsViewModelTest.kt` (8 tests): API key validation
+- `data/ModelsTest.kt` (9 tests): CardPreview, Deck, Settings, MessageRole
+- `data/models/MessageTest.kt` (9 tests): Message ID, timestamp, isError, isStreaming, cardPreview
+- `ui/MarkdownTextTest.kt` (10 tests): Markdown parsing and rendering
 
 ### Manual Testing Checklist
 
@@ -308,22 +319,27 @@ Located in `app/src/test/kotlin/com/word2anki/`
 
 1. **MVVM Pattern**: Clean separation of UI and business logic
 2. **StateFlow over LiveData**: Better Kotlin integration, null safety
-3. **No Dependency Injection**: App is small enough; manual DI is sufficient
-4. **ContentProvider for Anki**: Official AnkiDroid API, most stable integration
-5. **DataStore over SharedPreferences**: Modern, type-safe, coroutine-friendly
+3. **Channel for one-shot events**: Snackbar messages use `Channel<String>` to avoid replay on recomposition
+4. **Atomic state updates**: Always use `_uiState.update {}` (never `.value = .value.copy()`) to prevent race conditions
+5. **Layer boundaries**: UI layer never imports AI or data layer directly — all communication through ViewModels
+6. **No Dependency Injection**: App is small enough; manual DI is sufficient
+7. **ContentProvider for Anki**: Official AnkiDroid API, most stable integration
+8. **DataStore over SharedPreferences**: Modern, type-safe, coroutine-friendly
+9. **Custom note model**: App creates/reuses a "word2anki" 4-field model (English, Bangla, ExampleSentence, SentenceTranslation) with fallback to Basic model
 
 ## Known Limitations
 
 - No offline mode (requires internet for Gemini API)
 - No chat history persistence (messages cleared on app close)
-- Basic card template (Front/Back only)
 - No image support in cards
 
 ## Future Improvements
 
-- [ ] Add chat history persistence
-- [ ] Support custom note types
-- [ ] Add audio pronunciation
-- [ ] Implement word highlighting via long-press
-- [ ] Add export/import functionality
-- [ ] Support multiple languages in prompts
+See `FUTURE_FEATURES.md` for detailed specs. Key items:
+
+- [ ] Chat history persistence (Room database)
+- [ ] On-device AI models (Gemma 3n)
+- [ ] Audio pronunciation
+- [ ] Word highlighting via long-press
+- [ ] `ACTION_PROCESS_TEXT` for text selection toolbar
+- [ ] Target language configuration

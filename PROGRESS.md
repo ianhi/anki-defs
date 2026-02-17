@@ -33,10 +33,30 @@
 - [x] **Bangla sentence with highlighted word** - `আমি গতকাল **বাজারে** গিয়েছিলাম` → correctly identifies "বাজারে" (to/at/in the market) with Bangla example + English translation
 - [x] **Share intent** - Bangla text received via `android.intent.action.SEND`
 
+### Feature Improvements (Plan: composed-seeking-papert.md)
+
+- [x] **Card Editing & Dismiss** — Edit icon opens dialog with 4 fields, dismiss (X) removes card preview
+- [x] **Conversation Context** — Multi-turn chat via Gemini `startChat(history)`, follow-ups work naturally
+- [x] **Custom 4-Field Note Type** — "word2anki" model with English/Bangla/ExampleSentence/SentenceTranslation fields, falls back to Basic model
+
+### Code Quality Refactoring
+
+- [x] **Atomic state updates** — All `_uiState.value = .copy()` converted to `_uiState.update {}` in both ViewModels
+- [x] **Channel for one-shot events** — Snackbar events in both ViewModels use `Channel<String>` instead of StateFlow
+- [x] **Layer boundary fixes** — Removed GeminiService import from SettingsScreen, moved API key validation to SettingsViewModel
+- [x] **Business logic out of UI** — Shared text deduplication moved from ChatScreen to `ChatViewModel.processSharedText()`
+- [x] **CardExtractor split** — Monolithic `extractFromResponse` broken into `extractWord`, `extractDefinition`, `extractExample`
+- [x] **AnkiRepository cleanup** — `NoteModel` data class, contract constants, `isAvailable` property, private visibility for internal methods, dead code removal
+- [x] **SettingsViewModel DRY** — Extracted `saveWithFeedback()` helper deduplicating 3 save methods
+- [x] **Test consolidation** — 95 tests across 7 classes, no duplicate coverage, all passing
+
 ## Future / Backlog
 
-- [ ] On-device AI models (Gemma 3n for Pixel 7a) - eliminates API key dependency
-- [ ] Chat history persistence
-- [ ] Custom note types support
+See `FUTURE_FEATURES.md` for detailed specs.
+
+- [ ] On-device AI models (Gemma 3n for Pixel 7a) — eliminates API key dependency
+- [ ] Chat history persistence (Room database)
 - [ ] Audio pronunciation
 - [ ] Word highlighting via long-press
+- [ ] `ACTION_PROCESS_TEXT` intent for text selection toolbar
+- [ ] Target language configuration
