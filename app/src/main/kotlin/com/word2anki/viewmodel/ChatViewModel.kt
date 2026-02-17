@@ -169,8 +169,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun streamResponse(service: GeminiService, text: String): String {
+        // Build conversation history (exclude the placeholder assistant message at the end)
+        val allMessages = _uiState.value.messages
+        val history = allMessages.dropLast(1).dropLast(1) // Drop placeholder + current user msg
         val responseBuilder = StringBuilder()
-        service.generateStreamingResponse(text).collect { chunk ->
+        service.generateStreamingResponse(text, history).collect { chunk ->
             responseBuilder.append(chunk)
             updateLastMessage(responseBuilder.toString(), isStreaming = true)
         }
@@ -220,6 +223,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updateCardPreview(messageId: String, updatedCard: CardPreview) {
+        val messages = _uiState.value.messages.toMutableList()
+        val index = messages.indexOfFirst { it.id == messageId }
+        if (index != -1) {
+            messages[index] = messages[index].copy(cardPreview = updatedCard)
+            _uiState.value = _uiState.value.copy(messages = messages)
+        }
+    }
+
+    fun dismissCard(messageId: String) {
+        val messages = _uiState.value.messages.toMutableList()
+        val index = messages.indexOfFirst { it.id == messageId }
+        if (index != -1) {
+            messages[index] = messages[index].copy(cardPreview = null)
+            _uiState.value = _uiState.value.copy(messages = messages)
+        }
+    }
+
     fun addCardToAnki(cardPreview: CardPreview) {
         viewModelScope.launch {
             val selectedDeck = _uiState.value.selectedDeck
@@ -231,39 +252,52 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             try {
-                val settings = settingsRepository.settingsFlow.first()
-                var modelId = settings.defaultModelId
+                // Try word2anki 4-field model first, fall back to Basic
+                val word2ankiModelId = ankiRepository.ensureWord2AnkiModel()
 
-                // Get model ID if not set
-                if (modelId == 0L) {
-                    modelId = ankiRepository.getBasicModelId() ?: run {
-                        _uiState.value = _uiState.value.copy(
-                            error = "No note models available in AnkiDroid"
-                        )
-                        return@launch
-                    }
-                    settingsRepository.updateDefaultModel(modelId)
-                }
+                val modelId: Long
+                val fields: List<String>
 
-                // Build fields for Basic note type (Front, Back)
-                val front = buildString {
-                    append(cardPreview.word)
-                }
-
-                val back = buildString {
-                    append(cardPreview.definition)
-                    if (cardPreview.exampleSentence.isNotBlank()) {
-                        append("<br><br><i>${cardPreview.exampleSentence}</i>")
-                        if (cardPreview.sentenceTranslation.isNotBlank()) {
-                            append("<br>${cardPreview.sentenceTranslation}")
+                if (word2ankiModelId != null) {
+                    // Use 4-field model: English, Bangla, ExampleSentence, SentenceTranslation
+                    modelId = word2ankiModelId
+                    fields = listOf(
+                        cardPreview.word,
+                        cardPreview.definition,
+                        cardPreview.exampleSentence,
+                        cardPreview.sentenceTranslation
+                    )
+                } else {
+                    // Fall back to Basic model (Front, Back)
+                    val settings = settingsRepository.settingsFlow.first()
+                    modelId = if (settings.defaultModelId != 0L) {
+                        settings.defaultModelId
+                    } else {
+                        ankiRepository.getBasicModelId() ?: run {
+                            _uiState.value = _uiState.value.copy(
+                                error = "No note models available in AnkiDroid"
+                            )
+                            return@launch
                         }
                     }
+
+                    val front = cardPreview.word
+                    val back = buildString {
+                        append(cardPreview.definition)
+                        if (cardPreview.exampleSentence.isNotBlank()) {
+                            append("<br><br><i>${cardPreview.exampleSentence}</i>")
+                            if (cardPreview.sentenceTranslation.isNotBlank()) {
+                                append("<br>${cardPreview.sentenceTranslation}")
+                            }
+                        }
+                    }
+                    fields = listOf(front, back)
                 }
 
                 val noteId = ankiRepository.addNote(
                     modelId = modelId,
                     deckId = selectedDeck.id,
-                    fields = listOf(front, back),
+                    fields = fields,
                     tags = setOf("word2anki")
                 )
 

@@ -112,6 +112,8 @@ fun ChatScreen(
         onSend = { viewModel.sendMessage() },
         onDeckSelected = { viewModel.selectDeck(it) },
         onAddCard = { viewModel.addCardToAnki(it) },
+        onEditCard = { messageId, card -> viewModel.updateCardPreview(messageId, card) },
+        onDismissCard = { messageId -> viewModel.dismissCard(messageId) },
         onNavigateToSettings = onNavigateToSettings,
         onShowClearDialog = { showClearDialog = it },
         onClearChat = {
@@ -146,6 +148,8 @@ private fun ChatScreenContent(
     onSend: () -> Unit = {},
     onDeckSelected: (Deck) -> Unit = {},
     onAddCard: (CardPreview) -> Unit = {},
+    onEditCard: (String, CardPreview) -> Unit = { _, _ -> },
+    onDismissCard: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onShowClearDialog: (Boolean) -> Unit = {},
     onClearChat: () -> Unit = {},
@@ -240,7 +244,9 @@ private fun ChatScreenContent(
                                 message = message,
                                 onAddCard = { cardPreview ->
                                     onAddCard(cardPreview)
-                                }
+                                },
+                                onEditCard = onEditCard,
+                                onDismissCard = onDismissCard
                             )
                         }
                     }

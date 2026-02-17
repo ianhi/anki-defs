@@ -222,4 +222,68 @@ class AnkiRepository(private val context: Context) {
         models.find { it.second.equals("Basic", ignoreCase = true) }?.first
             ?: models.firstOrNull()?.first
     }
+
+    /**
+     * Find a note model by name.
+     * @return The model ID if found, null otherwise.
+     */
+    suspend fun findModelByName(name: String): Long? = withContext(Dispatchers.IO) {
+        val models = getModels()
+        models.find { it.second == name }?.first
+    }
+
+    /**
+     * Create a new note model in AnkiDroid.
+     * @return The model ID if created, null otherwise.
+     */
+    suspend fun createModel(
+        name: String,
+        fields: List<String>,
+        frontTemplate: String,
+        backTemplate: String
+    ): Long? = withContext(Dispatchers.IO) {
+        if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
+            return@withContext null
+        }
+
+        try {
+            val values = ContentValues().apply {
+                put(FlashCardsContract.Model.NAME, name)
+                put(FlashCardsContract.Model.FIELD_NAMES,
+                    fields.joinToString(",") { "\"$it\"" }.let { "[$it]" })
+                put(FlashCardsContract.Model.NUM_CARDS, 1)
+                put("cardNames", "[\"Card 1\"]")
+                put("qfmt", "[\"$frontTemplate\"]")
+                put("afmt", "[\"$backTemplate\"]")
+            }
+
+            val resultUri = contentResolver.insert(FlashCardsContract.Model.CONTENT_URI, values)
+            resultUri?.lastPathSegment?.toLongOrNull()
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Find or create the word2anki 4-field note model.
+     * Fields: English, Bangla, ExampleSentence, SentenceTranslation
+     * @return The model ID, or null if creation is not supported.
+     */
+    suspend fun ensureWord2AnkiModel(): Long? {
+        // Try to find existing model
+        findModelByName(WORD2ANKI_MODEL_NAME)?.let { return it }
+
+        // Try to create it
+        return createModel(
+            name = WORD2ANKI_MODEL_NAME,
+            fields = WORD2ANKI_FIELDS,
+            frontTemplate = "{{English}}",
+            backTemplate = "{{Bangla}}<br><br><i>{{ExampleSentence}}</i><br>{{SentenceTranslation}}"
+        )
+    }
+
+    companion object {
+        const val WORD2ANKI_MODEL_NAME = "word2anki"
+        val WORD2ANKI_FIELDS = listOf("English", "Bangla", "ExampleSentence", "SentenceTranslation")
+    }
 }

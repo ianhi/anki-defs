@@ -1,12 +1,13 @@
 package com.word2anki.ai
 
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.GenerateContentResponse
+import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.word2anki.data.models.CardPreview
+import com.word2anki.data.models.Message
+import com.word2anki.data.models.MessageRole
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 
 /**
  * Service for interacting with Google's Gemini API.
@@ -20,7 +21,8 @@ class GeminiService(private val apiKey: String) {
             generationConfig = generationConfig {
                 temperature = 0.7f
                 maxOutputTokens = 1024
-            }
+            },
+            systemInstruction = content { text(PromptTemplates.getUnifiedSystemPrompt()) }
         )
     }
 
@@ -36,34 +38,29 @@ class GeminiService(private val apiKey: String) {
     }
 
     /**
-     * Generate a streaming response for the given input.
-     * Automatically selects the appropriate prompt type.
+     * Generate a streaming response with conversation history for multi-turn context.
      */
-    fun generateStreamingResponse(input: String): Flow<String> {
-        val promptType = PromptTemplates.getPromptType(input)
-        val systemPrompt = PromptTemplates.getSystemPrompt(promptType)
-        val fullPrompt = "$systemPrompt\n\nUser: $input"
-
+    fun generateStreamingResponse(input: String, history: List<Message> = emptyList()): Flow<String> {
         return flow {
-            model.generateContentStream(fullPrompt).collect { response ->
-                response.text?.let { emit(it) }
+            if (history.isEmpty()) {
+                // First message: add type hint and use simple generation
+                val typeHint = PromptTemplates.getTypeHint(input)
+                val chat = model.startChat()
+                chat.sendMessageStream("$typeHint$input").collect { response ->
+                    response.text?.let { emit(it) }
+                }
+            } else {
+                // Multi-turn: build history and send via chat
+                val chatHistory = history.map { msg ->
+                    content(role = if (msg.role == MessageRole.USER) "user" else "model") {
+                        text(msg.content)
+                    }
+                }
+                val chat = model.startChat(chatHistory)
+                chat.sendMessageStream(input).collect { response ->
+                    response.text?.let { emit(it) }
+                }
             }
-        }
-    }
-
-    /**
-     * Generate a complete (non-streaming) response.
-     */
-    suspend fun generateResponse(input: String): String {
-        val promptType = PromptTemplates.getPromptType(input)
-        val systemPrompt = PromptTemplates.getSystemPrompt(promptType)
-        val fullPrompt = "$systemPrompt\n\nUser: $input"
-
-        return try {
-            val response = model.generateContent(fullPrompt)
-            response.text ?: "No response generated"
-        } catch (e: Exception) {
-            "Error: ${e.message ?: "Failed to generate response"}"
         }
     }
 

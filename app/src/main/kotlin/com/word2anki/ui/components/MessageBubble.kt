@@ -34,6 +34,8 @@ import com.word2anki.ui.theme.UserBubbleColorDark
 fun MessageBubble(
     message: Message,
     onAddCard: ((CardPreview) -> Unit)? = null,
+    onEditCard: ((String, CardPreview) -> Unit)? = null,
+    onDismissCard: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == MessageRole.USER
@@ -88,7 +90,9 @@ fun MessageBubble(
                 Spacer(modifier = Modifier.height(8.dp))
                 CardPreviewComponent(
                     cardPreview = cardPreview,
-                    onAddCard = { onAddCard?.invoke(cardPreview) }
+                    onAddCard = { onAddCard?.invoke(cardPreview) },
+                    onEditCard = { edited -> onEditCard?.invoke(message.id, edited) },
+                    onDismissCard = { onDismissCard?.invoke(message.id) }
                 )
             }
         }

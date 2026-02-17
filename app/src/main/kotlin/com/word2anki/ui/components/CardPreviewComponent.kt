@@ -16,15 +16,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,10 +53,24 @@ import com.word2anki.ui.theme.ExistsBadgeColor
 fun CardPreviewComponent(
     cardPreview: CardPreview,
     onAddCard: () -> Unit,
+    onEditCard: ((CardPreview) -> Unit)? = null,
+    onDismissCard: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     val backgroundColor = if (isDarkTheme) CardPreviewBackgroundDark else CardPreviewBackground
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog) {
+        CardEditDialog(
+            cardPreview = cardPreview,
+            onSave = { edited ->
+                onEditCard?.invoke(edited)
+                showEditDialog = false
+            },
+            onDismiss = { showEditDialog = false }
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -56,7 +80,7 @@ fun CardPreviewComponent(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header with word and status badge
+            // Header with word, action buttons, and status badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -65,8 +89,34 @@ fun CardPreviewComponent(
                 Text(
                     text = cardPreview.word,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
                 )
+
+                if (!cardPreview.isAdded) {
+                    IconButton(
+                        onClick = { showEditDialog = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit card",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { onDismissCard?.invoke() },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Dismiss card",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                }
 
                 if (cardPreview.isAdded) {
                     StatusBadge(
@@ -146,6 +196,74 @@ fun CardPreviewComponent(
             }
         }
     }
+}
+
+@Composable
+private fun CardEditDialog(
+    cardPreview: CardPreview,
+    onSave: (CardPreview) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var word by remember { mutableStateOf(cardPreview.word) }
+    var definition by remember { mutableStateOf(cardPreview.definition) }
+    var exampleSentence by remember { mutableStateOf(cardPreview.exampleSentence) }
+    var sentenceTranslation by remember { mutableStateOf(cardPreview.sentenceTranslation) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Card") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = word,
+                    onValueChange = { word = it },
+                    label = { Text("Word") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = definition,
+                    onValueChange = { definition = it },
+                    label = { Text("Definition") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = exampleSentence,
+                    onValueChange = { exampleSentence = it },
+                    label = { Text("Example Sentence") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = sentenceTranslation,
+                    onValueChange = { sentenceTranslation = it },
+                    label = { Text("Sentence Translation") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(
+                        cardPreview.copy(
+                            word = word,
+                            definition = definition,
+                            exampleSentence = exampleSentence,
+                            sentenceTranslation = sentenceTranslation
+                        )
+                    )
+                },
+                enabled = word.isNotBlank() && definition.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
