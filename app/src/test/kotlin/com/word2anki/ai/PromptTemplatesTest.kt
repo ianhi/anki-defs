@@ -148,4 +148,39 @@ class PromptTemplatesTest {
         val hint = PromptTemplates.getTypeHint("The **quick** fox")
         assert(hint.contains("highlighted"))
     }
+
+    @Test
+    fun `word at exactly 29 chars without spaces returns WORD_DEFINITION`() {
+        val input = "a".repeat(29)
+        val result = PromptTemplates.getPromptType(input)
+        assertEquals(PromptType.WORD_DEFINITION, result)
+    }
+
+    @Test
+    fun `word at exactly 30 chars without spaces returns SENTENCE_ANALYSIS`() {
+        val input = "a".repeat(30)
+        val result = PromptTemplates.getPromptType(input)
+        assertEquals(PromptType.SENTENCE_ANALYSIS, result)
+    }
+
+    @Test
+    fun `punctuation-only input returns WORD_DEFINITION`() {
+        val result = PromptTemplates.getPromptType("!")
+        assertEquals(PromptType.WORD_DEFINITION, result)
+    }
+
+    @Test
+    fun `single asterisk does not trigger FOCUSED_WORDS`() {
+        val result = PromptTemplates.getPromptType("hello * world")
+        // Single asterisk isn't ** so should not be FOCUSED_WORDS
+        assertEquals(PromptType.SENTENCE_ANALYSIS, result)
+    }
+
+    @Test
+    fun `getUnifiedSystemPrompt includes formatting guidelines`() {
+        val prompt = PromptTemplates.getUnifiedSystemPrompt()
+        assert(prompt.contains("bold"))
+        assert(prompt.contains("italics"))
+        assert(prompt.contains(" — "))
+    }
 }

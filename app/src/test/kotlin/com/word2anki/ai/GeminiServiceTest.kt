@@ -31,4 +31,19 @@ class GeminiServiceTest {
         val typicalKey = "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         assertTrue(GeminiService.isValidApiKeyFormat(typicalKey))
     }
+
+    @Test
+    fun `isValidApiKeyFormat returns false for 19 chars`() {
+        assertFalse(GeminiService.isValidApiKeyFormat("1234567890123456789"))
+    }
+
+    @Test
+    fun `isValidApiKeyFormat returns true for exactly 20 chars`() {
+        assertTrue(GeminiService.isValidApiKeyFormat("12345678901234567890"))
+    }
+
+    @Test
+    fun `isValidApiKeyFormat returns false for whitespace-only long string`() {
+        assertFalse(GeminiService.isValidApiKeyFormat("                    "))
+    }
 }

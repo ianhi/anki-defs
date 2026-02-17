@@ -89,13 +89,13 @@ fun ChatScreen(
     }
 
     // Handle shared text (from share sheet or text selection toolbar)
+    var consumedSharedText by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(sharedText) {
-        sharedText?.let {
-            if (it.isNotBlank()) {
-                viewModel.setSharedText(it)
-                if (autoSend) {
-                    viewModel.sendMessage()
-                }
+        if (sharedText != null && sharedText != consumedSharedText && sharedText.isNotBlank()) {
+            consumedSharedText = sharedText
+            viewModel.setSharedText(sharedText)
+            if (autoSend) {
+                viewModel.sendMessage()
             }
         }
     }
@@ -105,6 +105,15 @@ fun ChatScreen(
         uiState.error?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearError()
+        }
+    }
+
+    // Handle card added confirmation
+    val cardAddedEvent by viewModel.cardAddedEvent.collectAsState()
+    LaunchedEffect(cardAddedEvent) {
+        cardAddedEvent?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearCardAddedEvent()
         }
     }
 

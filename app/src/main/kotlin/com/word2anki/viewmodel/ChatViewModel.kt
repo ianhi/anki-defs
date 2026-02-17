@@ -48,6 +48,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = Settings()
     )
 
+    private val _cardAddedEvent = MutableStateFlow<String?>(null)
+    val cardAddedEvent: StateFlow<String?> = _cardAddedEvent.asStateFlow()
+
     private var geminiService: GeminiService? = null
     private var generationJob: Job? = null
 
@@ -207,10 +210,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun streamResponse(service: GeminiService, text: String): String {
-        // Build conversation history: only completed message pairs before the current exchange
+        // Build conversation history: completed message pairs, excluding errors and cancelled
         val allMessages = _uiState.value.messages
         val history = allMessages.filter {
-            !it.isStreaming && it.content.isNotBlank()
+            !it.isStreaming && it.content.isNotBlank() && !isErrorMessage(it)
         }.dropLast(1) // Drop the current user message (the one we're about to send)
         val responseBuilder = StringBuilder()
         service.generateStreamingResponse(text, history).collect { chunk ->
@@ -352,8 +355,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         messages[index] = message.copy(
                             cardPreview = cardPreview.copy(isAdded = true)
                         )
-                        _uiState.value = _uiState.value.copy(messages = messages)
+                        _uiState.value = _uiState.value.copy(
+                            messages = messages,
+                            error = null
+                        )
                     }
+                    _cardAddedEvent.value = "\"${cardPreview.word}\" added to ${selectedDeck.name}"
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Failed to add card to AnkiDroid"
@@ -377,6 +384,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun clearCardAddedEvent() {
+        _cardAddedEvent.value = null
+    }
+
+    private fun isErrorMessage(message: Message): Boolean {
+        if (message.role != MessageRole.ASSISTANT) return false
+        val content = message.content
+        return content == "(Cancelled)" ||
+            content.startsWith("Error:") ||
+            content.startsWith("Invalid API key") ||
+            content.startsWith("API rate limit") ||
+            content.startsWith("Network error") ||
+            content.startsWith("Request timed out") ||
+            content.startsWith("Response was blocked")
     }
 
     override fun onCleared() {
