@@ -181,6 +181,7 @@ This is useful for testing the AI/UI portions without the full AnkiDroid setup.
 
 ### Testing with Android Emulator
 
+#### GUI Method (Android Studio)
 1. In Android Studio: Tools → Device Manager
 2. Click "Create Device"
 3. Select a device (e.g., Pixel 6)
@@ -188,9 +189,62 @@ This is useful for testing the AI/UI portions without the full AnkiDroid setup.
 5. Click "Finish"
 6. Start the emulator and run the app
 
-**Note:** To test AnkiDroid integration on emulator:
+#### Headless Emulator (SSH/CLI)
+
+For testing without a display (e.g., over SSH):
+
+```bash
+# Set up environment
+export ANDROID_HOME=~/Android/Sdk
+
+# Create AVD (one-time setup)
+echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd \
+  -n Pixel_7a -k "system-images;android-34;google_apis;x86_64" -d pixel_7
+
+# Start emulator headless (requires KVM)
+$ANDROID_HOME/emulator/emulator -avd Pixel_7a \
+  -no-window -no-audio -gpu swiftshader_indirect &
+
+# Wait for boot
+$ANDROID_HOME/platform-tools/adb wait-for-device
+$ANDROID_HOME/platform-tools/adb shell getprop sys.boot_completed  # should return "1"
+
+# Install and launch app
+$ANDROID_HOME/platform-tools/adb install app/build/outputs/apk/debug/app-debug.apk
+$ANDROID_HOME/platform-tools/adb shell am start -n com.word2anki/.MainActivity
+```
+
+**UI Interaction via ADB:**
+```bash
+# Inspect UI elements (preferred over screenshots for automation)
+adb shell uiautomator dump /sdcard/ui.xml && adb shell cat /sdcard/ui.xml
+
+# Tap coordinates (get from uiautomator bounds)
+adb shell input tap <x> <y>
+
+# Type text (use %s for spaces)
+adb shell input text "hello%sworld"
+
+# Navigate back
+adb shell input keyevent KEYCODE_BACK
+
+# Take screenshot
+adb shell screencap -p /sdcard/screen.png && adb pull /sdcard/screen.png
+
+# View logs
+adb logcat -d -t 50 *:E | grep -i word2anki
+```
+
+**Important notes for headless emulator interaction:**
+- Jetpack Compose elements often don't appear in `uiautomator dump`. Use TAB/ENTER keyboard navigation as a fallback.
+- AnkiDroid onboarding requires: toggle "All files access" switch → system settings page → toggle → back
+- The emulator needs KVM for acceptable performance
+
+**AnkiDroid Setup on Emulator:**
 1. Download AnkiDroid APK from [GitHub Releases](https://github.com/ankidroid/Anki-Android/releases)
-2. Drag and drop the APK onto the emulator to install
+2. Install: `adb install AnkiDroid-*.apk`
+3. Launch and complete onboarding (grant "All files access" permission)
+4. Create at least one deck via the FAB (+) button → "Create deck"
 
 ### Debugging Tips
 
