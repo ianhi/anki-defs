@@ -8,6 +8,10 @@ import org.json.JSONObject
  */
 object CardExtractor {
 
+    private val BOLD_WORD = Regex("\\*\\*([^*]+)\\*\\*")
+    private val DEFINITION_SEPARATOR = Regex(" [—–-] ")
+    private val DASH_SEPARATOR = Regex(" [—–-] ")
+
     /**
      * Parse JSON response from extraction prompt into CardPreview.
      */
@@ -38,7 +42,7 @@ object CardExtractor {
     fun extractFromResponse(userInput: String, aiResponse: String): CardPreview? {
         return try {
             // Try to find the main word (usually the first bold text)
-            val wordMatch = Regex("\\*\\*([^*]+)\\*\\*").find(aiResponse)
+            val wordMatch = BOLD_WORD.find(aiResponse)
             val word = wordMatch?.groupValues?.get(1)?.split(" ")?.firstOrNull()
                 ?: userInput.trim().split(" ").firstOrNull()
                 ?: return null
@@ -52,22 +56,24 @@ object CardExtractor {
             for (line in lines) {
                 val trimmedLine = line.trim()
 
-                // Look for definition pattern: **word** - definition or **word** (trans) - definition
-                if (trimmedLine.contains(word) && trimmedLine.contains(" - ")) {
-                    val parts = trimmedLine.split(" - ", limit = 2)
-                    if (parts.size > 1) {
-                        definition = parts[1].trim()
+                // Look for definition pattern using various separators:
+                // **word** - definition, **word** — definition, **word** (trans) — definition
+                if (definition.isEmpty() && trimmedLine.contains(word)) {
+                    val defMatch = DEFINITION_SEPARATOR.find(trimmedLine)
+                    if (defMatch != null) {
+                        definition = trimmedLine.substring(defMatch.range.last + 1).trim()
                     }
                 }
 
                 // Look for example sentences (numbered list or after **Examples:**)
-                if (trimmedLine.startsWith("1.") || trimmedLine.startsWith("- ")) {
-                    // Split on em-dash or en-dash or spaced hyphen to separate example from translation
-                    val exampleParts = trimmedLine
+                if (exampleSentence.isEmpty() &&
+                    (trimmedLine.startsWith("1.") || trimmedLine.startsWith("- "))) {
+                    val exampleText = trimmedLine
                         .removePrefix("1.")
                         .removePrefix("- ")
-                        .split(Regex(" [—–-] "))
-                    if (exampleParts.isNotEmpty() && exampleSentence.isEmpty()) {
+                        .trim()
+                    val exampleParts = exampleText.split(DASH_SEPARATOR)
+                    if (exampleParts.isNotEmpty()) {
                         exampleSentence = exampleParts[0].trim()
                         if (exampleParts.size > 1) {
                             sentenceTranslation = exampleParts[1].trim()

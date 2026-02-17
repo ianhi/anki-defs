@@ -38,6 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,9 +94,17 @@ fun ChatScreen(
         }
     }
 
-    // Scroll to bottom when new message is added
-    LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) {
+    // Scroll to bottom when new message is added, but only if user is near the bottom
+    val isNearBottom = remember {
+        derivedStateOf {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            totalItems == 0 || lastVisibleItem >= totalItems - 2
+        }
+    }
+
+    LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.content) {
+        if (uiState.messages.isNotEmpty() && isNearBottom.value) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }

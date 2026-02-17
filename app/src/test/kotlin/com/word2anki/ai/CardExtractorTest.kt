@@ -151,6 +151,43 @@ class CardExtractorTest {
     }
 
     @Test
+    fun `extractFromResponse handles em-dash definition pattern`() {
+        val userInput = "সুন্দর"
+        val aiResponse = "**সুন্দর** (shundor) — Beautiful, pretty, nice\n\n*Adjective*\n\n**Examples:**\n1. এই ফুলটি খুব সুন্দর। — This flower is very beautiful."
+
+        val card = CardExtractor.extractFromResponse(userInput, aiResponse)
+
+        assertNotNull(card)
+        assertEquals("সুন্দর", card?.word)
+        assertEquals("Beautiful, pretty, nice", card?.definition)
+        assertEquals("এই ফুলটি খুব সুন্দর।", card?.exampleSentence)
+        assertEquals("This flower is very beautiful.", card?.sentenceTranslation)
+    }
+
+    @Test
+    fun `extractFromResponse handles en-dash definition pattern`() {
+        val userInput = "ভালো"
+        val aiResponse = "**ভালো** – Good, nice\n\n1. তুমি ভালো আছো? – Are you okay?"
+
+        val card = CardExtractor.extractFromResponse(userInput, aiResponse)
+
+        assertNotNull(card)
+        assertEquals("ভালো", card?.word)
+        assertEquals("Good, nice", card?.definition)
+    }
+
+    @Test
+    fun `extractFromResponse handles definition without examples`() {
+        val aiResponse = "**হ্যাঁ** — Yes"
+        val card = CardExtractor.extractFromResponse("হ্যাঁ", aiResponse)
+
+        assertNotNull(card)
+        assertEquals("হ্যাঁ", card?.word)
+        assertEquals("Yes", card?.definition)
+        assertEquals("", card?.exampleSentence)
+    }
+
+    @Test
     fun `extractFromResponse removes asterisks from extracted text`() {
         val userInput = "test"
         val aiResponse = """
