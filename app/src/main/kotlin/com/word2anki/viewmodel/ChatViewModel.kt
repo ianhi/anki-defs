@@ -10,16 +10,13 @@ import com.word2anki.data.models.CardPreview
 import com.word2anki.data.models.Deck
 import com.word2anki.data.models.Message
 import com.word2anki.data.models.MessageRole
-import com.word2anki.data.models.Settings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ChatUiState(
@@ -41,12 +38,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-
-    val settings: StateFlow<Settings> = settingsRepository.settingsFlow.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = Settings()
-    )
 
     private val _cardAddedEvent = MutableStateFlow<String?>(null)
     val cardAddedEvent: StateFlow<String?> = _cardAddedEvent.asStateFlow()
