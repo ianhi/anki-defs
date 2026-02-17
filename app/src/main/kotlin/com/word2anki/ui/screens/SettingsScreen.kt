@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.word2anki.data.models.Deck
 import com.word2anki.ui.theme.Word2AnkiTheme
+import com.word2anki.BuildConfig
 import com.word2anki.ai.GeminiService
 import com.word2anki.ui.components.DeckSelector
 import com.word2anki.viewmodel.SettingsViewModel
@@ -302,7 +303,7 @@ private fun SettingsScreenContent(
                     )
 
                     Text(
-                        text = "word2anki v1.0",
+                        text = "word2anki v${BuildConfig.VERSION_NAME}",
                         style = MaterialTheme.typography.bodyMedium
                     )
 

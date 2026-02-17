@@ -78,10 +78,11 @@ private fun parseMarkdown(text: String): AnnotatedString {
                 }
                 // Headers: # text, ## text, ### text
                 HEADER.matchesAt(trimmed, 0) -> {
-                    val match = HEADER.find(trimmed)!!
-                    val headerText = trimmed.substring(match.range.last + 1)
-                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        append(headerText)
+                    HEADER.find(trimmed)?.let { match ->
+                        val headerText = trimmed.substring(match.range.last + 1)
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(headerText)
+                        }
                     }
                 }
                 // Bullet list item: - text
@@ -91,9 +92,10 @@ private fun parseMarkdown(text: String): AnnotatedString {
                 }
                 // Numbered list item: 1. text
                 NUMBERED_LIST.matchesAt(trimmed, 0) -> {
-                    val match = NUMBERED_LIST.find(trimmed)!!
-                    append("  ${match.groupValues[1]} ")
-                    appendInlineMarkdown(trimmed.substring(match.range.last + 1))
+                    NUMBERED_LIST.find(trimmed)?.let { match ->
+                        append("  ${match.groupValues[1]} ")
+                        appendInlineMarkdown(trimmed.substring(match.range.last + 1))
+                    }
                 }
                 // Regular text with inline formatting
                 else -> {

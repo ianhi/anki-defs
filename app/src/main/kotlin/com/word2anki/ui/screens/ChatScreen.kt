@@ -145,6 +145,7 @@ fun ChatScreen(
         isAnkiAvailable = uiState.isAnkiAvailable,
         hasAnkiPermission = uiState.hasAnkiPermission,
         isGenerating = uiState.isGenerating,
+        isAddingCard = uiState.isAddingCard,
         showClearDialog = showClearDialog,
         snackbarHostState = snackbarHostState,
         listState = listState,
@@ -186,6 +187,7 @@ private fun ChatScreenContent(
     isAnkiAvailable: Boolean,
     hasAnkiPermission: Boolean,
     isGenerating: Boolean = false,
+    isAddingCard: Boolean = false,
     showClearDialog: Boolean = false,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     listState: LazyListState = rememberLazyListState(),
@@ -296,7 +298,8 @@ private fun ChatScreenContent(
                                 onEditCard = onEditCard,
                                 onDismissCard = onDismissCard,
                                 onWordLookup = onWordLookup,
-                                onRetry = onRetry
+                                onRetry = onRetry,
+                                isAddingCard = isAddingCard
                             )
                         }
                     }

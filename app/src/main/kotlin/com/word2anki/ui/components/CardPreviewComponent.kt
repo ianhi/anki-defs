@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +56,7 @@ fun CardPreviewComponent(
     onAddCard: () -> Unit,
     onEditCard: ((CardPreview) -> Unit)? = null,
     onDismissCard: (() -> Unit)? = null,
+    isAddingCard: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -173,7 +175,7 @@ fun CardPreviewComponent(
             // Add to Anki button
             Button(
                 onClick = onAddCard,
-                enabled = !cardPreview.isAdded,
+                enabled = !cardPreview.isAdded && !isAddingCard,
                 modifier = Modifier.fillMaxWidth(),
                 colors = if (cardPreview.isAdded) {
                     ButtonDefaults.buttonColors(
@@ -184,14 +186,26 @@ fun CardPreviewComponent(
                     ButtonDefaults.buttonColors()
                 }
             ) {
-                Icon(
-                    imageVector = if (cardPreview.isAdded) Icons.Default.Check else Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
+                if (isAddingCard) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (cardPreview.isAdded) Icons.Default.Check else Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = if (cardPreview.isAdded) "Added to Anki" else "Add to Anki"
+                    text = when {
+                        isAddingCard -> "Adding..."
+                        cardPreview.isAdded -> "Added to Anki"
+                        else -> "Add to Anki"
+                    }
                 )
             }
         }

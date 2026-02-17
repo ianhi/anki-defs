@@ -8,6 +8,7 @@ import android.util.Log
 import com.word2anki.data.models.Deck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 
 private const val TAG = "AnkiRepository"
 
@@ -141,9 +142,8 @@ class AnkiRepository(private val context: Context) {
                     val fieldNamesIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.FIELD_NAMES)
                     val fieldNames = it.getString(fieldNamesIndex)
                     // Field names are stored as JSON array string like ["Front", "Back"]
-                    fieldNames.removeSurrounding("[", "]")
-                        .split(",")
-                        .map { name -> name.trim().removeSurrounding("\"") }
+                    val jsonArray = JSONArray(fieldNames)
+                    (0 until jsonArray.length()).map { i -> jsonArray.getString(i) }
                 } else {
                     emptyList()
                 }

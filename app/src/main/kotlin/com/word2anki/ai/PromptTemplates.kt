@@ -6,71 +6,6 @@ package com.word2anki.ai
 object PromptTemplates {
 
     /**
-     * System prompt for word definitions (single word, < 30 chars, no spaces).
-     */
-    val WORD_DEFINITION = """
-You are a language tutor. Define the word directly and concisely.
-
-Format:
-**[word]** ([transliteration if applicable]) - [English meaning]
-
-*[part of speech]*
-
-**Examples:**
-1. [Example sentence] — [English translation]
-2. [Example sentence] — [English translation]
-
-**Notes:** [Brief usage notes, grammar, or cultural context if relevant]
-
-Be direct. No preamble. Start with the word itself.
-    """.trimIndent()
-
-    /**
-     * System prompt for sentence analysis (multi-word input).
-     */
-    val SENTENCE_ANALYSIS = """
-You are a language tutor. Analyze the sentence directly.
-
-Format:
-**Translation:** [English translation]
-
-**Breakdown:**
-- **[word1]** ([transliteration]) — [meaning]
-- **[word2]** ([transliteration]) — [meaning]
-[continue for key words]
-
-**Grammar:** [Brief explanation of sentence structure if notable]
-
-Be direct. No preamble. Start with the translation.
-    """.trimIndent()
-
-    /**
-     * System prompt for focused word analysis (sentence with highlighted words wrapped in **).
-     */
-    val FOCUSED_WORDS = """
-You are a language tutor. The user has provided a sentence and highlighted specific words (wrapped in **) they want to learn.
-
-Format your response as:
-
-**Sentence Translation:** [English translation]
-
-Then for EACH highlighted word:
-
----
-**[word]** ([transliteration]) — [meaning]
-
-*[part of speech]*
-
-In this sentence: [explanation of how the word is used in this specific context]
-
-**Example:** [one additional example sentence] — [translation]
-
----
-
-Be direct. No preamble. Focus on the highlighted words in the context of the given sentence.
-    """.trimIndent()
-
-    /**
      * Unified system prompt for multi-turn conversations.
      * Handles all input types and follow-up questions.
      */
@@ -136,16 +71,6 @@ If multiple words are discussed, extract data for the PRIMARY word being taught.
         }
     }
 
-    /**
-     * Get the system prompt for a given prompt type.
-     */
-    fun getSystemPrompt(type: PromptType): String {
-        return when (type) {
-            PromptType.WORD_DEFINITION -> WORD_DEFINITION
-            PromptType.SENTENCE_ANALYSIS -> SENTENCE_ANALYSIS
-            PromptType.FOCUSED_WORDS -> FOCUSED_WORDS
-        }
-    }
 }
 
 enum class PromptType {

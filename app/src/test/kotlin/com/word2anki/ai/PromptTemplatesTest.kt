@@ -89,25 +89,7 @@ class PromptTemplatesTest {
         assertEquals(PromptType.SENTENCE_ANALYSIS, result)
     }
 
-    @Test
-    fun `getSystemPrompt returns correct prompt for WORD_DEFINITION`() {
-        val prompt = PromptTemplates.getSystemPrompt(PromptType.WORD_DEFINITION)
-        assert(prompt.contains("Define the word"))
-    }
-
-    @Test
-    fun `getSystemPrompt returns correct prompt for SENTENCE_ANALYSIS`() {
-        val prompt = PromptTemplates.getSystemPrompt(PromptType.SENTENCE_ANALYSIS)
-        assert(prompt.contains("Analyze the sentence"))
-    }
-
-    @Test
-    fun `getSystemPrompt returns correct prompt for FOCUSED_WORDS`() {
-        val prompt = PromptTemplates.getSystemPrompt(PromptType.FOCUSED_WORDS)
-        assert(prompt.contains("highlighted"))
-    }
-
-    // Tests for new unified system prompt and type hints
+    // Tests for unified system prompt and type hints
 
     @Test
     fun `getUnifiedSystemPrompt returns prompt without language note by default`() {

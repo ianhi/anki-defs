@@ -39,6 +39,7 @@ fun MessageBubble(
     onDismissCard: ((String) -> Unit)? = null,
     onWordLookup: ((String) -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
+    isAddingCard: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == MessageRole.USER
@@ -108,7 +109,8 @@ fun MessageBubble(
                     cardPreview = cardPreview,
                     onAddCard = { onAddCard?.invoke(cardPreview) },
                     onEditCard = { edited -> onEditCard?.invoke(message.id, edited) },
-                    onDismissCard = { onDismissCard?.invoke(message.id) }
+                    onDismissCard = { onDismissCard?.invoke(message.id) },
+                    isAddingCard = isAddingCard
                 )
             }
         }
