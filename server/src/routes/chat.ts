@@ -108,58 +108,73 @@ chatRouter.post('/stream', async (req, res) => {
         sendSSE(res, { type: 'text', data: text });
       },
       onDone: async () => {
-        console.log('[Chat] Stream done, extracting card data...');
+        try {
+          console.log('[Chat] Stream done, extracting card data...');
 
-        // Determine which words to generate cards for
-        let wordsForCards: string[];
-        if (hasHighlightedWords) {
-          wordsForCards = highlightedWords;
-        } else if (isSingleWord) {
-          wordsForCards = [newMessage];
-        } else {
-          // For sentences, extract vocabulary list from AI response
-          wordsForCards = extractVocabularyList(fullResponse);
-          console.log('[Chat] Extracted vocabulary from sentence:', wordsForCards);
-        }
+          // Determine which words to generate cards for
+          let wordsForCards: string[];
+          if (hasHighlightedWords) {
+            wordsForCards = highlightedWords;
+          } else if (isSingleWord) {
+            wordsForCards = [newMessage];
+          } else {
+            // For sentences, extract vocabulary list from AI response
+            wordsForCards = extractVocabularyList(fullResponse);
+            console.log('[Chat] Extracted vocabulary from sentence:', wordsForCards);
+          }
 
-        // Check Anki for any words we haven't checked yet (sentence vocab)
-        for (const word of wordsForCards) {
-          if (!ankiResults.has(word)) {
-            try {
-              const existingNote = await ankiService.searchWord(word, targetDeck);
-              ankiResults.set(word, !!existingNote);
-            } catch (error) {
-              console.warn('[Chat] Anki search failed:', error);
+          // Check Anki for any words we haven't checked yet (sentence vocab)
+          await Promise.all(
+            wordsForCards
+              .filter((word) => !ankiResults.has(word))
+              .map(async (word) => {
+                try {
+                  const existingNote = await ankiService.searchWord(word, targetDeck);
+                  ankiResults.set(word, !!existingNote);
+                } catch (error) {
+                  console.warn('[Chat] Anki search failed:', error);
+                }
+              })
+          );
+
+          // Use different extraction based on input type
+          const useSentenceMode = !isSingleWord;
+          const sentenceTranslation = useSentenceMode
+            ? extractSentenceTranslation(fullResponse)
+            : '';
+
+          // Extract cards in parallel
+          const results = await Promise.allSettled(
+            wordsForCards.map(async (word) => {
+              const cardData = useSentenceMode
+                ? await gemini.extractCardDataFromSentence(
+                    word,
+                    newMessage, // original sentence as example
+                    sentenceTranslation,
+                    fullResponse
+                  )
+                : await gemini.extractCardData(word, fullResponse);
+              return { word, cardData };
+            })
+          );
+
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              const { word, cardData } = result.value;
+              sendSSE(res, {
+                type: 'card_preview',
+                data: {
+                  ...cardData,
+                  alreadyExists: ankiResults.get(word) || false,
+                },
+              });
+            } else {
+              console.error('[Chat] Card extraction failed:', result.reason);
             }
           }
-        }
-
-        // Use different extraction based on input type
-        const useSentenceMode = !isSingleWord;
-        const sentenceTranslation = useSentenceMode ? extractSentenceTranslation(fullResponse) : '';
-
-        for (const word of wordsForCards) {
-          try {
-            const cardData = useSentenceMode
-              ? await gemini.extractCardDataFromSentence(
-                  word,
-                  newMessage, // original sentence as example
-                  sentenceTranslation,
-                  fullResponse
-                )
-              : await gemini.extractCardData(word, fullResponse);
-
-            sendSSE(res, {
-              type: 'card_preview',
-              data: {
-                ...cardData,
-                alreadyExists: ankiResults.get(word) || false,
-              },
-            });
-          } catch (error) {
-            console.error(`[Chat] Card extraction failed for "${word}":`, error);
-            // Don't fail the whole request, just skip this card
-          }
+        } catch (error) {
+          console.error('[Chat] Error in onDone handler:', error);
+          sendSSE(res, { type: 'error', data: String(error) });
         }
 
         sendSSE(res, { type: 'done', data: null });

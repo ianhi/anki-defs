@@ -118,7 +118,7 @@ export const chatApi = {
           try {
             yield JSON.parse(data) as SSEEvent;
           } catch {
-            // Ignore parse errors
+            console.warn('[API] Failed to parse SSE event:', data);
           }
         }
       }
