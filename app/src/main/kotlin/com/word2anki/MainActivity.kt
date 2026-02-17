@@ -28,6 +28,7 @@ import com.word2anki.ui.theme.Word2AnkiTheme
 class MainActivity : ComponentActivity() {
 
     private var sharedText by mutableStateOf<String?>(null)
+    private var autoSend by mutableStateOf(false)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -50,7 +51,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Word2AnkiNavigation(sharedText = sharedText)
+                    Word2AnkiNavigation(sharedText = sharedText, autoSend = autoSend)
                 }
             }
         }
@@ -68,6 +69,13 @@ class MainActivity : ComponentActivity() {
                     sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
                 }
             }
+            Intent.ACTION_PROCESS_TEXT -> {
+                val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+                if (!text.isNullOrBlank()) {
+                    sharedText = text
+                    autoSend = true
+                }
+            }
         }
     }
 
@@ -82,7 +90,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Word2AnkiNavigation(sharedText: String?) {
+fun Word2AnkiNavigation(sharedText: String?, autoSend: Boolean = false) {
     val navController = rememberNavController()
 
     NavHost(
@@ -94,7 +102,8 @@ fun Word2AnkiNavigation(sharedText: String?) {
                 onNavigateToSettings = {
                     navController.navigate("settings")
                 },
-                sharedText = sharedText
+                sharedText = sharedText,
+                autoSend = autoSend
             )
         }
 

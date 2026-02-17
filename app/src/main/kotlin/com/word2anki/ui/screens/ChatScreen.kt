@@ -63,6 +63,7 @@ import com.word2anki.viewmodel.ChatViewModel
 fun ChatScreen(
     onNavigateToSettings: () -> Unit,
     sharedText: String? = null,
+    autoSend: Boolean = false,
     viewModel: ChatViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -72,11 +73,14 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
 
-    // Handle shared text
+    // Handle shared text (from share sheet or text selection toolbar)
     LaunchedEffect(sharedText) {
         sharedText?.let {
             if (it.isNotBlank()) {
                 viewModel.setSharedText(it)
+                if (autoSend) {
+                    viewModel.sendMessage()
+                }
             }
         }
     }
@@ -114,6 +118,10 @@ fun ChatScreen(
         onAddCard = { viewModel.addCardToAnki(it) },
         onEditCard = { messageId, card -> viewModel.updateCardPreview(messageId, card) },
         onDismissCard = { messageId -> viewModel.dismissCard(messageId) },
+        onWordLookup = { word ->
+            viewModel.updateInputText(word)
+            viewModel.sendMessage()
+        },
         onNavigateToSettings = onNavigateToSettings,
         onShowClearDialog = { showClearDialog = it },
         onClearChat = {
@@ -150,6 +158,7 @@ private fun ChatScreenContent(
     onAddCard: (CardPreview) -> Unit = {},
     onEditCard: (String, CardPreview) -> Unit = { _, _ -> },
     onDismissCard: (String) -> Unit = {},
+    onWordLookup: (String) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onShowClearDialog: (Boolean) -> Unit = {},
     onClearChat: () -> Unit = {},
@@ -246,7 +255,8 @@ private fun ChatScreenContent(
                                     onAddCard(cardPreview)
                                 },
                                 onEditCard = onEditCard,
-                                onDismissCard = onDismissCard
+                                onDismissCard = onDismissCard,
+                                onWordLookup = onWordLookup
                             )
                         }
                     }
@@ -365,6 +375,8 @@ private fun EmptyState(modifier: Modifier = Modifier) {
             TipItem("Type a single word for quick definitions")
             TipItem("Paste sentences for vocabulary breakdown")
             TipItem("Use **word** to highlight specific words")
+            TipItem("Ask follow-up questions for more examples")
+            TipItem("Long-press a word in a response to look it up")
             TipItem("Tap 'Add to Anki' to save flashcards")
         }
     }

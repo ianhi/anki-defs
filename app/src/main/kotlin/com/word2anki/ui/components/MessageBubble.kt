@@ -1,6 +1,7 @@
 package com.word2anki.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,10 +16,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.word2anki.data.models.CardPreview
@@ -36,6 +41,7 @@ fun MessageBubble(
     onAddCard: ((CardPreview) -> Unit)? = null,
     onEditCard: ((String, CardPreview) -> Unit)? = null,
     onDismissCard: ((String) -> Unit)? = null,
+    onWordLookup: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isUser = message.role == MessageRole.USER
@@ -77,6 +83,12 @@ fun MessageBubble(
                         style = MaterialTheme.typography.bodyLarge,
                         isStreaming = true
                     )
+                } else if (!isUser && onWordLookup != null) {
+                    LongPressableText(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyLarge,
+                        onWordLongPress = onWordLookup
+                    )
                 } else {
                     Text(
                         text = message.content,
@@ -97,6 +109,47 @@ fun MessageBubble(
             }
         }
     }
+}
+
+@Composable
+private fun LongPressableText(
+    text: String,
+    style: androidx.compose.ui.text.TextStyle,
+    onWordLongPress: (String) -> Unit
+) {
+    val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
+
+    Text(
+        text = text,
+        style = style,
+        onTextLayout = { layoutResult.value = it },
+        modifier = Modifier.pointerInput(text) {
+            detectTapGestures(
+                onLongPress = { offset ->
+                    layoutResult.value?.let { layout ->
+                        val charOffset = layout.getOffsetForPosition(offset)
+                        val word = extractWordAt(text, charOffset)
+                        if (word.isNotBlank()) {
+                            onWordLongPress(word)
+                        }
+                    }
+                }
+            )
+        }
+    )
+}
+
+private fun extractWordAt(text: String, offset: Int): String {
+    if (offset < 0 || offset >= text.length) return ""
+    // Find word boundaries (letters, digits, and common non-Latin chars)
+    var start = offset
+    var end = offset
+    while (start > 0 && !text[start - 1].isWhitespace() && text[start - 1] != '\n') start--
+    while (end < text.length && !text[end].isWhitespace() && text[end] != '\n') end++
+    // Strip markdown formatting and punctuation
+    return text.substring(start, end)
+        .replace("*", "")
+        .trim { it in ".,;:!?()[]{}\"'" }
 }
 
 // ==================== PREVIEWS ====================

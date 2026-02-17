@@ -106,4 +106,46 @@ class PromptTemplatesTest {
         val prompt = PromptTemplates.getSystemPrompt(PromptType.FOCUSED_WORDS)
         assert(prompt.contains("highlighted"))
     }
+
+    // Tests for new unified system prompt and type hints
+
+    @Test
+    fun `getUnifiedSystemPrompt returns prompt without language note by default`() {
+        val prompt = PromptTemplates.getUnifiedSystemPrompt()
+        assert(prompt.contains("language tutor"))
+        assert(!prompt.contains("The user is learning"))
+    }
+
+    @Test
+    fun `getUnifiedSystemPrompt includes target language when provided`() {
+        val prompt = PromptTemplates.getUnifiedSystemPrompt("Bangla")
+        assert(prompt.contains("The user is learning Bangla"))
+    }
+
+    @Test
+    fun `getUnifiedSystemPrompt covers all input types`() {
+        val prompt = PromptTemplates.getUnifiedSystemPrompt()
+        assert(prompt.contains("Single word"))
+        assert(prompt.contains("Sentence"))
+        assert(prompt.contains("highlighted"))
+        assert(prompt.contains("Follow-up"))
+    }
+
+    @Test
+    fun `getTypeHint returns word hint for single word`() {
+        val hint = PromptTemplates.getTypeHint("hello")
+        assert(hint.contains("Define"))
+    }
+
+    @Test
+    fun `getTypeHint returns sentence hint for sentence`() {
+        val hint = PromptTemplates.getTypeHint("The quick brown fox")
+        assert(hint.contains("Analyze"))
+    }
+
+    @Test
+    fun `getTypeHint returns focused hint for highlighted words`() {
+        val hint = PromptTemplates.getTypeHint("The **quick** fox")
+        assert(hint.contains("highlighted"))
+    }
 }
