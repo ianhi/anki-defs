@@ -8,19 +8,9 @@ data class Message(
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
     val cardPreview: CardPreview? = null,
-    val isStreaming: Boolean = false
-) {
-    val isError: Boolean
-        get() = role == MessageRole.ASSISTANT && !isStreaming && content.let {
-            it == "(Cancelled)" ||
-                it.startsWith("Error:") ||
-                it.startsWith("Invalid API key") ||
-                it.startsWith("API rate limit") ||
-                it.startsWith("Network error") ||
-                it.startsWith("Request timed out") ||
-                it.startsWith("Response was blocked")
-        }
-}
+    val isStreaming: Boolean = false,
+    val isError: Boolean = false
+)
 
 enum class MessageRole {
     USER,

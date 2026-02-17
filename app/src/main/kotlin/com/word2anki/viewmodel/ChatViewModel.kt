@@ -145,8 +145,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (messages.isNotEmpty() && messages.last().role == MessageRole.ASSISTANT) {
             val last = messages.last()
             if (last.isStreaming) {
-                val content = last.content.ifEmpty { "(Cancelled)" }
-                messages[messages.lastIndex] = last.copy(content = content, isStreaming = false)
+                val cancelled = last.content.isEmpty()
+                val content = if (cancelled) "(Cancelled)" else last.content
+                messages[messages.lastIndex] = last.copy(
+                    content = content,
+                    isStreaming = false,
+                    isError = cancelled
+                )
             }
         }
         _uiState.value = _uiState.value.copy(messages = messages, isGenerating = false)
@@ -175,7 +180,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 extractAndAttachCard(service, text, finalResponse)
             } catch (e: Exception) {
                 val errorMessage = formatError(e)
-                updateLastMessage(errorMessage, isStreaming = false)
+                updateLastMessage(errorMessage, isStreaming = false, isError = true)
             } finally {
                 _uiState.value = _uiState.value.copy(isGenerating = false)
             }
@@ -230,14 +235,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         updateLastMessageWithCard(checkedPreview)
     }
 
-    private fun updateLastMessage(content: String, isStreaming: Boolean) {
+    private fun updateLastMessage(content: String, isStreaming: Boolean, isError: Boolean = false) {
         val messages = _uiState.value.messages.toMutableList()
         if (messages.isNotEmpty()) {
             val lastMessage = messages.last()
             if (lastMessage.role == MessageRole.ASSISTANT) {
                 messages[messages.lastIndex] = lastMessage.copy(
                     content = content,
-                    isStreaming = isStreaming
+                    isStreaming = isStreaming,
+                    isError = isError
                 )
                 _uiState.value = _uiState.value.copy(messages = messages)
             }

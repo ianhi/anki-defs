@@ -70,7 +70,6 @@ If multiple words are discussed, extract data for the PRIMARY word being taught.
             else -> PromptType.SENTENCE_ANALYSIS
         }
     }
-
 }
 
 enum class PromptType {
