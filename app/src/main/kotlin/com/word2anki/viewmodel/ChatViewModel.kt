@@ -180,7 +180,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val finalResponse = streamResponse(service, text)
                 extractAndAttachCard(service, text, finalResponse)
             } catch (e: Exception) {
-                val errorMessage = formatError(e)
+                val errorMessage = Companion.formatError(e)
                 updateLastMessage(errorMessage, isStreaming = false)
             } finally {
                 _uiState.value = _uiState.value.copy(isGenerating = false)
@@ -379,33 +379,35 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    private fun formatError(e: Exception): String {
-        val message = e.message ?: ""
-        return when {
-            e is TimeoutCancellationException ->
-                "Request timed out. Please check your internet connection and try again."
-            e is CancellationException -> "(Cancelled)"
-            message.contains("API key", ignoreCase = true) ||
-                message.contains("401") ||
-                message.contains("UNAUTHENTICATED", ignoreCase = true) ->
-                "Invalid API key. Please check your Gemini API key in settings."
-            message.contains("429") ||
-                message.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ||
-                message.contains("quota", ignoreCase = true) ->
-                "API rate limit reached. Please wait a moment and try again."
-            message.contains("network", ignoreCase = true) ||
-                message.contains("connect", ignoreCase = true) ||
-                message.contains("UnknownHostException", ignoreCase = true) ->
-                "Network error. Please check your internet connection."
-            message.contains("safety", ignoreCase = true) ||
-                message.contains("blocked", ignoreCase = true) ->
-                "Response was blocked by safety filters. Try rephrasing your input."
-            else -> "Error: ${message.ifEmpty { "Unknown error occurred" }}"
-        }
-    }
-
     override fun onCleared() {
         super.onCleared()
         generationJob?.cancel()
+    }
+
+    companion object {
+        fun formatError(e: Exception): String {
+            val message = e.message ?: ""
+            return when {
+                e is TimeoutCancellationException ->
+                    "Request timed out. Please check your internet connection and try again."
+                e is CancellationException -> "(Cancelled)"
+                message.contains("API key", ignoreCase = true) ||
+                    message.contains("401") ||
+                    message.contains("UNAUTHENTICATED", ignoreCase = true) ->
+                    "Invalid API key. Please check your Gemini API key in settings."
+                message.contains("429") ||
+                    message.contains("RESOURCE_EXHAUSTED", ignoreCase = true) ||
+                    message.contains("quota", ignoreCase = true) ->
+                    "API rate limit reached. Please wait a moment and try again."
+                message.contains("network", ignoreCase = true) ||
+                    message.contains("connect", ignoreCase = true) ||
+                    message.contains("UnknownHostException", ignoreCase = true) ->
+                    "Network error. Please check your internet connection."
+                message.contains("safety", ignoreCase = true) ||
+                    message.contains("blocked", ignoreCase = true) ->
+                    "Response was blocked by safety filters. Try rephrasing your input."
+                else -> "Error: ${message.ifEmpty { "Unknown error occurred" }}"
+            }
+        }
     }
 }

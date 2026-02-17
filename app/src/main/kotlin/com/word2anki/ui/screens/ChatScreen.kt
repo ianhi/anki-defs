@@ -49,6 +49,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.word2anki.data.models.CardPreview
 import com.word2anki.data.models.Deck
@@ -73,6 +76,17 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     var showClearDialog by remember { mutableStateOf(false) }
+
+    // Re-check Anki permission when returning from system settings
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.checkAnkiStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+    }
 
     // Handle shared text (from share sheet or text selection toolbar)
     LaunchedEffect(sharedText) {

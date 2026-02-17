@@ -2,7 +2,6 @@ package com.word2anki.ui.components
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -17,12 +16,14 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.sp
 
 /**
- * Text component that renders basic markdown formatting:
- * - **bold** text
- * - *italic* text
+ * Text component that renders markdown formatting:
+ * - **bold** and *italic* text
  * - Horizontal rules (---) rendered as empty lines
+ * - Bullet lists (- item) with indentation
+ * - Numbered lists (1. item)
  */
 @Composable
 fun MarkdownText(
@@ -63,56 +64,57 @@ fun MarkdownText(
 }
 
 private fun parseMarkdown(text: String): AnnotatedString {
+    // Process line by line first to handle block-level elements
+    val lines = text.split('\n')
     return buildAnnotatedString {
-        var i = 0
-        while (i < text.length) {
+        lines.forEachIndexed { lineIndex, line ->
+            if (lineIndex > 0) append('\n')
+
+            val trimmed = line.trim()
             when {
-                // Bold: **text**
-                i + 1 < text.length && text[i] == '*' && text[i + 1] == '*' -> {
-                    val end = text.indexOf("**", i + 2)
-                    if (end != -1) {
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                            // Recursively handle italic inside bold
-                            append(parseInlineMarkdown(text.substring(i + 2, end)))
-                        }
-                        i = end + 2
-                    } else {
-                        append(text[i])
-                        i++
-                    }
+                // Horizontal rule
+                trimmed.length >= 3 && trimmed.all { it == '-' } -> {
+                    // Render as empty line (visual separator)
                 }
-                // Italic: *text* (but not **)
-                text[i] == '*' && (i + 1 >= text.length || text[i + 1] != '*') -> {
-                    val end = text.indexOf('*', i + 1)
-                    if (end != -1 && end > i + 1) {
-                        withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
-                            append(text.substring(i + 1, end))
-                        }
-                        i = end + 1
-                    } else {
-                        append(text[i])
-                        i++
-                    }
+                // Bullet list item: - text
+                trimmed.startsWith("- ") -> {
+                    append("  \u2022 ")
+                    appendInlineMarkdown(trimmed.substring(2))
                 }
-                // Horizontal rule: --- at start of line, replace with empty line
-                text[i] == '-' && isHorizontalRule(text, i) -> {
-                    append("\n")
-                    i = skipToNextLine(text, i)
+                // Numbered list item: 1. text
+                NUMBERED_LIST.matchesAt(trimmed, 0) -> {
+                    val match = NUMBERED_LIST.find(trimmed)!!
+                    append("  ${match.groupValues[1]} ")
+                    appendInlineMarkdown(trimmed.substring(match.range.last + 1))
                 }
+                // Regular text with inline formatting
                 else -> {
-                    append(text[i])
-                    i++
+                    appendInlineMarkdown(line)
                 }
             }
         }
     }
 }
 
-private fun parseInlineMarkdown(text: String): AnnotatedString {
-    return buildAnnotatedString {
-        var i = 0
-        while (i < text.length) {
-            if (text[i] == '*' && (i + 1 >= text.length || text[i + 1] != '*')) {
+private fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
+    var i = 0
+    while (i < text.length) {
+        when {
+            // Bold: **text**
+            i + 1 < text.length && text[i] == '*' && text[i + 1] == '*' -> {
+                val end = text.indexOf("**", i + 2)
+                if (end != -1) {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        appendInlineMarkdown(text.substring(i + 2, end))
+                    }
+                    i = end + 2
+                } else {
+                    append(text[i])
+                    i++
+                }
+            }
+            // Italic: *text* (but not **)
+            text[i] == '*' && (i + 1 >= text.length || text[i + 1] != '*') -> {
                 val end = text.indexOf('*', i + 1)
                 if (end != -1 && end > i + 1) {
                     withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
@@ -123,7 +125,8 @@ private fun parseInlineMarkdown(text: String): AnnotatedString {
                     append(text[i])
                     i++
                 }
-            } else {
+            }
+            else -> {
                 append(text[i])
                 i++
             }
@@ -131,26 +134,7 @@ private fun parseInlineMarkdown(text: String): AnnotatedString {
     }
 }
 
-private fun isHorizontalRule(text: String, index: Int): Boolean {
-    // Must be at start of line (or start of string)
-    if (index > 0 && text[index - 1] != '\n') return false
-    // Must have at least 3 dashes
-    var count = 0
-    var i = index
-    while (i < text.length && text[i] == '-') {
-        count++
-        i++
-    }
-    // Must be followed by newline or end of string
-    return count >= 3 && (i >= text.length || text[i] == '\n')
-}
-
-private fun skipToNextLine(text: String, index: Int): Int {
-    var i = index
-    while (i < text.length && text[i] != '\n') i++
-    if (i < text.length) i++ // skip the newline itself
-    return i
-}
+private val NUMBERED_LIST = Regex("^(\\d+\\.) ")
 
 internal fun extractWordAt(text: String, offset: Int): String {
     if (offset < 0 || offset >= text.length) return ""
