@@ -43,4 +43,24 @@ class MarkdownTextTest {
         assertEquals("সুন্দর", extractWordAt(text, 0))
         assertEquals("beautiful", extractWordAt(text, 14))
     }
+
+    @Test
+    fun `extractWordAt strips em-dash`() {
+        assertEquals("word", extractWordAt("—word—", 3))
+    }
+
+    @Test
+    fun `extractWordAt strips en-dash`() {
+        assertEquals("word", extractWordAt("–word–", 3))
+    }
+
+    @Test
+    fun `extractWordAt strips bullet character`() {
+        assertEquals("item", extractWordAt("•item", 2))
+    }
+
+    @Test
+    fun `extractWordAt handles parenthesized word`() {
+        assertEquals("noun", extractWordAt("(noun)", 3))
+    }
 }

@@ -188,6 +188,26 @@ class CardExtractorTest {
     }
 
     @Test
+    fun `extractFromResponse returns null for empty response`() {
+        assertNull(CardExtractor.extractFromResponse("hello", ""))
+    }
+
+    @Test
+    fun `extractFromResponse uses bold word from response when input is empty`() {
+        val card = CardExtractor.extractFromResponse("", "**hello** - a greeting")
+        assertNotNull(card)
+        assertEquals("hello", card?.word)
+    }
+
+    @Test
+    fun `parseCardJson handles empty JSON object`() {
+        val card = CardExtractor.parseCardJson("{}")
+        assertNotNull(card)
+        assertEquals("", card?.word)
+        assertEquals("", card?.definition)
+    }
+
+    @Test
     fun `extractFromResponse removes asterisks from extracted text`() {
         val userInput = "test"
         val aiResponse = """

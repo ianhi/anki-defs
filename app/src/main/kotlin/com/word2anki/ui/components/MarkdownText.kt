@@ -16,7 +16,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.sp
 
 /**
  * Text component that renders markdown formatting:
@@ -146,6 +145,8 @@ private fun AnnotatedString.Builder.appendInlineMarkdown(text: String) {
 private val NUMBERED_LIST = Regex("^(\\d+\\.) ")
 private val HEADER = Regex("^#{1,6} ")
 
+private const val PUNCTUATION_CHARS = ".,;:!?()[]{}\"'—–•"
+
 internal fun extractWordAt(text: String, offset: Int): String {
     if (offset < 0 || offset >= text.length) return ""
     var start = offset
@@ -153,5 +154,5 @@ internal fun extractWordAt(text: String, offset: Int): String {
     while (start > 0 && !text[start - 1].isWhitespace()) start--
     while (end < text.length && !text[end].isWhitespace()) end++
     return text.substring(start, end)
-        .trim { it in ".,;:!?()[]{}\"'" }
+        .trim { it in PUNCTUATION_CHARS }
 }
