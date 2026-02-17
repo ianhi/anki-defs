@@ -3,11 +3,13 @@ package com.word2anki.data
 import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
+import android.util.Log
 import com.word2anki.data.models.Deck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private const val TAG = "AnkiRepository"
 
 /**
  * Repository for interacting with AnkiDroid via ContentProvider API.
@@ -24,6 +26,7 @@ class AnkiRepository(private val context: Context) {
                 FlashCardsContract.AUTHORITY, 0
             ) != null
         } catch (e: Exception) {
+            Log.w(TAG, "Error checking AnkiDroid installation", e)
             false
         }
     }
@@ -74,6 +77,7 @@ class AnkiRepository(private val context: Context) {
                 decks.sortedBy { deck -> deck.name }
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to load decks", e)
             emptyList()
         }
     }
@@ -110,6 +114,7 @@ class AnkiRepository(private val context: Context) {
                 models
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to load models", e)
             emptyList()
         }
     }
@@ -144,6 +149,7 @@ class AnkiRepository(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to get model field names for model $modelId", e)
             emptyList()
         }
     }
@@ -170,10 +176,9 @@ class AnkiRepository(private val context: Context) {
                 null,
                 null
             )
-            val exists = (cursor?.count ?: 0) > 0
-            cursor?.close()
-            exists
+            cursor?.use { it.count > 0 } ?: false
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to check note existence for '$word'", e)
             false
         }
     }
@@ -208,6 +213,7 @@ class AnkiRepository(private val context: Context) {
             val resultUri = contentResolver.insert(FlashCardsContract.Note.CONTENT_URI, values)
             resultUri?.lastPathSegment?.toLongOrNull()
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to add note", e)
             null
         }
     }
@@ -260,6 +266,7 @@ class AnkiRepository(private val context: Context) {
             val resultUri = contentResolver.insert(FlashCardsContract.Model.CONTENT_URI, values)
             resultUri?.lastPathSegment?.toLongOrNull()
         } catch (e: Exception) {
+            Log.e(TAG, "Failed to create model '$name'", e)
             null
         }
     }

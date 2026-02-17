@@ -95,12 +95,7 @@ fun MessageBubble(
             }
 
             // Show retry button for error messages
-            val isError = !isUser && !message.isStreaming && message.content.let {
-                it.startsWith("Error:") || it.startsWith("Invalid API key") ||
-                    it.startsWith("API rate limit") || it.startsWith("Network error") ||
-                    it.startsWith("Request timed out") || it.startsWith("Response was blocked")
-            }
-            if (isError && onRetry != null) {
+            if (message.isError && onRetry != null) {
                 TextButton(onClick = onRetry) {
                     Text("Retry", color = MaterialTheme.colorScheme.primary)
                 }

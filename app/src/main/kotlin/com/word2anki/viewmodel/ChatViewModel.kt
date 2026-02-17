@@ -125,7 +125,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setSharedText(text: String) {
-        _uiState.value = _uiState.value.copy(inputText = text)
+        updateInputText(text)
     }
 
     fun retryLastMessage() {
@@ -183,7 +183,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val finalResponse = streamResponse(service, text)
                 extractAndAttachCard(service, text, finalResponse)
             } catch (e: Exception) {
-                val errorMessage = Companion.formatError(e)
+                val errorMessage = formatError(e)
                 updateLastMessage(errorMessage, isStreaming = false)
             } finally {
                 _uiState.value = _uiState.value.copy(isGenerating = false)
@@ -213,7 +213,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // Build conversation history: completed message pairs, excluding errors and cancelled
         val allMessages = _uiState.value.messages
         val history = allMessages.filter {
-            !it.isStreaming && it.content.isNotBlank() && !isErrorMessage(it)
+            !it.isStreaming && it.content.isNotBlank() && !it.isError
         }.dropLast(1) // Drop the current user message (the one we're about to send)
         val responseBuilder = StringBuilder()
         service.generateStreamingResponse(text, history).collect { chunk ->
@@ -388,18 +388,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearCardAddedEvent() {
         _cardAddedEvent.value = null
-    }
-
-    private fun isErrorMessage(message: Message): Boolean {
-        if (message.role != MessageRole.ASSISTANT) return false
-        val content = message.content
-        return content == "(Cancelled)" ||
-            content.startsWith("Error:") ||
-            content.startsWith("Invalid API key") ||
-            content.startsWith("API rate limit") ||
-            content.startsWith("Network error") ||
-            content.startsWith("Request timed out") ||
-            content.startsWith("Response was blocked")
     }
 
     override fun onCleared() {
