@@ -15,8 +15,9 @@
 
 ### Build & Model Fixes
 
-- [x] **Gemini model update** - Changed from `gemini-1.5-flash` to `gemini-2.0-flash` (old model returned 404)
+- [x] **Gemini model update** - Now using `gemini-2.5-flash`
 - [x] **Build verification** - Zero warnings, all tests pass
+- [x] **AnkiDroid note insertion fix** - Deck ID passed via ContentValues, not URI path segment
 
 ### Emulator Testing Setup
 
@@ -24,14 +25,13 @@
 - [x] **word2anki installed and running** - App launches correctly
 - [x] **AnkiDroid installed (v2.23.3)** - Onboarding completed, permissions granted
 - [x] **Deck created** - "Test Vocabulary" deck created in AnkiDroid
-- [x] **AnkiDroid integration verified** - word2anki detects deck and shows it in UI
-- [x] **API call tested** - Gemini API called successfully (quota exceeded on free tier, but flow works)
 
-## In Progress
+### End-to-End Testing (All Passing)
 
-### API Key / Quota
-
-- [ ] **Gemini API quota** - Free tier quota exceeded for `gemini-2.0-flash`. Need a working API key or explore alternative models.
+- [x] **English word definition** - "serendipity" → full definition, examples, card preview
+- [x] **Add to Anki** - Card successfully added to AnkiDroid "Test Vocabulary" deck
+- [x] **Bangla sentence with highlighted word** - `আমি গতকাল **বাজারে** গিয়েছিলাম` → correctly identifies "বাজারে" (to/at/in the market) with Bangla example + English translation
+- [x] **Share intent** - Bangla text received via `android.intent.action.SEND`
 
 ## Future / Backlog
 
