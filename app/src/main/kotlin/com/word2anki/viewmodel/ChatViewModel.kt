@@ -132,21 +132,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val messages = _uiState.value.messages
         // Find the last user message to retry
         val lastUserMsg = messages.lastOrNull { it.role == MessageRole.USER } ?: return
-        // Remove the failed assistant response (last message if it's from assistant)
-        val trimmed = if (messages.last().role == MessageRole.ASSISTANT) {
-            messages.dropLast(1)
-        } else {
-            messages
-        }
-        _uiState.value = _uiState.value.copy(
-            messages = trimmed,
-            inputText = lastUserMsg.content
-        )
-        // Resend — remove the user message too since sendMessage will re-add it
-        _uiState.value = _uiState.value.copy(
-            messages = trimmed.dropLast(1)
-        )
-        sendMessage()
+        // Remove the failed assistant response and the user message (sendMessage will re-add it)
+        val cleaned = messages.dropLastWhile { it.id != lastUserMsg.id }.dropLast(1)
+        _uiState.value = _uiState.value.copy(messages = cleaned)
+        sendMessage(lastUserMsg.content)
     }
 
     fun cancelGeneration() {

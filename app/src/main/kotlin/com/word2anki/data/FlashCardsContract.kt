@@ -9,7 +9,7 @@ import android.net.Uri
 object FlashCardsContract {
     const val AUTHORITY = "com.ichi2.anki.flashcards"
 
-    val READ_WRITE_PERMISSION = "com.ichi2.anki.permission.READ_WRITE_DATABASE"
+    const val READ_WRITE_PERMISSION = "com.ichi2.anki.permission.READ_WRITE_DATABASE"
 
     object Note {
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/notes")
