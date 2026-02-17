@@ -47,7 +47,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.word2anki.data.models.Deck
 import com.word2anki.ui.theme.Word2AnkiTheme
 import com.word2anki.BuildConfig
-import com.word2anki.ai.GeminiService
 import com.word2anki.ui.components.DeckSelector
 import com.word2anki.viewmodel.SettingsViewModel
 
@@ -96,7 +95,7 @@ fun SettingsScreen(
         isLoading = uiState.isLoading,
         showClearDialog = showClearDialog,
         snackbarHostState = snackbarHostState,
-        saveEnabled = GeminiService.isValidApiKeyFormat(apiKeyInput) && apiKeyInput != settings.geminiApiKey,
+        saveEnabled = SettingsViewModel.isValidApiKeyFormat(apiKeyInput) && apiKeyInput != settings.geminiApiKey,
         onApiKeyChange = { apiKeyInput = it },
         onToggleShowApiKey = { showApiKey = !showApiKey },
         onSaveApiKey = { viewModel.updateApiKey(apiKeyInput) },
@@ -177,7 +176,7 @@ private fun SettingsScreenContent(
                     )
 
                     val isKeyInvalid = apiKeyInput.isNotBlank() &&
-                        !GeminiService.isValidApiKeyFormat(apiKeyInput)
+                        !SettingsViewModel.isValidApiKeyFormat(apiKeyInput)
 
                     OutlinedTextField(
                         value = apiKeyInput,

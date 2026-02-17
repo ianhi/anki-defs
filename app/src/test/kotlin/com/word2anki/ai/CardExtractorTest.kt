@@ -207,6 +207,59 @@ class CardExtractorTest {
         assertEquals("", card?.definition)
     }
 
+    // --- Unit tests for extracted helper functions ---
+
+    @Test
+    fun `extractWord finds first bold word`() {
+        assertEquals("hello", CardExtractor.extractWord("**hello** — greeting", "fallback"))
+    }
+
+    @Test
+    fun `extractWord falls back to user input when no bold`() {
+        assertEquals("fallback", CardExtractor.extractWord("no bold here", "fallback"))
+    }
+
+    @Test
+    fun `extractWord takes first word of multi-word bold`() {
+        assertEquals("good", CardExtractor.extractWord("**good morning** — greeting", "x"))
+    }
+
+    @Test
+    fun `extractDefinition finds dash-separated definition`() {
+        assertEquals(
+            "Beautiful, pretty",
+            CardExtractor.extractDefinition("**সুন্দর** — Beautiful, pretty\n\nMore text", "সুন্দর")
+        )
+    }
+
+    @Test
+    fun `extractDefinition returns empty when no definition found`() {
+        assertEquals("", CardExtractor.extractDefinition("no definition pattern", "missing"))
+    }
+
+    @Test
+    fun `extractExample finds numbered example after header`() {
+        val response = "**Examples:**\n1. Example sentence — Translation"
+        val (example, translation) = CardExtractor.extractExample(response, hasDefinition = false)
+        assertEquals("Example sentence", example)
+        assertEquals("Translation", translation)
+    }
+
+    @Test
+    fun `extractExample finds example after definition without header`() {
+        val response = "Some text\n1. Example sentence — Translation"
+        val (example, translation) = CardExtractor.extractExample(response, hasDefinition = true)
+        assertEquals("Example sentence", example)
+        assertEquals("Translation", translation)
+    }
+
+    @Test
+    fun `extractExample returns empty when no examples found`() {
+        val (example, translation) = CardExtractor.extractExample("no examples", hasDefinition = false)
+        assertEquals("", example)
+        assertEquals("", translation)
+    }
+
     @Test
     fun `extractFromResponse removes asterisks from extracted text`() {
         val userInput = "test"

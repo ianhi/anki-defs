@@ -17,7 +17,6 @@ object CardExtractor {
      */
     fun parseCardJson(json: String): CardPreview? {
         return try {
-            // Clean up the JSON string (remove markdown code blocks if present)
             val cleanJson = json
                 .replace("```json", "")
                 .replace("```", "")
@@ -37,65 +36,20 @@ object CardExtractor {
 
     /**
      * Try to extract card data directly from AI response without additional API call.
-     * Uses simple heuristics to find the word and definition.
+     * Uses simple heuristics to find the word, definition, and example.
      */
     fun extractFromResponse(userInput: String, aiResponse: String): CardPreview? {
         return try {
-            // Try to find the main word (usually the first bold text)
-            val wordMatch = BOLD_WORD.find(aiResponse)
-            val word = wordMatch?.groupValues?.get(1)?.split(" ")?.firstOrNull()
-                ?: userInput.trim().split(" ").firstOrNull()
-                ?: return null
+            val word = extractWord(aiResponse, userInput) ?: return null
+            val definition = extractDefinition(aiResponse, word)
+            val (example, translation) = extractExample(aiResponse, definition.isNotEmpty())
 
-            // Try to extract definition (text after the word, before newline)
-            val lines = aiResponse.lines()
-            var definition = ""
-            var exampleSentence = ""
-            var sentenceTranslation = ""
-            var foundExamplesHeader = false
-
-            for (line in lines) {
-                val trimmedLine = line.trim()
-
-                // Track when we've passed an Examples header
-                if (trimmedLine.contains("Example", ignoreCase = true) && trimmedLine.contains("**")) {
-                    foundExamplesHeader = true
-                }
-
-                // Look for definition pattern using various separators:
-                // **word** - definition, **word** — definition, **word** (trans) — definition
-                if (definition.isEmpty() && trimmedLine.contains(word)) {
-                    val defMatch = DASH_SEPARATOR.find(trimmedLine)
-                    if (defMatch != null) {
-                        definition = trimmedLine.substring(defMatch.range.last + 1).trim()
-                    }
-                }
-
-                // Look for example sentences (numbered list or bullet, preferably after Examples header)
-                // Also accept 1. lines after we've found a definition (common in simpler responses)
-                if (exampleSentence.isEmpty() && (foundExamplesHeader || definition.isNotEmpty()) &&
-                    (trimmedLine.startsWith("1.") || trimmedLine.startsWith("- "))) {
-                    val exampleText = trimmedLine
-                        .removePrefix("1.")
-                        .removePrefix("- ")
-                        .trim()
-                    val exampleParts = exampleText.split(DASH_SEPARATOR)
-                    if (exampleParts.isNotEmpty()) {
-                        exampleSentence = exampleParts[0].trim()
-                        if (exampleParts.size > 1) {
-                            sentenceTranslation = exampleParts[1].trim()
-                        }
-                    }
-                }
-            }
-
-            // Only return if we have at least a word and definition
             if (word.isNotEmpty() && definition.isNotEmpty()) {
                 CardPreview(
                     word = word.replace("*", ""),
                     definition = definition.replace("*", ""),
-                    exampleSentence = exampleSentence.replace("*", ""),
-                    sentenceTranslation = sentenceTranslation.replace("*", "")
+                    exampleSentence = example.replace("*", ""),
+                    sentenceTranslation = translation.replace("*", "")
                 )
             } else {
                 null
@@ -103,6 +57,63 @@ object CardExtractor {
         } catch (e: IndexOutOfBoundsException) {
             null
         }
+    }
+
+    /**
+     * Extract the primary word being taught.
+     * Looks for the first bold text, falls back to the first word of user input.
+     */
+    internal fun extractWord(aiResponse: String, userInput: String): String? {
+        val boldMatch = BOLD_WORD.find(aiResponse)
+        return boldMatch?.groupValues?.get(1)?.split(" ")?.firstOrNull()
+            ?: userInput.trim().split(" ").firstOrNull()
+    }
+
+    /**
+     * Extract the definition from the response by finding a dash-separated pattern
+     * on a line containing the target word.
+     */
+    internal fun extractDefinition(aiResponse: String, word: String): String {
+        for (line in aiResponse.lines()) {
+            val trimmed = line.trim()
+            if (trimmed.contains(word)) {
+                val defMatch = DASH_SEPARATOR.find(trimmed)
+                if (defMatch != null) {
+                    return trimmed.substring(defMatch.range.last + 1).trim()
+                }
+            }
+        }
+        return ""
+    }
+
+    /**
+     * Extract the first example sentence and its translation from numbered or bulleted lists.
+     * Returns Pair(exampleSentence, sentenceTranslation).
+     */
+    internal fun extractExample(aiResponse: String, hasDefinition: Boolean): Pair<String, String> {
+        var foundExamplesHeader = false
+
+        for (line in aiResponse.lines()) {
+            val trimmed = line.trim()
+
+            if (trimmed.contains("Example", ignoreCase = true) && trimmed.contains("**")) {
+                foundExamplesHeader = true
+            }
+
+            if ((foundExamplesHeader || hasDefinition) &&
+                (trimmed.startsWith("1.") || trimmed.startsWith("- "))
+            ) {
+                val exampleText = trimmed
+                    .removePrefix("1.")
+                    .removePrefix("- ")
+                    .trim()
+                val parts = exampleText.split(DASH_SEPARATOR)
+                val sentence = parts.getOrElse(0) { "" }.trim()
+                val translation = parts.getOrElse(1) { "" }.trim()
+                return sentence to translation
+            }
+        }
+        return "" to ""
     }
 
     /**

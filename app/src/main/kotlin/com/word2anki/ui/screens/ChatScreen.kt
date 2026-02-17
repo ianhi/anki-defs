@@ -93,15 +93,8 @@ fun ChatScreen(
     }
 
     // Handle shared text (from share sheet or text selection toolbar)
-    var consumedSharedText by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(sharedText) {
-        if (sharedText != null && sharedText != consumedSharedText && sharedText.isNotBlank()) {
-            consumedSharedText = sharedText
-            viewModel.setSharedText(sharedText)
-            if (autoSend) {
-                viewModel.sendMessage()
-            }
-        }
+        viewModel.processSharedText(sharedText, autoSend)
     }
 
     // Handle errors

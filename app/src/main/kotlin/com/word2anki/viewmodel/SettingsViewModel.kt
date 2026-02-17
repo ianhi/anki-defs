@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
@@ -46,19 +47,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     private fun loadDecks() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 val decks = ankiRepository.getDecks()
-                _uiState.value = _uiState.value.copy(
-                    decks = decks,
-                    isLoading = false,
-                    error = null
-                )
+                _uiState.update { it.copy(decks = decks, isLoading = false, error = null) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = "Failed to load decks: ${e.message}"
-                )
+                _uiState.update { it.copy(isLoading = false, error = "Failed to load decks: ${e.message}") }
             }
         }
     }
@@ -87,25 +81,30 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         action: suspend () -> Unit
     ) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
+            _uiState.update { it.copy(isSaving = true) }
             try {
                 action()
-                _uiState.value = _uiState.value.copy(isSaving = false, error = null)
+                _uiState.update { it.copy(isSaving = false, error = null) }
                 _snackbarEvent.send(successMessage)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    error = "$errorPrefix: ${e.message}"
-                )
+                _uiState.update { it.copy(isSaving = false, error = "$errorPrefix: ${e.message}") }
             }
         }
     }
 
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 
     fun refreshDecks() {
         loadDecks()
+    }
+
+    companion object {
+        private const val MIN_API_KEY_LENGTH = 20
+
+        fun isValidApiKeyFormat(apiKey: String): Boolean {
+            return apiKey.isNotBlank() && apiKey.length >= MIN_API_KEY_LENGTH
+        }
     }
 }

@@ -1,49 +1,49 @@
-package com.word2anki.ai
+package com.word2anki.viewmodel
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class GeminiServiceTest {
+class SettingsViewModelTest {
 
     @Test
     fun `isValidApiKeyFormat returns false for empty string`() {
-        assertFalse(GeminiService.isValidApiKeyFormat(""))
+        assertFalse(SettingsViewModel.isValidApiKeyFormat(""))
     }
 
     @Test
     fun `isValidApiKeyFormat returns false for blank string`() {
-        assertFalse(GeminiService.isValidApiKeyFormat("   "))
+        assertFalse(SettingsViewModel.isValidApiKeyFormat("   "))
     }
 
     @Test
     fun `isValidApiKeyFormat returns false for short string`() {
-        assertFalse(GeminiService.isValidApiKeyFormat("short"))
+        assertFalse(SettingsViewModel.isValidApiKeyFormat("short"))
     }
 
     @Test
     fun `isValidApiKeyFormat returns true for string with 20 or more chars`() {
-        assertTrue(GeminiService.isValidApiKeyFormat("12345678901234567890"))
+        assertTrue(SettingsViewModel.isValidApiKeyFormat("12345678901234567890"))
     }
 
     @Test
     fun `isValidApiKeyFormat returns true for typical API key length`() {
         val typicalKey = "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        assertTrue(GeminiService.isValidApiKeyFormat(typicalKey))
+        assertTrue(SettingsViewModel.isValidApiKeyFormat(typicalKey))
     }
 
     @Test
     fun `isValidApiKeyFormat returns false for 19 chars`() {
-        assertFalse(GeminiService.isValidApiKeyFormat("1234567890123456789"))
+        assertFalse(SettingsViewModel.isValidApiKeyFormat("1234567890123456789"))
     }
 
     @Test
     fun `isValidApiKeyFormat returns true for exactly 20 chars`() {
-        assertTrue(GeminiService.isValidApiKeyFormat("12345678901234567890"))
+        assertTrue(SettingsViewModel.isValidApiKeyFormat("12345678901234567890"))
     }
 
     @Test
     fun `isValidApiKeyFormat returns false for whitespace-only long string`() {
-        assertFalse(GeminiService.isValidApiKeyFormat("                    "))
+        assertFalse(SettingsViewModel.isValidApiKeyFormat("                    "))
     }
 }

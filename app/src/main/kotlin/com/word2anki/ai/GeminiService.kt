@@ -109,13 +109,5 @@ class GeminiService(private val apiKey: String) {
         private const val MODEL_NAME = "gemini-2.5-flash"
         private const val STREAMING_TIMEOUT_MS = 60_000L
         private const val EXTRACTION_TIMEOUT_MS = 15_000L
-
-        /**
-         * Validate if an API key appears to be valid format.
-         * Does not make an API call.
-         */
-        fun isValidApiKeyFormat(apiKey: String): Boolean {
-            return apiKey.isNotBlank() && apiKey.length >= 20
-        }
     }
 }
