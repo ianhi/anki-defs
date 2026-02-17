@@ -15,6 +15,7 @@ object FlashCardsContract {
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/notes")
         const val _ID = "_id"
         const val MID = "mid"           // Model ID
+        const val DECK_ID = "deckId"
         const val FLDS = "flds"         // Fields (separated by \u001f)
         const val TAGS = "tags"
         const val SFLD = "sfld"         // Sort field
@@ -33,6 +34,9 @@ object FlashCardsContract {
         const val NAME = "name"
         const val FIELD_NAMES = "field_names"
         const val NUM_CARDS = "num_cards"
+        const val CARD_NAMES = "cardNames"
+        const val QFMT = "qfmt"         // Question format (front template)
+        const val AFMT = "afmt"         // Answer format (back template)
     }
 
     /**

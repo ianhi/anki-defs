@@ -1,6 +1,7 @@
 package com.word2anki.ai
 
 import com.word2anki.data.models.CardPreview
+import org.json.JSONException
 import org.json.JSONObject
 
 /**
@@ -29,7 +30,7 @@ object CardExtractor {
                 exampleSentence = jsonObject.optString("exampleSentence", ""),
                 sentenceTranslation = jsonObject.optString("sentenceTranslation", "")
             )
-        } catch (e: Exception) {
+        } catch (e: JSONException) {
             null
         }
     }
@@ -99,7 +100,7 @@ object CardExtractor {
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (e: IndexOutOfBoundsException) {
             null
         }
     }

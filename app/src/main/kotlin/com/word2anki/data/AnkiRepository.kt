@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import com.word2anki.data.models.Deck
+import com.word2anki.data.models.NoteModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -85,9 +86,8 @@ class AnkiRepository(private val context: Context) {
 
     /**
      * Get available note models from AnkiDroid.
-     * Returns pairs of (modelId, modelName).
      */
-    suspend fun getModels(): List<Pair<Long, String>> = withContext(Dispatchers.IO) {
+    suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
         if (!isAnkiDroidInstalled() || !hasAnkiPermission()) {
             return@withContext emptyList()
         }
@@ -103,14 +103,12 @@ class AnkiRepository(private val context: Context) {
             ) ?: return@withContext emptyList()
 
             cursor.use {
-                val models = mutableListOf<Pair<Long, String>>()
+                val models = mutableListOf<NoteModel>()
                 val idIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model._ID)
                 val nameIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.NAME)
 
                 while (it.moveToNext()) {
-                    models.add(
-                        it.getLong(idIndex) to it.getString(nameIndex)
-                    )
+                    models.add(NoteModel(it.getLong(idIndex), it.getString(nameIndex)))
                 }
                 models
             }
@@ -205,7 +203,7 @@ class AnkiRepository(private val context: Context) {
         try {
             val values = ContentValues().apply {
                 put(FlashCardsContract.Note.MID, modelId)
-                put("deckId", deckId)
+                put(FlashCardsContract.Note.DECK_ID, deckId)
                 put(FlashCardsContract.Note.FLDS, fields.joinToString(FlashCardsContract.FIELD_SEPARATOR.toString()))
                 tags?.let { put(FlashCardsContract.Note.TAGS, it.joinToString(" ")) }
             }
@@ -225,8 +223,8 @@ class AnkiRepository(private val context: Context) {
     suspend fun getBasicModelId(): Long? = withContext(Dispatchers.IO) {
         val models = getModels()
         // Try to find a "Basic" model first
-        models.find { it.second.equals("Basic", ignoreCase = true) }?.first
-            ?: models.firstOrNull()?.first
+        models.find { it.name.equals("Basic", ignoreCase = true) }?.id
+            ?: models.firstOrNull()?.id
     }
 
     /**
@@ -235,7 +233,7 @@ class AnkiRepository(private val context: Context) {
      */
     suspend fun findModelByName(name: String): Long? = withContext(Dispatchers.IO) {
         val models = getModels()
-        models.find { it.second == name }?.first
+        models.find { it.name == name }?.id
     }
 
     /**
@@ -258,9 +256,9 @@ class AnkiRepository(private val context: Context) {
                 put(FlashCardsContract.Model.FIELD_NAMES,
                     fields.joinToString(",") { "\"$it\"" }.let { "[$it]" })
                 put(FlashCardsContract.Model.NUM_CARDS, 1)
-                put("cardNames", "[\"Card 1\"]")
-                put("qfmt", "[\"$frontTemplate\"]")
-                put("afmt", "[\"$backTemplate\"]")
+                put(FlashCardsContract.Model.CARD_NAMES, "[\"Card 1\"]")
+                put(FlashCardsContract.Model.QFMT, "[\"$frontTemplate\"]")
+                put(FlashCardsContract.Model.AFMT, "[\"$backTemplate\"]")
             }
 
             val resultUri = contentResolver.insert(FlashCardsContract.Model.CONTENT_URI, values)
