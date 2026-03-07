@@ -10,10 +10,4 @@ This directory defines the TypeScript types shared between the frontend and all 
 - Changes here affect ALL backends and the frontend
 - After changes: run `npm run check` (web) and verify Android still builds
 
-## Key Types
-
-- `Message` -- Chat message (user/assistant, card previews, analysis)
-- `CardContent` / `CardPreview` -- Flashcard data from AI responses
-- `WordAnalysis` / `SentenceAnalysis` -- Structured AI analysis results
-- SSE event types: `ContentEvent`, `CardEvent`, `DoneEvent`, `ErrorEvent`
-- Settings types: `Settings`, `SettingsUpdate`
+See `DOCS/` for type reference and API endpoint details.

@@ -10,21 +10,10 @@ that serves the frontend and implements the same HTTP API.
 
 ```
 client/    -- React frontend (shared by ALL platforms)
-shared/    -- TypeScript types (API contract source of truth)
+shared/    -- TypeScript types (API contract source of truth: shared/types.ts)
 server/    -- Backend #1: Node.js + Express + AnkiConnect (desktop/web)
 android/   -- Backend #2: Kotlin + NanoHTTPd + AnkiDroid ContentProvider
 ```
-
-## API Contract
-
-All backends implement `/api/*` endpoints. Source of truth: `shared/types.ts`
-
-| Route Group     | Endpoints                                           |
-| --------------- | --------------------------------------------------- |
-| `/api/anki`     | `/decks`, `/models`, `/notes`, `/search`, `/status` |
-| `/api/chat`     | `/stream` (SSE), `/define`, `/analyze`              |
-| `/api/settings` | `GET /`, `PUT /`                                    |
-| `/api/session`  | `GET /cards`, `DELETE /cards/:id`                   |
 
 ## Build Commands
 
@@ -50,8 +39,14 @@ All web code must pass TypeScript strict mode, ESLint, and Prettier (`npm run ch
 - Document as you go -- update docs in the same commit as code changes.
 - This is an application, not a library. No backwards-compatibility shims.
 
-## Key Docs
+## Documentation Structure
 
-- [PLANNING/](./PLANNING/) -- Architecture and migration plans
-- [PROGRESS.md](./PROGRESS.md) -- Android app progress tracker
-- [FUTURE_FEATURES.md](./FUTURE_FEATURES.md) -- Planned features
+Each subproject has two doc directories:
+
+- `PLANNING/` -- Future plans, requirements, design proposals. Agents create and update
+  planning docs as they define requirements or implement features. Each PLANNING/ dir has
+  an INDEX.md table of contents.
+- `DOCS/` -- Implementation reference (API details, file maps, patterns). Agents update
+  these as the code evolves.
+
+Root-level PLANNING/ and DOCS/ cover cross-cutting concerns.
