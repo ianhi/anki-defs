@@ -12,12 +12,12 @@ dev = [
     "pytest>=8.0",
     "pytest-cov>=6.0",
     "ruff>=0.11",
-    "mypy>=1.15",
+    "pyright>=1.1",
 ]
 # Anki type stubs for development type checking.
 # Install aqt[qt6] to get anki + aqt + PyQt6 type information.
 aqt = [
-    "aqt[qt6]>=25.2",
+    "aqt>=25.2",
 ]
 
 [tool.uv]
@@ -25,24 +25,18 @@ aqt = [
 # We only use uv for dev tooling.
 package = false
 
-[tool.mypy]
-python_version = "3.9"
-# Type-check our add-on code
-files = [
+[tool.pyright]
+pythonVersion = "3.9"
+include = [
     "__init__.py",
-    "server/",
-    "handlers/",
-    "services/",
+    "server",
+    "handlers",
+    "services",
 ]
-# The add-on directory has a hyphen in its name, so we need namespace packages mode.
-namespace_packages = true
-explicit_package_bases = true
-mypy_path = "."
-# anki/aqt may not have complete stubs
-ignore_missing_imports = true
-check_untyped_defs = true
-warn_return_any = true
-warn_unused_configs = true
+# anki/aqt are provided by Anki's runtime, not installable as dev deps
+reportMissingImports = "warning"
+reportMissingTypeStubs = false
+reportMissingModuleSource = false
 
 [tool.ruff]
 target-version = "py39"

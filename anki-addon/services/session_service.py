@@ -120,7 +120,7 @@ def promote_pending(pending_id, note_id):
     row = db.execute("SELECT * FROM pending WHERE id = ?", (pending_id,)).fetchone()
     if not row:
         return None
-    pending = _row_to_dict(row)
+    pending = dict(row)
     db.execute("DELETE FROM pending WHERE id = ?", (pending_id,))
     card = {
         "id": pending["id"],
