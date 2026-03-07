@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useDecks, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { ChevronDown, Database, AlertCircle } from 'lucide-react';
+import { ChevronDown, Database, AlertCircle, Check, X } from 'lucide-react';
+import { Button } from './ui/Button';
 
 export function HeaderDeckSelector() {
   const { settings, setDefaultDeck } = useSettingsStore();
@@ -39,5 +41,67 @@ export function HeaderDeckSelector() {
         <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
       </div>
     </div>
+  );
+}
+
+export function MobileDeckSelector() {
+  const [open, setOpen] = useState(false);
+  const { settings, setDefaultDeck } = useSettingsStore();
+  const { data: connected } = useAnkiStatus();
+  const { data: decks, isLoading } = useDecks();
+
+  if (!connected) {
+    return (
+      <Button variant="ghost" size="icon" disabled title="Anki not connected">
+        <AlertCircle className="h-4 w-4 text-destructive" />
+      </Button>
+    );
+  }
+
+  return (
+    <>
+      <Button variant="ghost" size="icon" onClick={() => setOpen(true)} title="Select deck">
+        <Database className="h-4 w-4" />
+      </Button>
+
+      {open && (
+        <div className="fixed inset-0 z-40 bg-card flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="font-medium">Select Deck</h2>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="px-4 py-3 text-sm text-muted-foreground">Loading decks...</div>
+            ) : (
+              <ul className="py-2">
+                {decks?.map((deck) => (
+                  <li key={deck}>
+                    <button
+                      className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between transition-colors ${
+                        deck === settings.defaultDeck
+                          ? 'bg-secondary text-foreground'
+                          : 'text-foreground hover:bg-secondary/50'
+                      }`}
+                      onClick={() => {
+                        setDefaultDeck(deck);
+                        setOpen(false);
+                      }}
+                    >
+                      <span className="truncate">{deck}</span>
+                      {deck === settings.defaultDeck && (
+                        <Check className="h-4 w-4 text-primary flex-shrink-0 ml-2" />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

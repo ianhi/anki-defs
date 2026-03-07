@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
-import { HeaderDeckSelector } from './components/HeaderDeckSelector';
+import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckSelector';
 import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { SettingsIcon, X, Layers, RefreshCw } from 'lucide-react';
 import { Button } from './components/ui/Button';
@@ -20,12 +20,15 @@ export default function App() {
   const { data: ankiConnected } = useAnkiStatus();
 
   return (
-    <div className="flex h-dvh w-screen overflow-hidden">
+    <div className="flex h-svh w-screen overflow-hidden supports-[height:100dvh]:h-dvh">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <h1 className="text-lg sm:text-xl font-semibold whitespace-nowrap">Bangla</h1>
+            <div className="sm:hidden">
+              <MobileDeckSelector />
+            </div>
             <div className="hidden sm:block">
               <HeaderDeckSelector />
             </div>
