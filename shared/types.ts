@@ -23,7 +23,6 @@ export interface CardContent {
 export interface CardPreview extends CardContent {
   inflectedForm?: string; // Original inflected form from the sentence (if different from lemma)
   alreadyExists: boolean; // Whether word already exists in Anki deck
-  existingNoteId?: number; // If exists, the note ID in Anki
   lemmaMismatch?: boolean; // True when extraction AI returned a different lemma than the main AI
   originalLemma?: string; // The lemma suggested by the main AI (when mismatched)
 }
@@ -165,15 +164,12 @@ export interface TokenUsage {
   model?: string;
 }
 
-// SSE event types
-export interface SSEEvent {
-  type:
-    | 'text'
-    | 'card_preview'
-    | 'word_analysis'
-    | 'sentence_analysis'
-    | 'usage'
-    | 'done'
-    | 'error';
-  data: string | CardPreview | WordAnalysis | SentenceAnalysis | TokenUsage | null;
-}
+// SSE event types (discriminated union for type safety)
+export type SSEEvent =
+  | { type: 'text'; data: string }
+  | { type: 'card_preview'; data: CardPreview }
+  | { type: 'word_analysis'; data: WordAnalysis }
+  | { type: 'sentence_analysis'; data: SentenceAnalysis }
+  | { type: 'usage'; data: TokenUsage }
+  | { type: 'done'; data: null }
+  | { type: 'error'; data: string };

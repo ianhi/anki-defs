@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { chatApi } from '@/lib/api';
-import type { Message, CardPreview, TokenUsage } from 'shared';
+import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
 
 function generateId(): string {
@@ -88,31 +88,37 @@ export function useChat() {
             return;
           }
 
-          if (event.type === 'text' && typeof event.data === 'string') {
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
-              )
-            );
-          } else if (event.type === 'card_preview') {
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMsgId
-                  ? {
-                      ...msg,
-                      cardPreviews: [...(msg.cardPreviews || []), event.data as CardPreview],
-                    }
-                  : msg
-              )
-            );
-          } else if (event.type === 'usage') {
-            const usage = event.data as TokenUsage;
-            useTokenUsage.getState().addUsage(usage);
-            setMessages((prev) =>
-              prev.map((msg) => (msg.id === assistantMsgId ? { ...msg, tokenUsage: usage } : msg))
-            );
-          } else if (event.type === 'error') {
-            setError(event.data as string);
+          switch (event.type) {
+            case 'text':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
+                )
+              );
+              break;
+            case 'card_preview':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        cardPreviews: [...(msg.cardPreviews || []), event.data],
+                      }
+                    : msg
+                )
+              );
+              break;
+            case 'usage':
+              useTokenUsage.getState().addUsage(event.data);
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, tokenUsage: event.data } : msg
+                )
+              );
+              break;
+            case 'error':
+              setError(event.data);
+              break;
           }
         }
       } catch (err) {
