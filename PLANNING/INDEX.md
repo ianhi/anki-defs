@@ -41,7 +41,7 @@ See [next-steps.md](next-steps.md) for the prioritized list. Key items:
 | [repo-structure.md](repo-structure.md)         | Monorepo layout and build system         |
 | [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design               |
 | [settings-design.md](settings-design.md)       | Android settings design                  |
-| [anki-addon.md](anki-addon.md)                 | Future: Python backend in Anki Desktop   |
+| [anki-addon.md](anki-addon.md)                 | Planned: Python backend in Anki Desktop (research complete) |
 
 ## Completed
 
