@@ -11,11 +11,12 @@ import os
 from . import claude_provider, gemini_provider, openrouter_provider
 from .settings_service import get_settings
 
-_PROMPTS_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    "shared",
-    "prompts",
-)
+_ADDON_DIR = os.path.dirname(os.path.dirname(__file__))
+
+# Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
+_SHARED_PACKAGED = os.path.join(_ADDON_DIR, "_shared", "prompts")
+_SHARED_REPO = os.path.join(os.path.dirname(_ADDON_DIR), "shared", "prompts")
+_PROMPTS_DIR = _SHARED_PACKAGED if os.path.isdir(_SHARED_PACKAGED) else _SHARED_REPO
 
 
 def _load_json(filename):

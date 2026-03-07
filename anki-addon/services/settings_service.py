@@ -9,13 +9,11 @@ import os
 
 from aqt import mw
 
-# Load shared defaults from shared/defaults/settings.json
-_SHARED_DEFAULTS_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    "shared",
-    "defaults",
-    "settings.json",
-)
+# Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
+_ADDON_DIR = os.path.dirname(os.path.dirname(__file__))
+_PACKAGED_PATH = os.path.join(_ADDON_DIR, "_shared", "defaults", "settings.json")
+_REPO_PATH = os.path.join(os.path.dirname(_ADDON_DIR), "shared", "defaults", "settings.json")
+_SHARED_DEFAULTS_PATH = _PACKAGED_PATH if os.path.isfile(_PACKAGED_PATH) else _REPO_PATH
 
 _ADDON_DEFAULTS = {
     "port": 28735,

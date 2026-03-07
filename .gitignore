@@ -38,9 +38,13 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Anki add-on
 anki-addon/user_files/session.db
+anki-addon/_shared/
+*.ankiaddon
 
 # Misc
 *.bak
