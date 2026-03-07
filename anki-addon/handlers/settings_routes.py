@@ -1,8 +1,9 @@
 """Settings API handlers."""
 
 import json
+
 from ..server.web import Response
-from ..services.settings_service import get_masked_settings, save_settings, get_settings
+from ..services.settings_service import get_masked_settings, save_settings
 
 
 def handle_get_settings(_params, _headers, _body):

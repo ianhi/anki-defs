@@ -1,7 +1,7 @@
 """Route registration -- creates the router with all API handlers."""
 
 from ..server.router import Router
-from . import anki_routes, chat_routes, settings_routes, session_routes, platform_routes
+from . import anki_routes, chat_routes, platform_routes, session_routes, settings_routes
 
 
 def create_router():

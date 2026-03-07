@@ -4,8 +4,8 @@ Uses urllib.request for HTTP calls. All streaming is done via chunked reads
 in a daemon thread (see chat_routes.py).
 """
 
-from .settings_service import get_settings
 from . import claude_provider, gemini_provider, openrouter_provider
+from .settings_service import get_settings
 
 
 def get_provider_module():
@@ -53,7 +53,7 @@ Bangla Lemmatization Rules (ALWAYS apply):
 Spelling tolerance: Accept common confusions (\u09ac/\u09f0, \u09a3/\u09a8, \u09b6/\u09b7/\u09b8, missing/extra chandrabindu \u0981) and silently correct them."""
 
     return {
-        "word": "You are a Bangla language tutor. Define the word directly and concisely.{translit_instr}\n\n{lemma_rules}\n\nFormat:\n**[lemmatized dictionary form]**{translit} \u2014 [English meaning]\n\n*[part of speech]*\n\n**Examples:**\n1. [Bangla sentence using the word naturally] \u2014 [English translation]\n2. [Bangla sentence using the word naturally] \u2014 [English translation]\n\n**Notes:** [Brief usage notes, grammar, or cultural context if relevant]\n\nIf the word is derived from a useful root word, mention it: \"From root: [root] \u2014 [meaning]\"\n\nRules:\n- Be direct. No preamble like \"Let's break down...\" or \"Absolutely!\". Start with the word itself.\n- Definition: just the meaning, no grammar labels in parentheses. \"to cry, to weep\" not \"to cry (verb, intransitive)\"\n- Example sentences must be REAL sentences, not definitions or glosses.\n- Keep example sentences short (5-8 words) using common vocabulary.\n- For sentence translations, pick one natural translation. No he/she slashes.".format(
+        "word": 'You are a Bangla language tutor. Define the word directly and concisely.{translit_instr}\n\n{lemma_rules}\n\nFormat:\n**[lemmatized dictionary form]**{translit} \u2014 [English meaning]\n\n*[part of speech]*\n\n**Examples:**\n1. [Bangla sentence using the word naturally] \u2014 [English translation]\n2. [Bangla sentence using the word naturally] \u2014 [English translation]\n\n**Notes:** [Brief usage notes, grammar, or cultural context if relevant]\n\nIf the word is derived from a useful root word, mention it: "From root: [root] \u2014 [meaning]"\n\nRules:\n- Be direct. No preamble like "Let\'s break down..." or "Absolutely!". Start with the word itself.\n- Definition: just the meaning, no grammar labels in parentheses. "to cry, to weep" not "to cry (verb, intransitive)"\n- Example sentences must be REAL sentences, not definitions or glosses.\n- Keep example sentences short (5-8 words) using common vocabulary.\n- For sentence translations, pick one natural translation. No he/she slashes.'.format(
             translit_instr=translit_instr, lemma_rules=lemma_rules, translit=translit
         ),
         "sentence": "You are a Bangla language tutor. Analyze the sentence with focus on morphology.{translit_instr}\n\n{lemma_rules}\n\nFormat:\n**Translation:** [one natural English translation \u2014 no he/she slashes, just pick one]\n\n**Word-by-word:**\n- **[word as it appears]**{translit} \u2014 [meaning]. From **[lemma/dictionary form]**. [Explain any suffixes, conjugations, or how it relates to other words.]\n[continue for each word]\n\nAt the end, list vocabulary worth learning as LEMMATIZED dictionary forms (not the inflected forms from the sentence):\n**Vocabulary:** [comma-separated list of lemmatized dictionary forms]\n\nSkip common particles that don't need learning.\n\nBe direct. No preamble. Focus on the specific morphology of each word.".format(

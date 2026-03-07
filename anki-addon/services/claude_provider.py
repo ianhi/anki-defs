@@ -1,8 +1,9 @@
 """Claude (Anthropic) AI provider using urllib.request."""
 
 import json
-import urllib.request
 import ssl
+import urllib.request
+
 from .settings_service import get_settings
 
 
@@ -18,13 +19,15 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
     """Stream a Claude completion. Runs in a daemon thread."""
     try:
         api_key = _get_api_key()
-        data = json.dumps({
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": 2048,
-            "system": system_prompt,
-            "messages": [{"role": "user", "content": user_message}],
-            "stream": True,
-        }).encode("utf-8")
+        data = json.dumps(
+            {
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 2048,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_message}],
+                "stream": True,
+            }
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",
@@ -69,12 +72,14 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
                 input_tokens = usage.get("input_tokens", 0)
 
         if input_tokens or output_tokens:
-            on_usage({
-                "inputTokens": input_tokens,
-                "outputTokens": output_tokens,
-                "provider": "claude",
-                "model": model,
-            })
+            on_usage(
+                {
+                    "inputTokens": input_tokens,
+                    "outputTokens": output_tokens,
+                    "provider": "claude",
+                    "model": model,
+                }
+            )
         on_done()
     except Exception as e:
         on_error(str(e))
@@ -83,12 +88,14 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
 def get_completion(system_prompt, user_message):
     """Get a non-streaming Claude completion."""
     api_key = _get_api_key()
-    data = json.dumps({
-        "model": "claude-sonnet-4-20250514",
-        "max_tokens": 2048,
-        "system": system_prompt,
-        "messages": [{"role": "user", "content": user_message}],
-    }).encode("utf-8")
+    data = json.dumps(
+        {
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 2048,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_message}],
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",

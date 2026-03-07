@@ -1,18 +1,19 @@
 """Chat API handlers -- AI streaming and non-streaming endpoints."""
 
+import concurrent.futures
 import json
 import threading
-import concurrent.futures
-from ..server.web import Response
+
 from ..server.sse import send_sse
+from ..server.web import Response
 from ..services import ai_service, anki_service
-from ..services.settings_service import get_settings
 from ..services.card_extraction import (
     extract_cards,
-    extract_vocabulary_list,
-    extract_sentence_translation,
     extract_inflected_forms,
+    extract_sentence_translation,
+    extract_vocabulary_list,
 )
+from ..services.settings_service import get_settings
 
 
 def handle_stream(_params, _headers, body):
@@ -49,7 +50,9 @@ def handle_stream(_params, _headers, body):
         user_message = new_message
 
     # Pre-check Anki for highlighted words or single word (on main thread)
-    words_to_check = highlighted_words if has_highlighted else ([new_message] if is_single_word else [])
+    words_to_check = (
+        highlighted_words if has_highlighted else ([new_message] if is_single_word else [])
+    )
     anki_results = {}
     for word in words_to_check:
         try:
@@ -63,9 +66,16 @@ def handle_stream(_params, _headers, body):
         thread = threading.Thread(
             target=_stream_worker,
             args=(
-                sock, system_prompt, user_message, new_message,
-                target_deck, is_single_word, has_highlighted,
-                highlighted_words, anki_results, field_mapping,
+                sock,
+                system_prompt,
+                user_message,
+                new_message,
+                target_deck,
+                is_single_word,
+                has_highlighted,
+                highlighted_words,
+                anki_results,
+                field_mapping,
             ),
             daemon=True,
         )
@@ -75,9 +85,16 @@ def handle_stream(_params, _headers, body):
 
 
 def _stream_worker(
-    sock, system_prompt, user_message, original_message,
-    target_deck, is_single_word, has_highlighted,
-    highlighted_words, anki_results, field_mapping,
+    sock,
+    system_prompt,
+    user_message,
+    original_message,
+    target_deck,
+    is_single_word,
+    has_highlighted,
+    highlighted_words,
+    anki_results,
+    field_mapping,
 ):
     """Runs in a daemon thread -- handles AI streaming + card extraction."""
     full_response_parts = []
@@ -114,7 +131,7 @@ def _stream_worker(
             # Card extraction needs Anki access (collection) -- use main thread bridge
             from aqt import mw
 
-            future = concurrent.futures.Future()
+            future: concurrent.futures.Future = concurrent.futures.Future()
 
             def _extract_on_main():
                 try:
@@ -216,10 +233,10 @@ def handle_relemmatize(_params, _headers, body):
         prompt = (
             'What is the correct Bangla dictionary/lemma form of "{word}"?{context}\n\n'
             "Return ONLY valid JSON:\n"
-            '{{\n'
+            "{{\n"
             '  "lemma": "the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)",\n'
             '  "definition": "concise English definition (under 10 words)"\n'
-            '}}\n\n'
+            "}}\n\n"
             "Bangla Lemmatization Rules:\n"
             "- Nouns: Remove case endings.\n"
             "- Verbs: Convert to verbal noun.\n"
@@ -233,10 +250,12 @@ def handle_relemmatize(_params, _headers, body):
         except (json.JSONDecodeError, ValueError):
             return Response.json({"lemma": word, "definition": ""})
 
-        return Response.json({
-            "lemma": parsed.get("lemma", word),
-            "definition": parsed.get("definition", ""),
-        })
+        return Response.json(
+            {
+                "lemma": parsed.get("lemma", word),
+                "definition": parsed.get("definition", ""),
+            }
+        )
     except Exception as e:
         return Response.error("Failed to relemmatize word: {}".format(e))
 
@@ -261,11 +280,13 @@ def handle_analyze(_params, _headers, body):
         try:
             parsed = json.loads(response)
         except (json.JSONDecodeError, ValueError):
-            return Response.json({
-                "originalSentence": sentence,
-                "translation": response,
-                "words": [],
-            })
+            return Response.json(
+                {
+                    "originalSentence": sentence,
+                    "translation": response,
+                    "words": [],
+                }
+            )
 
         words = parsed.get("words", [])
         lemmas = [w.get("lemma", "") for w in words if w.get("lemma")]

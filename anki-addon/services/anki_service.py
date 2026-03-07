@@ -45,16 +45,14 @@ def search_notes(query):
 def search_word(word, deck_name, field_mapping=None):
     """Search for a word in specific fields within a deck."""
     col = _col()
-    escaped_deck = deck_name.replace('"', '\\"')
-    escaped_word = word.replace('"', '\\"')
+    escaped_deck = deck_name.replace("\\", "\\\\").replace('"', '\\"')
+    escaped_word = word.replace("\\", "\\\\").replace('"', '\\"')
 
     word_fields = {"Front", "Word"}
     if field_mapping and field_mapping.get("Word"):
         word_fields.add(field_mapping["Word"])
 
-    field_queries = " OR ".join(
-        '{}:"{}"'.format(f, escaped_word) for f in word_fields
-    )
+    field_queries = " OR ".join('{}:"{}"'.format(f, escaped_word) for f in word_fields)
     query = 'deck:"{}" ({})'.format(escaped_deck, field_queries)
 
     note_ids = col.find_notes(query)

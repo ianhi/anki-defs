@@ -1,6 +1,7 @@
 """Anki collection API handlers."""
 
 import json
+
 from ..server.web import Response
 from ..services import anki_service
 from ..services.settings_service import get_settings
@@ -99,6 +100,14 @@ def handle_delete_note(params, _headers, _body):
         note_id = int(params.get("id", "0"))
         if not note_id:
             return Response.error("Invalid note ID", 400)
+
+        # Only allow deleting notes created by this app (tagged 'auto-generated')
+        note = anki_service.get_note(note_id)
+        if note is None:
+            return Response.error("Note not found", 404)
+        if "auto-generated" not in note.get("tags", []):
+            return Response.error("Cannot delete notes not created by this app", 403)
+
         anki_service.delete_note(note_id)
         return Response.json({"success": True})
     except ValueError:
@@ -123,6 +132,7 @@ def _url_decode(s):
     """Decode percent-encoded URL component."""
     try:
         from urllib.parse import unquote
+
         return unquote(s)
     except Exception:
         return s

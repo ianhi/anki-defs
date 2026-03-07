@@ -1,8 +1,9 @@
 """OpenRouter AI provider using urllib.request (OpenAI-compatible API)."""
 
 import json
-import urllib.request
 import ssl
+import urllib.request
+
 from .settings_service import get_settings
 
 
@@ -19,16 +20,18 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
     """Stream an OpenRouter completion. Runs in a daemon thread."""
     try:
         api_key, model = _get_config()
-        data = json.dumps({
-            "model": model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            "max_tokens": 2048,
-            "stream": True,
-            "stream_options": {"include_usage": True},
-        }).encode("utf-8")
+        data = json.dumps(
+            {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                "max_tokens": 2048,
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            }
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -69,12 +72,14 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
                 output_tokens = usage.get("completion_tokens", output_tokens)
 
         if input_tokens or output_tokens:
-            on_usage({
-                "inputTokens": input_tokens,
-                "outputTokens": output_tokens,
-                "provider": "openrouter",
-                "model": model,
-            })
+            on_usage(
+                {
+                    "inputTokens": input_tokens,
+                    "outputTokens": output_tokens,
+                    "provider": "openrouter",
+                    "model": model,
+                }
+            )
         on_done()
     except Exception as e:
         on_error(str(e))
@@ -83,14 +88,16 @@ def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, o
 def get_completion(system_prompt, user_message):
     """Get a non-streaming OpenRouter completion."""
     api_key, model = _get_config()
-    data = json.dumps({
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        "max_tokens": 2048,
-    }).encode("utf-8")
+    data = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "max_tokens": 2048,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         "https://openrouter.ai/api/v1/chat/completions",

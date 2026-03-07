@@ -53,8 +53,12 @@ def _row_to_dict(row):
 
 def get_state():
     db = _get_db()
-    cards = [_row_to_dict(r) for r in db.execute("SELECT * FROM cards ORDER BY createdAt").fetchall()]
-    pending = [_row_to_dict(r) for r in db.execute("SELECT * FROM pending ORDER BY createdAt").fetchall()]
+    cards = [
+        _row_to_dict(r) for r in db.execute("SELECT * FROM cards ORDER BY createdAt").fetchall()
+    ]
+    pending = [
+        _row_to_dict(r) for r in db.execute("SELECT * FROM pending ORDER BY createdAt").fetchall()
+    ]
     return {"cards": cards, "pendingQueue": pending}
 
 
@@ -63,9 +67,17 @@ def add_card(card):
     db.execute(
         "INSERT OR REPLACE INTO cards (id, word, definition, exampleSentence, sentenceTranslation, createdAt, noteId, deckName, modelName) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (card["id"], card["word"], card["definition"], card.get("exampleSentence", ""),
-         card.get("sentenceTranslation", ""), card["createdAt"], card["noteId"],
-         card["deckName"], card["modelName"]),
+        (
+            card["id"],
+            card["word"],
+            card["definition"],
+            card.get("exampleSentence", ""),
+            card.get("sentenceTranslation", ""),
+            card["createdAt"],
+            card["noteId"],
+            card["deckName"],
+            card["modelName"],
+        ),
     )
     db.commit()
 
@@ -82,9 +94,16 @@ def add_pending(card):
     db.execute(
         "INSERT OR REPLACE INTO pending (id, word, definition, exampleSentence, sentenceTranslation, createdAt, deckName, modelName) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        (card["id"], card["word"], card["definition"], card.get("exampleSentence", ""),
-         card.get("sentenceTranslation", ""), card["createdAt"],
-         card["deckName"], card["modelName"]),
+        (
+            card["id"],
+            card["word"],
+            card["definition"],
+            card.get("exampleSentence", ""),
+            card.get("sentenceTranslation", ""),
+            card["createdAt"],
+            card["deckName"],
+            card["modelName"],
+        ),
     )
     db.commit()
 
@@ -117,9 +136,17 @@ def promote_pending(pending_id, note_id):
     db.execute(
         "INSERT OR REPLACE INTO cards (id, word, definition, exampleSentence, sentenceTranslation, createdAt, noteId, deckName, modelName) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (card["id"], card["word"], card["definition"], card["exampleSentence"],
-         card["sentenceTranslation"], card["createdAt"], card["noteId"],
-         card["deckName"], card["modelName"]),
+        (
+            card["id"],
+            card["word"],
+            card["definition"],
+            card["exampleSentence"],
+            card["sentenceTranslation"],
+            card["createdAt"],
+            card["noteId"],
+            card["deckName"],
+            card["modelName"],
+        ),
     )
     db.commit()
     return card

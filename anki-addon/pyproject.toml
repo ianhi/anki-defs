@@ -1,0 +1,62 @@
+[project]
+name = "anki-defs-addon"
+version = "0.1.0"
+description = "Anki Desktop add-on for vocabulary flashcard generation with AI"
+requires-python = ">=3.9"
+# No runtime dependencies -- add-on uses only stdlib at runtime inside Anki.
+# The anki/aqt packages are provided by Anki's runtime environment.
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "ruff>=0.11",
+    "mypy>=1.15",
+]
+# Anki type stubs for development type checking.
+# Install aqt[qt6] to get anki + aqt + PyQt6 type information.
+aqt = [
+    "aqt[qt6]>=25.2",
+]
+
+[tool.uv]
+# The add-on package itself is not installable -- it runs inside Anki.
+# We only use uv for dev tooling.
+package = false
+
+[tool.mypy]
+python_version = "3.9"
+# Type-check our add-on code
+files = [
+    "__init__.py",
+    "server/",
+    "handlers/",
+    "services/",
+]
+# The add-on directory has a hyphen in its name, so we need namespace packages mode.
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "."
+# anki/aqt may not have complete stubs
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = [
+    "E501",   # line too long -- handled by formatter
+    "E722",   # bare except -- we use it intentionally for resilience
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

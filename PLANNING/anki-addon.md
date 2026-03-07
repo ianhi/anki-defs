@@ -15,10 +15,62 @@
 - Session persistence (SQLite in user_files/)
 - `/api/platform`, `/api/health`, `/api/settings`, `/api/session/*`
 - Zero vendored dependencies (all stdlib)
+- Dev workflow: `uv` + `ruff` + `mypy` + `pytest` (34 tests)
+- Note deletion safety (requires `auto-generated` tag)
+- Backslash escaping in Anki search queries
 
 ### What's Remaining
 - Phase 6: Build script to copy client/dist/ to web/, package as .ankiaddon
 - Phase 0: Prompt template extraction to shared/prompts/ (currently inlined)
+
+## Development Workflow
+
+### Setup
+
+```bash
+cd anki-addon
+uv sync --group dev          # Dev tools only (ruff, mypy, pytest)
+uv sync --group dev --group aqt  # + Anki type stubs for type checking
+```
+
+### Quality Checks
+
+```bash
+uv run ruff check .          # Lint
+uv run ruff format .         # Format
+uv run mypy                  # Type check (against anki/aqt stubs)
+uv run pytest tests/ -v      # Unit tests (34 tests, mocked aqt)
+```
+
+### Testing Approach
+
+- **Unit tests** cover non-Anki code: HTTP server, router, SSE formatting,
+  card extraction regexes, and a full request/response integration test.
+- **aqt mocking**: `tests/conftest.py` mocks `aqt`, `aqt.qt`, `aqt.gui_hooks`
+  so the add-on's `__init__.py` can be imported without a running Anki.
+- **Anki-dependent code** (collection operations) can't be unit tested outside
+  Anki. Manual testing by installing the add-on is needed for those paths.
+- Future: `pytest-anki` provides headless Anki sessions for functional tests.
+
+### Type Checking
+
+- `aqt[qt6]>=25.2` installed as dev dependency provides type information for
+  `anki` and `aqt` modules.
+- mypy configured with `namespace_packages = true` and `explicit_package_bases = true`
+  to handle the hyphenated directory name (`anki-addon`).
+- `ignore_missing_imports = true` for third-party modules that may lack stubs.
+
+### Reference Projects
+
+- **AnkiConnect** ([FooSoft/anki-connect](https://github.com/FooSoft/anki-connect)):
+  Flat structure (`plugin/` with `__init__.py`, `web.py`, `util.py`, `edit.py`).
+  QTimer-polled socket server pattern we follow.
+- **AnkiHub** ([AnkiHubSoftware/ankihub_addon](https://github.com/AnkiHubSoftware/ankihub_addon)):
+  Modern dev workflow with `uv`, `pyproject.toml`, `ruff`, `mypy`, `pytest`.
+  Uses `justfile` for task running, GitHub Actions for CI.
+- **pytest-anki** ([glutanimate/pytest-anki](https://github.com/glutanimate/pytest-anki)):
+  Provides `anki_session` fixture for headless Anki testing. Future option
+  for functional tests.
 
 ## Concept
 

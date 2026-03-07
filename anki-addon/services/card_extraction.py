@@ -6,6 +6,7 @@ Gemini structured output to extract card data.
 """
 
 import re
+
 from . import gemini_provider
 from .anki_service import search_word
 from .settings_service import get_settings
@@ -22,9 +23,7 @@ def extract_vocabulary_list(response):
 
 def extract_sentence_translation(response):
     """Extract sentence translation from AI response."""
-    match = re.search(
-        r"\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)", response, re.IGNORECASE
-    )
+    match = re.search(r"\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)", response, re.IGNORECASE)
     if match and match.group(1):
         return match.group(1).strip()
     return ""
@@ -36,9 +35,7 @@ def extract_inflected_forms(response):
     Returns a dict of lemma -> inflected form.
     """
     result = {}
-    for match in re.finditer(
-        r"- \*\*([^*]+)\*\*[^]*?From \*\*([^*]+)\*\*", response
-    ):
+    for match in re.finditer(r"- \*\*([^*]+)\*\*[\s\S]*?From \*\*([^*]+)\*\*", response):
         inflected = match.group(1).strip()
         lemma = match.group(2).strip()
         if inflected and lemma and inflected != lemma:
@@ -63,7 +60,7 @@ def extract_cards(
     """
     settings = get_settings()
     field_mapping = settings.get("fieldMapping")
-    errors = []
+    errors: list = []
 
     if not words_for_cards:
         return [], errors
@@ -104,9 +101,7 @@ def extract_cards(
         if lemma_differs:
             inflected = word
         elif inflected_forms:
-            inflected = inflected_forms.get(word) or inflected_forms.get(
-                card_data.get("word", "")
-            )
+            inflected = inflected_forms.get(word) or inflected_forms.get(card_data.get("word", ""))
 
         preview = {
             "word": card_data.get("word", word),
