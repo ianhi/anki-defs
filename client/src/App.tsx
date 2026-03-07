@@ -6,12 +6,15 @@ import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { SettingsIcon, X, Layers } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
+import { useTokenUsage } from './hooks/useTokenUsage';
 
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const { cards, pendingQueue } = useSessionCards();
   const totalCards = cards.length + pendingQueue.length;
+  const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
+  const totalTokens = totalInputTokens + totalOutputTokens;
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
@@ -23,6 +26,16 @@ export default function App() {
             <HeaderDeckSelector />
           </div>
           <div className="flex items-center gap-1">
+            {totalTokens > 0 && (
+              <button
+                className="text-xs text-muted-foreground mr-2 tabular-nums hover:text-foreground transition-colors"
+                title={`Input: ${totalInputTokens.toLocaleString()} | Output: ${totalOutputTokens.toLocaleString()}\nClick to reset`}
+                onClick={resetUsage}
+              >
+                {totalTokens.toLocaleString()} tok
+                {totalCost > 0 && ` · $${totalCost < 0.01 ? totalCost.toFixed(4) : totalCost.toFixed(2)}`}
+              </button>
+            )}
             <Button
               variant={showCards ? 'secondary' : 'ghost'}
               size="sm"

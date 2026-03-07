@@ -107,6 +107,9 @@ chatRouter.post('/stream', async (req, res) => {
         fullResponse += text;
         sendSSE(res, { type: 'text', data: text });
       },
+      onUsage: (usage) => {
+        sendSSE(res, { type: 'usage', data: usage });
+      },
       onDone: async () => {
         try {
           console.log('[Chat] Stream done, extracting card data...');

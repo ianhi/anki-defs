@@ -4,9 +4,11 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  highlightedWords?: string[];
   cardPreviews?: CardPreview[];
   wordAnalysis?: WordAnalysis;
   sentenceAnalysis?: SentenceAnalysis;
+  tokenUsage?: TokenUsage;
 }
 
 // Core card content (what makes up a flashcard)
@@ -73,6 +75,7 @@ export interface Settings {
   aiProvider: AIProvider;
   claudeApiKey: string;
   geminiApiKey: string;
+  geminiModel: string;
   openRouterApiKey: string;
   openRouterModel: string;
   defaultDeck: string;
@@ -84,11 +87,30 @@ export const DEFAULT_SETTINGS: Settings = {
   aiProvider: 'claude',
   claudeApiKey: '',
   geminiApiKey: '',
+  geminiModel: 'gemini-2.5-flash-lite',
   openRouterApiKey: '',
   openRouterModel: 'google/gemini-2.5-flash',
   defaultDeck: 'Bangla',
   defaultModel: 'Bangla (and reversed)',
   ankiConnectUrl: 'http://localhost:8765',
+};
+
+// Pricing per million tokens (input/output) in USD
+export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  // Claude
+  'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
+  // Gemini
+  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
+  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
+  'gemini-2.0-flash': { input: 0.1, output: 0.4 },
+  // OpenRouter (per-model, approximate)
+  'google/gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'openai/gpt-4.1-nano': { input: 0.1, output: 0.4 },
+  'openai/gpt-4.1-mini': { input: 0.4, output: 1.6 },
+  'meta-llama/llama-4-maverick:free': { input: 0.0, output: 0.0 },
+  'mistralai/mistral-small-3.1-24b-instruct:free': { input: 0.0, output: 0.0 },
+  'deepseek/deepseek-v3.2': { input: 0.24, output: 0.38 },
 };
 
 // API request/response types
@@ -120,8 +142,16 @@ export interface CreateNoteRequest {
   tags?: string[];
 }
 
+// Token usage tracking
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+  provider: AIProvider;
+  model?: string;
+}
+
 // SSE event types
 export interface SSEEvent {
-  type: 'text' | 'card_preview' | 'word_analysis' | 'sentence_analysis' | 'done' | 'error';
-  data: string | CardPreview | WordAnalysis | SentenceAnalysis | null;
+  type: 'text' | 'card_preview' | 'word_analysis' | 'sentence_analysis' | 'usage' | 'done' | 'error';
+  data: string | CardPreview | WordAnalysis | SentenceAnalysis | TokenUsage | null;
 }

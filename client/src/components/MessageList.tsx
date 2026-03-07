@@ -1,9 +1,42 @@
 import { useRef, useEffect } from 'react';
-import type { Message } from 'shared';
+import type { Message, TokenUsage } from 'shared';
+import { MODEL_PRICING } from 'shared';
 import ReactMarkdown from 'react-markdown';
 import { CardPreview } from './CardPreview';
 import { cn } from '@/lib/utils';
 import { User, Bot } from 'lucide-react';
+
+function HighlightedText({ text, words }: { text: string; words: string[] }) {
+  // Build a regex that matches any of the highlighted words
+  const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        words.includes(part) ? (
+          <span
+            key={i}
+            className="bg-yellow-300/40 text-inherit rounded px-0.5 font-semibold underline underline-offset-2 decoration-yellow-400"
+          >
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  );
+}
+
+function formatCost(usage: TokenUsage): string {
+  const pricing = usage.model ? MODEL_PRICING[usage.model] : undefined;
+  if (!pricing) return '';
+  const cost = (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
+  if (cost === 0) return '';
+  return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -76,7 +109,13 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
               )}
             >
               {message.role === 'user' ? (
-                <div className="whitespace-pre-wrap">{message.content}</div>
+                <div className="whitespace-pre-wrap">
+                  {message.highlightedWords && message.highlightedWords.length > 0 ? (
+                    <HighlightedText text={message.content} words={message.highlightedWords} />
+                  ) : (
+                    message.content
+                  )}
+                </div>
               ) : (
                 <>
                   <AssistantMessage
@@ -104,6 +143,19 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                   {message.cardPreviews.map((preview, idx) => (
                     <CardPreview key={`${preview.word}-${idx}`} preview={preview} />
                   ))}
+                </div>
+              )}
+
+              {message.role === 'assistant' && message.tokenUsage && !showStreamingIndicator && (
+                <div
+                  className="mt-2 text-xs text-muted-foreground tabular-nums"
+                  title={`Input: ${message.tokenUsage.inputTokens} | Output: ${message.tokenUsage.outputTokens} | ${message.tokenUsage.model ?? message.tokenUsage.provider}`}
+                >
+                  {message.tokenUsage.inputTokens + message.tokenUsage.outputTokens} tok
+                  {(() => {
+                    const cost = formatCost(message.tokenUsage);
+                    return cost ? ` · ${cost}` : '';
+                  })()}
                 </div>
               )}
             </div>

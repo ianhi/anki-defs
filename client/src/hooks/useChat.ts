@@ -1,25 +1,57 @@
-import { useState, useCallback, useRef } from 'react';
+import { useCallback, useRef } from 'react';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { chatApi } from '@/lib/api';
-import type { Message, CardPreview } from 'shared';
+import type { Message, CardPreview, TokenUsage } from 'shared';
+import { useTokenUsage } from './useTokenUsage';
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-export function useChat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface ChatState {
+  messages: Message[];
+  isStreaming: boolean;
+  error: string | null;
+  setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
+  setIsStreaming: (streaming: boolean) => void;
+  setError: (error: string | null) => void;
+  clearMessages: () => void;
+}
 
-  // Use a ref to track the current request ID and prevent duplicates
+const useChatStore = create<ChatState>()(
+  persist(
+    (set) => ({
+      messages: [],
+      isStreaming: false,
+      error: null,
+      setMessages: (updater) =>
+        set((state) => ({
+          messages: typeof updater === 'function' ? updater(state.messages) : updater,
+        })),
+      setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+      setError: (error) => set({ error }),
+      clearMessages: () => set({ messages: [], error: null }),
+    }),
+    {
+      name: 'bangla-chat',
+      partialize: (state) => ({
+        messages: state.messages,
+      }),
+    }
+  )
+);
+
+export function useChat() {
+  const { messages, isStreaming, error, setMessages, setIsStreaming, setError, clearMessages } =
+    useChatStore();
+
   const currentRequestRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(
     async (content: string, deck?: string, highlightedWords?: string[]) => {
-      // Generate unique request ID
       const requestId = generateId();
 
-      // Prevent duplicate calls (React StrictMode can double-invoke)
       if (currentRequestRef.current !== null) {
         console.log('[Chat] Ignoring duplicate request, already streaming');
         return;
@@ -28,19 +60,17 @@ export function useChat() {
 
       setError(null);
 
-      // Generate message IDs upfront
       const userMsgId = generateId();
       const assistantMsgId = generateId();
 
-      // Add user message
       const userMessage: Message = {
         id: userMsgId,
         role: 'user',
         content,
         timestamp: Date.now(),
+        highlightedWords,
       };
 
-      // Create assistant message placeholder
       const assistantMessage: Message = {
         id: assistantMsgId,
         role: 'assistant',
@@ -53,7 +83,6 @@ export function useChat() {
 
       try {
         for await (const event of chatApi.stream(content, deck, highlightedWords)) {
-          // Check if this request was cancelled
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Request cancelled, stopping stream');
             return;
@@ -76,6 +105,14 @@ export function useChat() {
                   : msg
               )
             );
+          } else if (event.type === 'usage') {
+            const usage = event.data as TokenUsage;
+            useTokenUsage.getState().addUsage(usage);
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMsgId ? { ...msg, tokenUsage: usage } : msg
+              )
+            );
           } else if (event.type === 'error') {
             setError(event.data as string);
           }
@@ -83,27 +120,25 @@ export function useChat() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        // Only clear if this is still the current request
         if (currentRequestRef.current === requestId) {
           setIsStreaming(false);
           currentRequestRef.current = null;
         }
       }
     },
-    []
+    [setMessages, setIsStreaming, setError]
   );
 
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-    setError(null);
+  const clearChat = useCallback(() => {
+    clearMessages();
     currentRequestRef.current = null;
-  }, []);
+  }, [clearMessages]);
 
   return {
     messages,
     isStreaming,
     error,
     sendMessage,
-    clearMessages,
+    clearMessages: clearChat,
   };
 }

@@ -1,32 +1,44 @@
 import { YankiConnect } from 'yanki-connect';
 import type { AnkiNote, CreateCardParams } from 'shared';
+import { getSettings } from './settings.js';
 
 let client: YankiConnect | null = null;
+let clientUrl: string | null = null;
 
-function getClient(): YankiConnect {
-  if (!client) {
-    client = new YankiConnect({ autoLaunch: false });
+async function getClient(): Promise<YankiConnect> {
+  const settings = await getSettings();
+  const url = settings.ankiConnectUrl || 'http://localhost:8765';
+
+  // Recreate client if URL changed
+  if (!client || clientUrl !== url) {
+    const parsed = new URL(url);
+    client = new YankiConnect({
+      autoLaunch: false,
+      host: `${parsed.protocol}//${parsed.hostname}`,
+      port: parseInt(parsed.port || '8765', 10),
+    });
+    clientUrl = url;
   }
   return client;
 }
 
 export async function getDecks(): Promise<string[]> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   return ankiClient.deck.deckNames();
 }
 
 export async function getModels(): Promise<string[]> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   return ankiClient.model.modelNames();
 }
 
 export async function getModelFields(modelName: string): Promise<string[]> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   return ankiClient.model.modelFieldNames({ modelName });
 }
 
 export async function searchNotes(query: string): Promise<AnkiNote[]> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   const noteIds = await ankiClient.note.findNotes({ query });
   if (noteIds.length === 0) return [];
 
@@ -44,7 +56,12 @@ export async function searchNotes(query: string): Promise<AnkiNote[]> {
 export async function searchWord(word: string, deckName: string): Promise<AnkiNote | null> {
   const escapedDeck = deckName.replace(/"/g, '\\"');
   const escapedWord = word.replace(/"/g, '\\"');
-  const query = `deck:"${escapedDeck}" "${escapedWord}"`;
+
+  // Search word/front fields specifically to avoid matching example sentences.
+  // Uses exact field match syntax: FieldName:"value"
+  const wordFields = ['Bangla', 'Front', 'Word'];
+  const fieldQueries = wordFields.map((f) => `${f}:"${escapedWord}"`).join(' OR ');
+  const query = `deck:"${escapedDeck}" (${fieldQueries})`;
   const notes = await searchNotes(query);
   return notes[0] ?? null;
 }
@@ -72,7 +89,7 @@ export async function searchWords(
 }
 
 export async function getNoteById(noteId: number): Promise<AnkiNote | null> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   const notesInfo = await ankiClient.note.notesInfo({ notes: [noteId] });
   const note = notesInfo[0];
   if (!note) return null;
@@ -102,7 +119,7 @@ const FIELD_MAPPINGS: Record<string, Record<string, string>> = {
 };
 
 export async function createCard(params: CreateCardParams): Promise<number> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
 
   // Get field mapping for this model, or use default names
   const mapping = FIELD_MAPPINGS[params.model] || {};
@@ -143,13 +160,13 @@ export async function createCard(params: CreateCardParams): Promise<number> {
 }
 
 export async function deleteNote(noteId: number): Promise<void> {
-  const ankiClient = getClient();
+  const ankiClient = await getClient();
   await ankiClient.note.deleteNotes({ notes: [noteId] });
 }
 
 export async function testConnection(): Promise<boolean> {
   try {
-    const ankiClient = getClient();
+    const ankiClient = await getClient();
     await ankiClient.miscellaneous.version();
     return true;
   } catch {

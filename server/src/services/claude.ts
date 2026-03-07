@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getSettings } from './settings.js';
+import type { TokenUsage } from 'shared';
 
 let client: Anthropic | null = null;
 
@@ -20,6 +21,7 @@ export function resetClient(): void {
 
 export interface StreamCallbacks {
   onText: (text: string) => void;
+  onUsage: (usage: TokenUsage) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }
@@ -50,7 +52,15 @@ export async function streamCompletion(
     callbacks.onDone();
   });
 
-  await stream.finalMessage();
+  const finalMessage = await stream.finalMessage();
+  if (finalMessage.usage) {
+    callbacks.onUsage({
+      inputTokens: finalMessage.usage.input_tokens,
+      outputTokens: finalMessage.usage.output_tokens,
+      provider: 'claude',
+      model: finalMessage.model,
+    });
+  }
 }
 
 export async function getCompletion(systemPrompt: string, userMessage: string): Promise<string> {

@@ -124,20 +124,38 @@ export function Settings() {
         </div>
       )}
 
-      {/* Gemini API Key */}
+      {/* Gemini API Key + Model */}
       {localSettings.aiProvider === 'gemini' && (
-        <div className="space-y-2">
-          <Label htmlFor="gemini-key">Gemini API Key</Label>
-          <Input
-            id="gemini-key"
-            type="password"
-            value={localSettings.geminiApiKey}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange('geminiApiKey', e.target.value)
-            }
-            placeholder="AI..."
-          />
-        </div>
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="gemini-key">Gemini API Key</Label>
+            <Input
+              id="gemini-key"
+              type="password"
+              value={localSettings.geminiApiKey}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                handleChange('geminiApiKey', e.target.value)
+              }
+              placeholder="AI..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gemini-model">Gemini Model</Label>
+            <Select
+              id="gemini-model"
+              value={localSettings.geminiModel}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                handleChange('geminiModel', e.target.value)
+              }
+            >
+              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite ($0.10/$0.40)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash ($0.10/$0.40)</option>
+              <option value="gemini-2.5-flash">Gemini 2.5 Flash ($0.15/$0.60)</option>
+              <option value="gemini-2.5-pro">Gemini 2.5 Pro ($1.25/$10.00)</option>
+            </Select>
+          </div>
+        </>
       )}
 
       {/* OpenRouter API Key */}

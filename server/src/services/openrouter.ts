@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { getSettings } from './settings.js';
+import type { TokenUsage } from 'shared';
 
 let client: OpenAI | null = null;
 
@@ -27,6 +28,7 @@ export function resetClient(): void {
 
 export interface StreamCallbacks {
   onText: (text: string) => void;
+  onUsage: (usage: TokenUsage) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }
@@ -48,12 +50,21 @@ export async function streamCompletion(
       ],
       max_tokens: 2048,
       stream: true,
+      stream_options: { include_usage: true },
     });
 
     for await (const chunk of stream) {
       const text = chunk.choices[0]?.delta?.content;
       if (text) {
         callbacks.onText(text);
+      }
+      if (chunk.usage) {
+        callbacks.onUsage({
+          inputTokens: chunk.usage.prompt_tokens ?? 0,
+          outputTokens: chunk.usage.completion_tokens ?? 0,
+          provider: 'openrouter',
+          model: settings.openRouterModel,
+        });
       }
     }
 

@@ -2,10 +2,11 @@ import { getSettings } from './settings.js';
 import * as claude from './claude.js';
 import * as gemini from './gemini.js';
 import * as openrouter from './openrouter.js';
-import type { AIProvider } from 'shared';
+import type { AIProvider, TokenUsage } from 'shared';
 
 export interface StreamCallbacks {
   onText: (text: string) => void;
+  onUsage: (usage: TokenUsage) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }

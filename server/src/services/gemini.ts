@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { getSettings } from './settings.js';
-import type { CardPreview } from 'shared';
+import type { CardPreview, TokenUsage } from 'shared';
 
 let client: GoogleGenAI | null = null;
 
@@ -24,6 +24,7 @@ export function resetClient(): void {
 
 export interface StreamCallbacks {
   onText: (text: string) => void;
+  onUsage: (usage: TokenUsage) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }
@@ -35,9 +36,11 @@ export async function streamCompletion(
 ): Promise<void> {
   try {
     const genai = await getClient();
+    const settings = await getSettings();
+    const model = settings.geminiModel || 'gemini-2.5-flash-lite';
 
     const response = await genai.models.generateContentStream({
-      model: 'gemini-2.5-flash-lite',
+      model,
       contents: userMessage,
       config: {
         systemInstruction: systemPrompt,
@@ -45,11 +48,24 @@ export async function streamCompletion(
       },
     });
 
+    let usageMeta: { promptTokenCount?: number; candidatesTokenCount?: number } | undefined;
     for await (const chunk of response) {
+      if (chunk.usageMetadata) {
+        usageMeta = chunk.usageMetadata;
+      }
       const text = chunk.text;
       if (text) {
         callbacks.onText(text);
       }
+    }
+
+    if (usageMeta) {
+      callbacks.onUsage({
+        inputTokens: usageMeta.promptTokenCount ?? 0,
+        outputTokens: usageMeta.candidatesTokenCount ?? 0,
+        provider: 'gemini',
+        model,
+      });
     }
 
     callbacks.onDone();
@@ -62,9 +78,10 @@ export async function streamCompletion(
 export async function getCompletion(systemPrompt: string, userMessage: string): Promise<string> {
   try {
     const genai = await getClient();
+    const settings = await getSettings();
 
     const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: settings.geminiModel || 'gemini-2.5-flash-lite',
       contents: userMessage,
       config: {
         systemInstruction: systemPrompt,
@@ -87,9 +104,10 @@ export async function extractCardData(
   console.log('[Gemini] Extracting card data for single word:', word);
 
   const genai = await getClient();
+  const settings = await getSettings();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
+    model: settings.geminiModel || 'gemini-2.5-flash-lite',
     contents: `Extract flashcard data from this explanation of the Bangla word "${word}":\n\n${explanation}`,
     config: {
       responseMimeType: 'application/json',
@@ -145,9 +163,10 @@ export async function extractCardDataFromSentence(
   console.log('[Gemini] Extracting card data for word in sentence:', word);
 
   const genai = await getClient();
+  const settings = await getSettings();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
+    model: settings.geminiModel || 'gemini-2.5-flash-lite',
     contents: `Extract the definition for the Bangla word "${word}" from this explanation:\n\n${explanation}\n\nThe example sentence is already provided: "${originalSentence}"`,
     config: {
       responseMimeType: 'application/json',
@@ -202,9 +221,10 @@ export async function getWordDefinition(word: string): Promise<WordDefinition> {
   console.log('[Gemini] Getting structured definition for:', word);
 
   const genai = await getClient();
+  const settings = await getSettings();
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
+    model: settings.geminiModel || 'gemini-2.5-flash-lite',
     contents: `Define this Bangla word: "${word}"`,
     config: {
       responseMimeType: 'application/json',

@@ -30,6 +30,9 @@ function getEnvOverrides(): Partial<Settings> {
   if (process.env.GOOGLE_API_KEY) {
     overrides.geminiApiKey = process.env.GOOGLE_API_KEY;
   }
+  if (process.env.GEMINI_MODEL) {
+    overrides.geminiModel = process.env.GEMINI_MODEL;
+  }
   if (process.env.OPENROUTER_API_KEY) {
     overrides.openRouterApiKey = process.env.OPENROUTER_API_KEY;
   }
