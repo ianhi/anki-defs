@@ -44,6 +44,10 @@ implementer**. Keep your context for high-level planning, review, and delegation
 
 When not in team mode, implement directly as usual.
 
+**Worktree discipline**: Always launch agents with `isolation: "worktree"` so they work
+on separate branches. Merge their branches sequentially after review — never let multiple
+agents commit directly to main. This prevents overlapping changes and merge conflicts.
+
 ## Network & Security
 
 - Express binds to `127.0.0.1` only (not `0.0.0.0`). Phone access works via Tailscale
