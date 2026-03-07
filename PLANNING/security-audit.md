@@ -369,12 +369,12 @@ for the supported platforms.
 7. **DONE -- Ownership check on delete**: Express DELETE endpoint verifies `auto-generated`
    tag before allowing deletion.
 
-### Remaining recommendations
+8. **DONE -- File permissions on settings.json**: `chmod 0600` applied after every write
+   in `ankiconnect-server/src/services/settings.ts` using `fs/promises.chmod()`.
 
-8. **Set file permissions on settings.json**: `chmod 0600` after writing.
-
-9. **Add note existence check in add-on delete**: Call `col.get_note(note_id)` before
-   `col.remove_notes()`.
+9. **DONE -- Note existence + ownership check in add-on delete**: `delete_note()` in
+   `anki-addon/services/anki_service.py` now calls `col.get_note(note_id)` first (raises
+   if not found) and verifies the `auto-generated` tag before allowing deletion.
 
 ---
 

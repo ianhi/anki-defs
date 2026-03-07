@@ -114,8 +114,14 @@ def create_note(deck_name, model_name, fields, tags=None):
 
 
 def delete_note(note_id):
-    """Delete a note by ID."""
+    """Delete a note by ID. Only deletes notes with the 'auto-generated' tag."""
     col = _col()
+    try:
+        note = col.get_note(note_id)
+    except Exception:
+        raise ValueError("Note not found: {}".format(note_id))
+    if "auto-generated" not in note.tags:
+        raise ValueError("Cannot delete note without 'auto-generated' tag")
     col.remove_notes([note_id])
 
 

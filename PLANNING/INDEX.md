@@ -5,9 +5,8 @@
 The project has three backends sharing one React frontend. All backends are functional.
 
 **Top priorities (in order):**
-1. Add automated tests to the web stack -- no vitest/jest exists yet, zero test coverage
-   on client/ and ankiconnect-server/
-2. Set up CI pipeline (GitHub Actions) -- lint + typecheck + test on every push
+1. ~~Add automated tests to the web stack~~ -- vitest set up, initial tests in place
+2. ~~Set up CI pipeline (GitHub Actions)~~ -- `.github/workflows/ci.yml` running
 3. Manually test the anki-addon inside Anki Desktop -- code complete but never run in Anki
 
 ## Current Status
@@ -40,9 +39,10 @@ The project has three backends sharing one React frontend. All backends are func
 
 ### What's Missing
 
-- **No automated tests for web stack** -- no vitest/jest, no test script in package.json.
-  The anki-addon has pytest tests but client/ and ankiconnect-server/ have zero tests.
-- **GitHub Actions CI** -- docs deployment workflow exists but no test/lint CI pipeline yet.
+- **Web stack tests started** -- vitest installed, 31 tests covering card extraction,
+  prompt rendering, and client utils. More coverage needed (API routes, SSE, auth).
+- ~~**GitHub Actions CI**~~ -- Done. `.github/workflows/ci.yml` runs typecheck + lint +
+  format + tests on push/PR to main.
 - ~~**Prompt sharing**~~ -- Done. All three backends now load from `shared/prompts/*.json`.
 - **Anki add-on not tested manually** -- code complete but needs manual testing inside
   Anki Desktop.
@@ -58,10 +58,9 @@ See [next-steps.md](next-steps.md) for prioritized TODOs:
 
 ### 2. Testing Infrastructure
 
-No plan doc yet. Key needs:
-- Add vitest to web stack (client + ankiconnect-server)
-- Priority test targets: card extraction, SSE parsing, auth middleware, API routes
-- CI pipeline (GitHub Actions) for lint + typecheck + test
+Vitest set up with 31 tests across 3 test files. CI pipeline in place.
+- Done: card extraction (14 tests), prompt rendering (9 tests), client utils (8 tests)
+- Remaining: API route tests, SSE streaming, auth middleware, React component tests
 
 ### 3. Anki Add-on Finalization
 
@@ -80,7 +79,7 @@ Phases 1-5 complete. Phase 6 (shared prompts) done. Phase 7 (quick-translate) is
 |-----|---------|--------|
 | [next-steps.md](next-steps.md) | Web app feature TODOs | Active |
 | [anki-addon.md](anki-addon.md) | Anki Desktop add-on plan | Phases 1-5 done, 6 done |
-| [security-audit.md](security-audit.md) | Security findings and fixes | 7/9 fixes done |
+| [security-audit.md](security-audit.md) | Security findings and fixes | Complete (9/9) |
 | [prompt-design.md](prompt-design.md) | Prompt template design | Done (shared/prompts/) |
 | [overview.md](overview.md) | WebView architecture + phase plan | Reference |
 | [architecture.md](architecture.md) | Data flow diagram | Reference |

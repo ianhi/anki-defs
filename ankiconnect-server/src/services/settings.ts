@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'fs/promises';
+import { readFile, writeFile, mkdir, chmod } from 'fs/promises';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
@@ -88,6 +88,7 @@ export async function saveSettings(settings: Partial<Settings>): Promise<Setting
   // Update file settings
   const updated = { ...fileSettings, ...settings };
   await writeFile(SETTINGS_FILE, JSON.stringify(updated, null, 2));
+  await chmod(SETTINGS_FILE, 0o600);
 
   // Return with env overrides applied
   return { ...DEFAULT_SETTINGS, ...updated, ...getEnvOverrides() };
