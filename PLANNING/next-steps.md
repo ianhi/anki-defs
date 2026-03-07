@@ -40,6 +40,11 @@
 - The original skill describes this workflow but it's not implemented yet
 - Would need to: tokenize sentence, lemmatize each word, batch-check Anki, filter to unknown words
 
+### ~~Anki sync button~~ (Done)
+
+- Sync button (refresh icon) in header, visible on all screen sizes when Anki is connected
+- Triggers AnkiConnect sync so cards added on laptop appear on phone
+
 ### Pending queue sync
 
 - When Anki comes back online, offer to sync all queued cards

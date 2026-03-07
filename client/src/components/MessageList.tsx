@@ -60,10 +60,13 @@ function AssistantMessage({ content, isStreaming }: { content: string; isStreami
 }
 
 export function MessageList({ messages, isStreaming }: MessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages, isStreaming]);
 
   if (messages.length === 0) {
@@ -84,7 +87,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6">
+    <div
+      ref={scrollContainerRef}
+      className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6"
+    >
       {messages.map((message, index) => {
         const isLastMessage = index === messages.length - 1;
         const showStreamingIndicator = isStreaming && isLastMessage && message.role === 'assistant';
@@ -171,8 +177,6 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
           </div>
         );
       })}
-
-      <div ref={bottomRef} />
     </div>
   );
 }

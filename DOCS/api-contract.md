@@ -21,6 +21,7 @@ Source of truth: `shared/types.ts`
 | POST   | `/notes`               | Create a new note/card       |
 | GET    | `/notes/:id`           | Get note details             |
 | DELETE | `/notes/:id`           | Delete a note                |
+| POST   | `/sync`                | Trigger Anki sync            |
 | GET    | `/status`              | Check AnkiConnect connection |
 
 ### Chat Routes (`/api/chat`)
@@ -80,6 +81,12 @@ Settings stored in `~/.config/bangla-anki/settings.json`:
   "showTransliteration": false,
   "defaultDeck": "Bangla",
   "defaultModel": "Bangla (and reversed)",
-  "ankiConnectUrl": "http://localhost:8765"
+  "ankiConnectUrl": "http://localhost:8765",
+  "fieldMapping": {
+    "Word": "Bangla",
+    "Definition": "Eng_trans",
+    "Example": "example sentence",
+    "Translation": "sentence-trans"
+  }
 }
 ```
