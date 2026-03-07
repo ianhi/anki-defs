@@ -16,7 +16,7 @@ The project has two active work tracks:
 | Phase | Task                                  | Status   | Plan Doc                                   |
 | ----- | ------------------------------------- | -------- | ------------------------------------------ |
 | 1     | Monorepo restructure                  | **Done** | [migration.md](migration.md)               |
-| 2     | Android backend (NanoHTTPd + API)     | **Next** | [android-backend.md](android-backend.md)   |
+| 2     | Android backend (NanoHTTPd + API)     | **Done** | [android-backend.md](android-backend.md)   |
 | 3     | Frontend platform awareness           | Planned  | [frontend-changes.md](frontend-changes.md) |
 | 4     | WebView Activity + asset bundling     | Planned  | [webview-bridge.md](webview-bridge.md)     |
 | 5     | Native bridges (intents, permissions) | Planned  | [webview-bridge.md](webview-bridge.md)     |

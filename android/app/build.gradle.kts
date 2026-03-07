@@ -73,6 +73,9 @@ dependencies {
 
     implementation(libs.gemini)
 
+    implementation(libs.nanohttpd)
+    implementation(libs.gson)
+
     debugImplementation(libs.compose.ui.tooling)
 
     // Testing

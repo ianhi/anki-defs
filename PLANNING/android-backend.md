@@ -1,5 +1,7 @@
 # Android Backend: Local HTTP Server
 
+**Status: Done** -- NanoHTTPd server implemented with all API endpoints. Build passes.
+
 ## Overview
 
 Replace ViewModels + Compose UI with a local HTTP server that serves the React frontend and implements the API endpoints using existing Kotlin services.

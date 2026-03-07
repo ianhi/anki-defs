@@ -87,7 +87,7 @@ class AnkiRepository(private val context: Context) {
     /**
      * Get available note models from AnkiDroid.
      */
-    private suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
+    suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
         if (!isAvailable) return@withContext emptyList()
 
         try {
@@ -239,6 +239,165 @@ class AnkiRepository(private val context: Context) {
             frontTemplate = "{{English}}",
             backTemplate = "{{Bangla}}<br><br><i>{{ExampleSentence}}</i><br>{{SentenceTranslation}}"
         )
+    }
+
+    /**
+     * Get field names for a model by name.
+     */
+    suspend fun getModelFields(modelName: String): List<String> = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext emptyList()
+
+        try {
+            val cursor = contentResolver.query(
+                FlashCardsContract.Model.CONTENT_URI,
+                arrayOf(
+                    FlashCardsContract.Model.NAME,
+                    FlashCardsContract.Model.FIELD_NAMES
+                ),
+                null, null, null
+            ) ?: return@withContext emptyList()
+
+            cursor.use {
+                val nameIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.NAME)
+                val fieldsIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.FIELD_NAMES)
+
+                while (it.moveToNext()) {
+                    if (it.getString(nameIndex) == modelName) {
+                        val fieldsJson = it.getString(fieldsIndex) ?: return@withContext emptyList()
+                        // field_names is a JSON array like ["Front","Back"]
+                        return@withContext try {
+                            val jsonArray = org.json.JSONArray(fieldsJson)
+                            (0 until jsonArray.length()).map { i -> jsonArray.getString(i) }
+                        } catch (e: Exception) {
+                            emptyList()
+                        }
+                    }
+                }
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get model fields for '$modelName'", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Search notes by query string (Anki browser search syntax).
+     */
+    suspend fun searchNotes(query: String): List<Map<String, Any?>> = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext emptyList()
+
+        try {
+            val cursor = contentResolver.query(
+                FlashCardsContract.Note.CONTENT_URI,
+                arrayOf(
+                    FlashCardsContract.Note._ID,
+                    FlashCardsContract.Note.MID,
+                    FlashCardsContract.Note.FLDS,
+                    FlashCardsContract.Note.TAGS
+                ),
+                query,
+                null,
+                null
+            ) ?: return@withContext emptyList()
+
+            cursor.use {
+                val notes = mutableListOf<Map<String, Any?>>()
+                val idIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note._ID)
+                val midIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.MID)
+                val fldsIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.FLDS)
+                val tagsIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.TAGS)
+
+                while (it.moveToNext()) {
+                    val noteId = it.getLong(idIndex)
+                    val modelId = it.getLong(midIndex)
+                    val fields = it.getString(fldsIndex) ?: ""
+                    val tags = it.getString(tagsIndex) ?: ""
+
+                    notes.add(mapOf(
+                        "noteId" to noteId,
+                        "modelId" to modelId,
+                        "fields" to fields.split(FlashCardsContract.FIELD_SEPARATOR),
+                        "tags" to tags.trim().split(" ").filter { t -> t.isNotEmpty() }
+                    ))
+                }
+                notes
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to search notes", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Get a single note by ID.
+     */
+    suspend fun getNote(noteId: Long): Map<String, Any?>? = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext null
+
+        try {
+            val noteUri = android.net.Uri.withAppendedPath(
+                FlashCardsContract.Note.CONTENT_URI, noteId.toString()
+            )
+            val cursor = contentResolver.query(
+                noteUri,
+                arrayOf(
+                    FlashCardsContract.Note._ID,
+                    FlashCardsContract.Note.MID,
+                    FlashCardsContract.Note.FLDS,
+                    FlashCardsContract.Note.TAGS
+                ),
+                null, null, null
+            ) ?: return@withContext null
+
+            cursor.use {
+                if (!it.moveToFirst()) return@withContext null
+
+                val midIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.MID)
+                val fldsIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.FLDS)
+                val tagsIndex = it.getColumnIndexOrThrow(FlashCardsContract.Note.TAGS)
+
+                val modelId = it.getLong(midIndex)
+                val fields = it.getString(fldsIndex) ?: ""
+                val tags = it.getString(tagsIndex) ?: ""
+
+                mapOf(
+                    "noteId" to noteId,
+                    "modelId" to modelId,
+                    "fields" to fields.split(FlashCardsContract.FIELD_SEPARATOR),
+                    "tags" to tags.trim().split(" ").filter { t -> t.isNotEmpty() }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get note $noteId", e)
+            null
+        }
+    }
+
+    /**
+     * Delete a note by ID.
+     */
+    suspend fun deleteNote(noteId: Long): Boolean = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext false
+
+        try {
+            val noteUri = android.net.Uri.withAppendedPath(
+                FlashCardsContract.Note.CONTENT_URI, noteId.toString()
+            )
+            val deleted = contentResolver.delete(noteUri, null, null)
+            deleted > 0
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete note $noteId", e)
+            false
+        }
+    }
+
+    /**
+     * Find a deck ID by name.
+     */
+    suspend fun findDeckByName(name: String): Long? = withContext(Dispatchers.IO) {
+        val decks = getDecks()
+        decks.find { it.name == name }?.id
     }
 
     companion object {
