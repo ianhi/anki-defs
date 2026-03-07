@@ -1,103 +1,42 @@
 # Android App (word2anki)
 
-Android backend for the anki-defs vocabulary flashcard tool. Integrates with AnkiDroid
-via ContentProvider API and uses Gemini for AI definitions.
+Android backend for the vocabulary flashcard tool. Integrates with AnkiDroid via
+ContentProvider API and uses Gemini for AI definitions.
 
 See root [CLAUDE.md](../CLAUDE.md) for project-wide architecture and API contract.
 
 ## Tech Stack
 
-- **Language:** Kotlin
-- **UI:** Jetpack Compose with Material 3
-- **Architecture:** MVVM with ViewModels
-- **AI:** Google Gemini API (`com.google.ai.client.generativeai`)
-- **Anki Integration:** AnkiDroid ContentProvider API
-- **State:** Kotlin StateFlow / Compose State
-- **Persistence:** DataStore Preferences (for settings/API keys)
-- **Build:** Gradle with Kotlin DSL, version catalog
+- Kotlin, Jetpack Compose (Material 3), MVVM with ViewModels
+- Google Gemini API (`com.google.ai.client.generativeai`)
+- AnkiDroid ContentProvider API for flashcard CRUD
+- Kotlin StateFlow for state, DataStore for persistence
+- Gradle with Kotlin DSL, version catalog (`gradle/libs.versions.toml`)
 
-## Project Structure
+## Key Files
 
-```
-android/
-├── app/
-│   ├── build.gradle.kts              # App-level build config
-│   └── src/
-│       ├── main/
-│       │   ├── AndroidManifest.xml
-│       │   ├── kotlin/com/word2anki/
-│       │   │   ├── MainActivity.kt       # Entry point, navigation
-│       │   │   ├── Word2AnkiApp.kt       # Application class
-│       │   │   ├── ui/
-│       │   │   │   ├── theme/            # Material 3 theming
-│       │   │   │   ├── screens/          # ChatScreen, SettingsScreen
-│       │   │   │   └── components/       # Reusable UI components
-│       │   │   ├── data/
-│       │   │   │   ├── AnkiRepository.kt     # AnkiDroid ContentProvider wrapper
-│       │   │   │   ├── SettingsRepository.kt # DataStore operations
-│       │   │   │   ├── FlashCardsContract.kt # AnkiDroid URI constants
-│       │   │   │   └── models/               # Data classes
-│       │   │   ├── ai/
-│       │   │   │   ├── GeminiService.kt      # Gemini API client
-│       │   │   │   ├── PromptTemplates.kt    # System prompts
-│       │   │   │   └── CardExtractor.kt      # Extract card data from responses
-│       │   │   └── viewmodel/
-│       │   │       ├── ChatViewModel.kt
-│       │   │       └── SettingsViewModel.kt
-│       │   └── res/                  # Android resources
-│       └── test/                     # Unit tests
-├── gradle/
-│   └── libs.versions.toml            # Version catalog
-├── build.gradle.kts                  # Root build config
-└── settings.gradle.kts
-```
+- `app/src/main/kotlin/com/word2anki/MainActivity.kt` -- Entry point, navigation
+- `app/src/main/kotlin/com/word2anki/ai/GeminiService.kt` -- Gemini streaming + multi-turn context
+- `app/src/main/kotlin/com/word2anki/ai/PromptTemplates.kt` -- Prompt type detection + templates
+- `app/src/main/kotlin/com/word2anki/ai/CardExtractor.kt` -- Parse AI responses into card data
+- `app/src/main/kotlin/com/word2anki/data/AnkiRepository.kt` -- AnkiDroid ContentProvider wrapper
+- `app/src/main/kotlin/com/word2anki/data/SettingsRepository.kt` -- DataStore operations
+- `app/src/main/kotlin/com/word2anki/data/FlashCardsContract.kt` -- AnkiDroid URI constants
+- `app/src/main/kotlin/com/word2anki/viewmodel/ChatViewModel.kt` -- Chat logic + state
+- `app/src/main/kotlin/com/word2anki/viewmodel/SettingsViewModel.kt` -- Settings logic
+- `app/src/main/kotlin/com/word2anki/ui/screens/` -- ChatScreen, SettingsScreen
+- `app/build.gradle.kts` -- App build config, dependencies
 
-## Key Components
+## Architecture Patterns
 
-### AnkiDroid Integration
+- **MVVM**: UI layer never imports AI or data layer directly -- all through ViewModels
+- **StateFlow**: Use `_uiState.update { it.copy(...) }` for atomic state (never `.value = .value.copy()`)
+- **Channel for one-shot events**: Snackbars use `Channel<String>`, NOT StateFlow (avoids replay)
+- **No DI framework**: App is small enough for manual dependency injection
+- **ContentProvider for Anki**: Official AnkiDroid API, most stable integration
+- **Custom note model**: "word2anki" 4-field model (English, Bangla, ExampleSentence, SentenceTranslation)
 
-The app communicates with AnkiDroid via ContentProvider. Key files:
-
-- `FlashCardsContract.kt`: URI constants for AnkiDroid API
-- `AnkiRepository.kt`: CRUD operations for decks and notes
-
-Required permission: `com.ichi2.anki.permission.READ_WRITE_DATABASE`
-
-### AI Integration
-
-- `GeminiService.kt`: Handles streaming responses from Gemini API with multi-turn conversation context
-- `PromptTemplates.kt`: Contains prompts for different input types:
-  - Single word → Word definition
-  - Multi-word → Sentence analysis
-  - **highlighted** words → Focused word analysis
-- `CardExtractor.kt`: Parses AI responses to extract flashcard data (split into focused helpers: `extractWord`, `extractDefinition`, `extractExample`)
-
-### State Management
-
-- ViewModels expose `StateFlow` for UI state
-- One-shot events (snackbars, save confirmations) use `Channel<String>` — NOT StateFlow, which replays on recomposition
-- All state mutations use `_uiState.update { it.copy(...) }` for atomic read-modify-write (prevents race conditions during concurrent coroutine updates)
-- Settings persisted in DataStore Preferences
-- Chat messages are in-memory only (no persistence)
-
-## Local Development Setup
-
-### Prerequisites
-
-1. **Android Studio** (Arctic Fox or later recommended)
-   - Download from: https://developer.android.com/studio
-
-2. **JDK 17** (included with Android Studio, or install separately)
-
-3. **Android SDK** (API 34)
-   - Open Android Studio → Settings → SDK Manager
-   - Install "Android 14 (API 34)"
-
-4. **An Android device or emulator**
-   - Physical device with USB debugging enabled, OR
-   - Android Emulator (API 26+)
-
-### Quick Start
+## Build & Test
 
 ```bash
 cd android
@@ -105,177 +44,48 @@ export ANDROID_HOME=~/Android/Sdk
 export JAVA_HOME=/usr
 
 ./gradlew assembleDebug      # Build debug APK
-./gradlew installDebug       # Build and install on connected device
-./gradlew test               # Run all unit tests
+./gradlew installDebug       # Install on connected device/emulator
+./gradlew test               # Run unit tests (95 tests, 7 test classes)
 ./gradlew lint               # Lint check
 ```
 
-### Testing Without AnkiDroid
+### Prerequisites
 
-The app can run without AnkiDroid installed:
+- Android SDK (API 34): `$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34"`
+- JDK 17 (bundled with Android Studio, or system JDK)
+- Device or emulator (API 26+)
 
-- AI definitions will work normally
-- A warning banner will show "AnkiDroid not installed"
-- The "Add to Anki" button will be disabled
-
-This is useful for testing the AI/UI portions without the full AnkiDroid setup.
-
-### Testing with Android Emulator
-
-#### GUI Method (Android Studio)
-
-1. In Android Studio: Tools → Device Manager
-2. Click "Create Device"
-3. Select a device (e.g., Pixel 6)
-4. Select a system image (API 34 recommended)
-5. Click "Finish"
-6. Start the emulator and run the app
-
-#### Headless Emulator (SSH/CLI)
-
-For testing without a display (e.g., over SSH):
+### Headless Emulator (SSH/CLI)
 
 ```bash
-# Set up environment
-export ANDROID_HOME=~/Android/Sdk
-
-# Create AVD (one-time setup)
 echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd \
   -n Pixel_7a -k "system-images;android-34;google_apis;x86_64" -d pixel_7
-
-# Start emulator headless (requires KVM)
-$ANDROID_HOME/emulator/emulator -avd Pixel_7a \
-  -no-window -no-audio -gpu swiftshader_indirect &
-
-# Wait for boot
-$ANDROID_HOME/platform-tools/adb wait-for-device
-$ANDROID_HOME/platform-tools/adb shell getprop sys.boot_completed  # should return "1"
-
-# Install and launch app
-$ANDROID_HOME/platform-tools/adb install app/build/outputs/apk/debug/app-debug.apk
-$ANDROID_HOME/platform-tools/adb shell am start -n com.word2anki/.MainActivity
+$ANDROID_HOME/emulator/emulator -avd Pixel_7a -no-window -no-audio -gpu swiftshader_indirect &
+adb wait-for-device && adb shell getprop sys.boot_completed  # should return "1"
 ```
 
-**UI Interaction via ADB:**
+Compose elements often don't appear in `uiautomator dump` -- use TAB/ENTER keyboard navigation as fallback.
+
+### Debugging
 
 ```bash
-# Inspect UI elements (preferred over screenshots for automation)
-adb shell uiautomator dump /sdcard/ui.xml && adb shell cat /sdcard/ui.xml
-
-# Tap coordinates (get from uiautomator bounds)
-adb shell input tap <x> <y>
-
-# Type text (use %s for spaces)
-adb shell input text "hello%sworld"
-
-# Navigate back
-adb shell input keyevent KEYCODE_BACK
-
-# Take screenshot
-adb shell screencap -p /sdcard/screen.png && adb pull /sdcard/screen.png
-
-# View logs
-adb logcat -d -t 50 *:E | grep -i word2anki
+adb logcat *:S word2anki:V     # App logs
+adb logcat *:E | grep word2anki  # Errors only
 ```
 
-**Important notes for headless emulator interaction:**
+## Unit Tests
 
-- Jetpack Compose elements often don't appear in `uiautomator dump`. Use TAB/ENTER keyboard navigation as a fallback.
-- AnkiDroid onboarding requires: toggle "All files access" switch → system settings page → toggle → back
-- The emulator needs KVM for acceptable performance
+Located in `app/src/test/kotlin/com/word2anki/`:
 
-**AnkiDroid Setup on Emulator:**
+- `ai/PromptTemplatesTest.kt` (23 tests), `ai/CardExtractorTest.kt` (24 tests)
+- `viewmodel/ChatViewModelTest.kt` (12), `viewmodel/SettingsViewModelTest.kt` (8)
+- `data/ModelsTest.kt` (9), `data/models/MessageTest.kt` (9), `ui/MarkdownTextTest.kt` (10)
 
-1. Download AnkiDroid APK from [GitHub Releases](https://github.com/ankidroid/Anki-Android/releases)
-2. Install: `adb install AnkiDroid-*.apk`
-3. Launch and complete onboarding (grant "All files access" permission)
-4. Create at least one deck via the FAB (+) button → "Create deck"
+## Boundaries
 
-### Debugging Tips
+- **You own**: `android/` (Kotlin Android app)
+- **You implement**: The same API contract defined in `shared/types.ts`
+- **You do NOT touch**: `client/`, `server/`, `shared/`
+- If you need an API contract change, note it clearly in your output.
 
-**View Logs:**
-
-```bash
-# All logs from the app
-adb logcat *:S word2anki:V
-
-# Filter for errors only
-adb logcat *:E | grep -i word2anki
-```
-
-**Network Debugging:**
-
-- Check if API key is valid in Settings
-- Gemini API requires internet connection
-- Check Android Studio's "Logcat" for network errors
-
-**AnkiDroid Integration Issues:**
-
-- Ensure AnkiDroid is installed and has at least one deck
-- Check that permission was granted
-- Verify with: Settings → Apps → word2anki → Permissions
-
-## Configuration
-
-### API Key Setup
-
-Users must provide their own Gemini API key:
-
-1. Get key from [Google AI Studio](https://aistudio.google.com/)
-2. Open app → Settings → Enter API key
-3. Key is stored securely in DataStore
-
-### AnkiDroid Setup
-
-1. Install AnkiDroid from Play Store
-2. Create at least one deck
-3. Grant permission when prompted by word2anki
-
-## Testing
-
-### Unit Tests (95 tests, 7 test classes)
-
-Located in `app/src/test/kotlin/com/word2anki/`
-
-- `ai/PromptTemplatesTest.kt` (23 tests): Prompt type detection, template content
-- `ai/CardExtractorTest.kt` (24 tests): JSON extraction, heuristic fallback, helper functions
-- `viewmodel/ChatViewModelTest.kt` (12 tests): Error formatting, message handling
-- `viewmodel/SettingsViewModelTest.kt` (8 tests): API key validation
-- `data/ModelsTest.kt` (9 tests): CardPreview, Deck, Settings, MessageRole
-- `data/models/MessageTest.kt` (9 tests): Message ID, timestamp, isError, isStreaming, cardPreview
-- `ui/MarkdownTextTest.kt` (10 tests): Markdown parsing and rendering
-
-### Manual Testing Checklist
-
-- [ ] App launches without API key (shows setup prompt)
-- [ ] API key can be entered and saved
-- [ ] Single word generates definition
-- [ ] Sentence generates breakdown
-- [ ] Highlighted words (**word**) are recognized
-- [ ] Card preview appears after AI response
-- [ ] Card can be added to AnkiDroid
-- [ ] Duplicate detection works
-- [ ] Share intent receives text from other apps
-- [ ] Dark mode works correctly
-
-## Architecture Decisions
-
-1. **MVVM Pattern**: Clean separation of UI and business logic
-2. **StateFlow over LiveData**: Better Kotlin integration, null safety
-3. **Channel for one-shot events**: Snackbar messages use `Channel<String>` to avoid replay on recomposition
-4. **Atomic state updates**: Always use `_uiState.update {}` (never `.value = .value.copy()`) to prevent race conditions
-5. **Layer boundaries**: UI layer never imports AI or data layer directly — all communication through ViewModels
-6. **No Dependency Injection**: App is small enough; manual DI is sufficient
-7. **ContentProvider for Anki**: Official AnkiDroid API, most stable integration
-8. **DataStore over SharedPreferences**: Modern, type-safe, coroutine-friendly
-9. **Custom note model**: App creates/reuses a "word2anki" 4-field model (English, Bangla, ExampleSentence, SentenceTranslation) with fallback to Basic model
-
-## Known Limitations
-
-- No offline mode (requires internet for Gemini API)
-- No chat history persistence (messages cleared on app close)
-- No image support in cards
-
-## Future Improvements
-
-See root [`FUTURE_FEATURES.md`](../FUTURE_FEATURES.md) for detailed specs.
+See root [`FUTURE_FEATURES.md`](../FUTURE_FEATURES.md) for planned features.
