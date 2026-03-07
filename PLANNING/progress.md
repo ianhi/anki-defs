@@ -1,6 +1,6 @@
 # Progress
 
-## Web App (client/ + server/ + shared/)
+## Web App (client/ + ankiconnect-server/ + shared/)
 
 ### Done
 
@@ -33,7 +33,7 @@
 ### Done
 
 - word2anki merged into android/ via git subtree (full history preserved)
-- CLAUDE.md hierarchy: root + client/ + server/ + shared/ + android/
+- CLAUDE.md hierarchy: root + client/ + ankiconnect-server/ + shared/ + android/
 - DOCS/ directories with file maps and API contract reference
 - PLANNING/ directories with INDEX.md at each level
 - .gitignore covers both Node.js and Android/Gradle

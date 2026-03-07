@@ -2,7 +2,7 @@
 
 ## Strategy: anki-defs repo is the base
 
-anki-defs already has the right top-level structure (`client/`, `server/`, `shared/`).
+anki-defs already has the right top-level structure (`client/`, `ankiconnect-server/`, `shared/`).
 We add `android/` to it via `git subtree` to preserve word2anki's history.
 
 ## Pre-flight

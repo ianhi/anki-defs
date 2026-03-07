@@ -483,7 +483,7 @@ If `urllib.request` proves insufficient for streaming AI APIs:
 
 ### Recommendation: Prompts as JSON Data Files
 
-Extract prompt templates from `server/src/services/ai.ts` into JSON files in
+Extract prompt templates from `ankiconnect-server/src/services/ai.ts` into JSON files in
 `shared/prompts/`. Each backend reads the same JSON at startup.
 
 **JSON format per prompt:**
@@ -512,7 +512,7 @@ simple template engine (string replacement -- no Jinja2 needed).
 
 **Migration order:**
 
-1. Extract prompts from `server/src/services/ai.ts` -> `shared/prompts/*.json`
+1. Extract prompts from `ankiconnect-server/src/services/ai.ts` -> `shared/prompts/*.json`
 2. Update Node.js server to read from JSON files
 3. Android backend reads same JSON files
 4. Add-on backend reads same JSON files
@@ -529,7 +529,7 @@ def handle_platform():
     return {"platform": "anki-addon"}
 ```
 
-| Setting          | Web (server/)    | Android          | Anki Add-on       |
+| Setting          | Web (ankiconnect-server/) | Android          | Anki Add-on       |
 | ---------------- | ---------------- | ---------------- | ----------------- |
 | AnkiConnect URL  | Show             | Hide             | Hide              |
 | Deck selector    | Via AnkiConnect  | Via ContentProv. | Via col.decks     |
