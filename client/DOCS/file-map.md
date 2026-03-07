@@ -4,6 +4,8 @@
 
 - `src/main.tsx` -- React entry point
 - `src/App.tsx` -- Main app component, layout
+- `src/index.css` -- CSS entry with Tailwind v4 (`@theme` tokens, dark mode)
+- `src/types/index.ts` -- Re-exports all types from `shared`
 
 ## Components (`src/components/`)
 
@@ -15,7 +17,7 @@
 - `SessionCardsPanel.tsx` -- Session card history sidebar
 - `HeaderDeckSelector.tsx` -- Deck selector in header
 - `DebugMenu.tsx` -- Debug/dev tools
-- `ui/` -- Base UI primitives (shadcn-style: Button, Input, etc.)
+- `ui/` -- Base UI primitives (shadcn-style: Badge, Button, Card, Input, Label, Select)
 
 ## Hooks (`src/hooks/`)
 
@@ -28,10 +30,10 @@
 ## Lib (`src/lib/`)
 
 - `api.ts` -- API client functions (REST fetch wrappers + SSE connection)
-- `utils.ts` -- Utility functions (`cn` for classnames)
+- `utils.ts` -- Utility functions (`cn` for classnames, `generateId`, `boldWordInSentence`)
 
 ## Adding a New API Endpoint (Client Side)
 
 1. Add fetch wrapper in `src/lib/api.ts`
 2. Add TanStack Query hook in `src/hooks/`
-3. Types come from `shared/types.ts` (imported as `@shared/types`)
+3. Types come from `shared/types.ts` (imported as `shared`)

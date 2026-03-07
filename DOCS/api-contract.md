@@ -4,6 +4,12 @@ Source of truth: `shared/types.ts`
 
 ## Endpoints
 
+### Health Check
+
+| Method | Endpoint      | Description                |
+| ------ | ------------- | -------------------------- |
+| GET    | `/api/health` | Returns `{ status: 'ok' }` |
+
 ### Anki Routes (`/api/anki`)
 
 | Method | Endpoint               | Description                  |
@@ -14,15 +20,17 @@ Source of truth: `shared/types.ts`
 | POST   | `/search`              | Search notes by query        |
 | POST   | `/notes`               | Create a new note/card       |
 | GET    | `/notes/:id`           | Get note details             |
+| DELETE | `/notes/:id`           | Delete a note                |
 | GET    | `/status`              | Check AnkiConnect connection |
 
 ### Chat Routes (`/api/chat`)
 
-| Method | Endpoint   | Description                              |
-| ------ | ---------- | ---------------------------------------- |
-| POST   | `/stream`  | SSE endpoint for streaming AI responses  |
-| POST   | `/define`  | Get definition for a word                |
-| POST   | `/analyze` | Analyze sentence, identify unknown words |
+| Method | Endpoint       | Description                              |
+| ------ | -------------- | ---------------------------------------- |
+| POST   | `/stream`      | SSE endpoint for streaming AI responses  |
+| POST   | `/define`      | Get definition for a word                |
+| POST   | `/relemmatize` | Re-check the dictionary form of a word   |
+| POST   | `/analyze`     | Analyze sentence, identify unknown words |
 
 ### Settings Routes (`/api/settings`)
 
@@ -33,20 +41,29 @@ Source of truth: `shared/types.ts`
 
 ### Session Routes (`/api/session`)
 
-| Method | Endpoint     | Description              |
-| ------ | ------------ | ------------------------ |
-| GET    | `/cards`     | Get session card history |
-| DELETE | `/cards/:id` | Remove card from session |
+| Method | Endpoint               | Description                                    |
+| ------ | ---------------------- | ---------------------------------------------- |
+| GET    | `/`                    | Get full session state (cards + pending queue) |
+| POST   | `/cards`               | Add a card to the session                      |
+| DELETE | `/cards/:id`           | Remove a card from the session                 |
+| POST   | `/pending`             | Add a card to the pending queue                |
+| DELETE | `/pending/:id`         | Remove a card from the pending queue           |
+| POST   | `/pending/:id/promote` | Sync pending card to Anki and move to cards    |
+| POST   | `/clear`               | Clear all session data                         |
 
 ## SSE Event Types
 
-The `/api/chat/stream` endpoint sends these discriminated union events:
+The `/api/chat/stream` endpoint sends these discriminated union events (defined as `SSEEvent` in `shared/types.ts`):
 
-- `content` -- Streamed text chunk from AI
-- `card` -- Card preview data (word, definition, example, translation, duplicate status)
-- `usage` -- Token usage and cost data
-- `done` -- Stream complete
-- `error` -- Error message
+| `type`              | `data`             | Description                        |
+| ------------------- | ------------------ | ---------------------------------- |
+| `text`              | `string`           | Streamed text chunk from AI        |
+| `card_preview`      | `CardPreview`      | Card preview with duplicate status |
+| `word_analysis`     | `WordAnalysis`     | Single word analysis result        |
+| `sentence_analysis` | `SentenceAnalysis` | Sentence analysis result           |
+| `usage`             | `TokenUsage`       | Token usage and cost data          |
+| `done`              | `null`             | Stream complete                    |
+| `error`             | `string`           | Error message                      |
 
 ## Settings Storage
 
@@ -57,8 +74,12 @@ Settings stored in `~/.config/bangla-anki/settings.json`:
   "aiProvider": "claude",
   "claudeApiKey": "sk-...",
   "geminiApiKey": "...",
-  "defaultDeck": "Bangla Vocabulary",
-  "defaultModel": "Basic",
+  "geminiModel": "gemini-2.5-flash-lite",
+  "openRouterApiKey": "...",
+  "openRouterModel": "google/gemini-2.5-flash",
+  "showTransliteration": false,
+  "defaultDeck": "Bangla",
+  "defaultModel": "Bangla (and reversed)",
   "ankiConnectUrl": "http://localhost:8765"
 }
 ```

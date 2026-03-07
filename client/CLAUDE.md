@@ -11,7 +11,7 @@ Shared frontend for all platforms. Runs in browser (web) and WebView (Android).
 
 ## Patterns
 
-- **SSE streaming**: `useChat` opens EventSource to `/api/chat/stream`, handles discriminated event types
+- **SSE streaming**: `chatApi.stream` POSTs via `fetch()` and reads the response as a `ReadableStream`, manually parsing SSE lines through an async generator that yields discriminated `SSEEvent` types
 - **State**: Zustand for settings/chat persistence, TanStack Query for server data
 - **Styling**: Tailwind utility classes, `cn()` helper for conditional classes
 - **Components**: Functional components, `forwardRef` for UI primitives

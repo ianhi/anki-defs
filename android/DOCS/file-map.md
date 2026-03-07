@@ -43,4 +43,4 @@ Located in `app/src/test/kotlin/com/word2anki/`:
 ## Custom Note Model
 
 "word2anki" 4-field model: English, Bangla, ExampleSentence, SentenceTranslation.
-Falls back to Basic model if custom model creation fails.
+Returns null if creation fails; callers fall back to Basic model via getBasicModelId().

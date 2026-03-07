@@ -6,26 +6,47 @@ All types are defined in `types.ts`. This is the API contract source of truth.
 
 - `Message` -- Chat message (user/assistant, with optional card previews, analysis, token usage)
 - `CardContent` -- Base flashcard data: word, definition, exampleSentence, sentenceTranslation
-- `CardPreview` -- Extends CardContent with Anki check results (alreadyExists, lemmaMismatch, inflectedForm)
-- `WordAnalysis` -- Structured single-word analysis (lemma, partOfSpeech, definition, examples)
-- `SentenceAnalysis` -- Structured sentence breakdown (words array with analysis per word)
+- `CardPreview` -- Extends CardContent with Anki check results (alreadyExists, lemmaMismatch, inflectedForm, originalLemma)
+- `WordAnalysis` -- Single-word analysis (lemma, partOfSpeech, definition, examples, existsInAnki, noteId)
+- `SentenceAnalysis` -- Sentence breakdown (originalSentence, translation, words: AnalyzedWord[])
+- `AnalyzedWord` -- Per-word entry in sentence analysis (word, lemma, partOfSpeech, meaning, existsInAnki, noteId)
+
+## Session & Anki Types
+
+- `SessionCard` -- Extends CardContent with id, createdAt, noteId, deckName, modelName
+- `PendingCard` -- Extends CardContent with id, createdAt, deckName, modelName (not yet in Anki)
+- `SessionState` -- `{ cards: SessionCard[], pendingQueue: PendingCard[] }`
+- `AnkiNote` -- Anki note record (noteId, modelName, tags, fields)
+- `CreateCardParams` -- Params for creating a card (deck, model, word, definition, exampleSentence, sentenceTranslation, tags)
 
 ## SSE Event Types
 
-Discriminated union for `/api/chat/stream`:
+Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 
-- `ContentEvent` -- `{ type: 'content', content: string }`
-- `CardEvent` -- `{ type: 'card', card: CardPreview }`
-- `UsageEvent` -- `{ type: 'usage', usage: TokenUsage }`
-- `DoneEvent` -- `{ type: 'done' }`
-- `ErrorEvent` -- `{ type: 'error', error: string }`
+- `{ type: 'text', data: string }` -- Streamed text chunk
+- `{ type: 'card_preview', data: CardPreview }` -- Card preview from AI
+- `{ type: 'word_analysis', data: WordAnalysis }` -- Single-word analysis result
+- `{ type: 'sentence_analysis', data: SentenceAnalysis }` -- Sentence breakdown result
+- `{ type: 'usage', data: TokenUsage }` -- Token usage for the call
+- `{ type: 'done', data: null }` -- Stream complete
+- `{ type: 'error', data: string }` -- Error message
 
-## Settings Types
+## Settings
 
-- `Settings` -- Full settings object (provider, API keys, deck, model, AnkiConnect URL)
-- `SettingsUpdate` -- Partial settings for PUT endpoint
+- `AIProvider` -- `'claude' | 'gemini' | 'openrouter'`
+- `Settings` -- Full settings (aiProvider, API keys, geminiModel, openRouterModel, showTransliteration, defaultDeck, defaultModel, ankiConnectUrl)
+- `DEFAULT_SETTINGS` -- Const with sensible defaults for all Settings fields
+- `MODEL_PRICING` -- `Record<string, { input, output }>` per-million-token USD pricing
 
-## Request/Response Types
+## Request Types
 
+- `ChatStreamRequest` -- `{ messages, newMessage, deck?, highlightedWords? }`
+- `DefineRequest` -- `{ word, deck? }`
+- `AnalyzeRequest` -- `{ sentence, deck? }`
+- `SearchNotesRequest` -- `{ query }`
+- `CreateNoteRequest` -- `{ deckName, modelName, fields, tags? }`
 - `RelemmatizeRequest` / `RelemmatizeResponse` -- Re-check dictionary form with context
-- `TokenUsage` -- Token counts + cost per AI call
+
+## Other
+
+- `TokenUsage` -- Token counts (inputTokens, outputTokens) + provider + model

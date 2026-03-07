@@ -6,10 +6,14 @@
 
 ## Routes (`src/routes/`)
 
-- `chat.ts` -- SSE streaming endpoint, input classification, card extraction pipeline
+- `chat.ts` -- SSE streaming endpoint, input classification, card extraction pipeline; also non-streaming endpoints: /define, /relemmatize, /analyze
 - `anki.ts` -- AnkiConnect proxy routes (decks, models, notes, search, status)
 - `settings.ts` -- Settings CRUD (GET/PUT)
 - `session.ts` -- Session card persistence (SQLite-backed)
+
+## Types (`src/types/`)
+
+- `index.ts` -- Re-exports from shared
 
 ## Services (`src/services/`)
 
