@@ -120,6 +120,7 @@ export interface Settings {
   defaultModel: string;
   ankiConnectUrl: string;
   fieldMapping: FieldMapping;
+  apiToken: string;
 }
 
 export const CARD_DATA_FIELDS = ['Word', 'Definition', 'Example', 'Translation'] as const;
@@ -143,6 +144,7 @@ export const DEFAULT_SETTINGS: Settings = {
     Example: 'example sentence',
     Translation: 'sentence-trans',
   },
+  apiToken: '',
 };
 
 // Pricing per million tokens (input/output) in USD

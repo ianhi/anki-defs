@@ -5,11 +5,11 @@ by QTimer on the main thread. All request handling runs on the main thread,
 making Anki collection access safe without threading.
 """
 
-import socket
-import select
 import json
-import os
 import mimetypes
+import os
+import select
+import socket
 
 # Ensure mimetypes knows about common web types
 mimetypes.add_type("application/javascript", ".js")
@@ -23,16 +23,20 @@ MAX_BODY_SIZE = 1024 * 1024
 
 
 class WebServer:
-    def __init__(self, handler):
-        """handler: callable(method, path, headers, body) -> Response"""
+    def __init__(self, handler, get_token=None):
+        """handler: callable(method, path, headers, body) -> Response
+        get_token: callable() -> str | None -- returns the auth token, or None to skip auth
+        """
         self.handler = handler
+        self.get_token = get_token
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setblocking(False)
         self.clients = {}  # {socket: ClientBuffer}
+        self.client_addrs = {}  # {socket: (host, port)}
 
-    def listen(self, port):
-        self.sock.bind(("127.0.0.1", port))
+    def listen(self, port, host="0.0.0.0"):
+        self.sock.bind((host, port))
         self.sock.listen(5)
 
     def close(self):
@@ -53,9 +57,10 @@ class WebServer:
         try:
             readable, _, _ = select.select([self.sock], [], [], 0)
             if readable:
-                client_sock, _ = self.sock.accept()
+                client_sock, addr = self.sock.accept()
                 client_sock.setblocking(False)
                 self.clients[client_sock] = ClientBuffer()
+                self.client_addrs[client_sock] = addr
         except Exception:
             pass
 
@@ -92,9 +97,30 @@ class WebServer:
             except Exception:
                 self._close_client(sock)
 
+    def _check_auth(self, sock, headers):
+        """Check bearer token auth for non-localhost requests. Returns None if OK, or Response."""
+        if not self.get_token:
+            return None
+        addr = self.client_addrs.get(sock)
+        if addr and addr[0] in ("127.0.0.1", "::1"):
+            return None
+        token = self.get_token()
+        if not token:
+            return Response.error("API token not configured", 401)
+        auth = headers.get("authorization", "")
+        if auth != "Bearer {}".format(token):
+            return Response.error("Invalid or missing API token", 401)
+        return None
+
     def _dispatch(self, sock, buf):
         """Parse HTTP request and dispatch to handler."""
         method, path, headers, body = buf.parse()
+
+        # Check auth for non-localhost requests
+        auth_error = self._check_auth(sock, headers)
+        if auth_error is not None:
+            self._send_response(sock, auth_error)
+            return
 
         # Try API handler first
         response = self.handler(method, path, headers, body)
@@ -119,7 +145,9 @@ class WebServer:
         if response.extra_headers:
             for k, v in response.extra_headers.items():
                 headers += "{}: {}\r\n".format(k, v)
-        body_bytes = response.body.encode("utf-8") if isinstance(response.body, str) else response.body
+        body_bytes = (
+            response.body.encode("utf-8") if isinstance(response.body, str) else response.body
+        )
         headers += "Content-Length: {}\r\n".format(len(body_bytes))
         headers += "Access-Control-Allow-Origin: *\r\n"
         headers += "Connection: close\r\n"
@@ -197,6 +225,7 @@ class WebServer:
         except Exception:
             pass
         self.clients.pop(sock, None)
+        self.client_addrs.pop(sock, None)
 
 
 class ClientBuffer:
@@ -233,7 +262,7 @@ class ClientBuffer:
         parts = self.data.split(b"\r\n\r\n", 1)
         header_section = parts[0].decode("utf-8", errors="replace")
         body = parts[1] if len(parts) > 1 else b""
-        body = body[:self._content_length]
+        body = body[: self._content_length]
 
         lines = header_section.split("\r\n")
         request_line = lines[0] if lines else ""

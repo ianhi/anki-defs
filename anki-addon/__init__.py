@@ -4,9 +4,11 @@ Runs a local HTTP server inside Anki, serving the React frontend and
 implementing the same API contract as the Node.js/Express backend.
 """
 
-from aqt import mw, gui_hooks
-from aqt.qt import QAction, QTimer, qconnect
+import uuid
 import webbrowser
+
+from aqt import gui_hooks, mw
+from aqt.qt import QAction, QTimer, qconnect
 
 PORT = 28735
 
@@ -16,21 +18,35 @@ class AnkiDefsAddon:
         self.server = None
         self.timer = None
 
+    def _ensure_api_token(self):
+        """Generate an API token on first startup."""
+        config = mw.addonManager.getConfig(__name__) or {}
+        if not config.get("apiToken"):
+            config["apiToken"] = str(uuid.uuid4())
+            mw.addonManager.writeConfig(__name__.split(".")[0], config)
+        return config
+
+    def _get_token(self):
+        """Return the current API token (called per-request by WebServer)."""
+        config = mw.addonManager.getConfig(__name__) or {}
+        return config.get("apiToken", "")
+
     def on_profile_loaded(self):
         """Called when user profile is loaded (collection available)."""
-        from .server.web import WebServer
         from .handlers import create_router
+        from .server.web import WebServer
 
-        # Read port from config
-        config = mw.addonManager.getConfig(__name__) or {}
+        # Read port from config, generate token if needed
+        config = self._ensure_api_token()
         port = config.get("port", PORT)
 
         router = create_router()
-        self.server = WebServer(router.handle)
+        self.server = WebServer(router.handle, get_token=self._get_token)
         try:
             self.server.listen(port)
         except OSError as e:
             from aqt.utils import showWarning
+
             showWarning(
                 f"anki-defs: Could not start server on port {port}: {e}\n"
                 "Check if another instance is running."

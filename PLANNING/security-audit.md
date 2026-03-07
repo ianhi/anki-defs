@@ -336,41 +336,35 @@ for the supported platforms.
 
 ## Recommendations Summary
 
-### Quick Wins (minimal effort, immediate improvement)
+### Implemented Fixes
 
-1. **Bind Express to localhost**: Change `app.listen(PORT)` to `app.listen(PORT, '127.0.0.1')`
-   in `server/src/index.ts:64`. One-line fix.
+1. **DONE -- Bearer token auth on Express**: Auto-generated `apiToken` in settings, checked
+   via middleware on all `/api/*` routes. Localhost requests (`127.0.0.1`, `::1`) are exempt.
+   Server binds to all interfaces (needed for Tailscale access) but requires auth from
+   non-localhost clients.
 
-2. **Restrict CORS on Express**: Replace `app.use(cors())` with specific origins:
-   ```typescript
-   app.use(cors({ origin: ['http://localhost:5173', 'http://pop-os:5173'] }));
-   ```
+2. **DONE -- Restrict CORS on Express**: Origins restricted to `localhost:5173`, `localhost:3001`,
+   and `127.0.0.1` equivalents.
 
-3. **Bind Android NanoHTTPd to localhost**: Change `NanoHTTPD(PORT)` to
-   `NanoHTTPD("127.0.0.1", PORT)` in `LocalServer.kt:18`. One-line fix.
+3. **DONE -- Android NanoHTTPd bound to localhost**: `NanoHTTPD("127.0.0.1", PORT)` --
+   only the local WebView needs access.
 
-4. **Enforce MAX_BODY_SIZE in add-on**: Add content-length check in `ClientBuffer.feed()`.
+4. **DONE -- Bearer token auth on Anki add-on**: Same pattern as Express -- token auto-generated,
+   checked per-request, localhost exempt. Add-on binds to `0.0.0.0` for Tailscale access.
 
-5. **Escape backslashes in search**: Add `word.replace(/\\/g, '\\\\')` to `searchWord()`
-   in `server/src/services/anki.ts`.
+5. **DONE -- Enforce MAX_BODY_SIZE in add-on**: Content-length check in `ClientBuffer.feed()`.
 
-### Medium-effort improvements
+6. **DONE -- Escape backslashes in search**: `searchWord()` in `server/src/services/anki.ts`.
 
-6. **Add ownership check to delete**: Verify the note has `auto-generated` tag before
-   allowing deletion via the API.
+7. **DONE -- Ownership check on delete**: Express DELETE endpoint verifies `auto-generated`
+   tag before allowing deletion.
 
-7. **Set file permissions on settings.json**: `chmod 0600` after writing.
+### Remaining recommendations
 
-8. **Add note existence check in add-on delete**: Call `col.get_note(note_id)` before
+8. **Set file permissions on settings.json**: `chmod 0600` after writing.
+
+9. **Add note existence check in add-on delete**: Call `col.get_note(note_id)` before
    `col.remove_notes()`.
-
-### Architecture-level considerations (for future work)
-
-9. **Auth token for network access**: If Tailscale/remote access is a design goal, add a
-   simple bearer token (configurable in settings, checked on every API request).
-
-10. **Remove `host: true` from Vite config**: If Tailscale access is only needed for the
-    Express server, the Vite dev server doesn't need to be network-accessible.
 
 ---
 

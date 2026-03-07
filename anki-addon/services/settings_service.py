@@ -20,6 +20,7 @@ DEFAULT_SETTINGS = {
         "Translation": "sentence-trans",
     },
     "port": 28735,
+    "apiToken": "",
 }
 
 # __name__ resolves to the add-on package name when loaded by Anki
