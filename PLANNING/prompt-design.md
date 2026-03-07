@@ -1,12 +1,15 @@
 # Prompt Design: Language-Specific Rules
 
-## Current State
+## Status: DONE (shared/prompts/ extraction complete)
 
-word2anki has a generic prompt in `PromptTemplates.getUnifiedSystemPrompt()` that says "You are a language tutor" with basic formatting guidelines. No language-specific rules.
+Prompt templates have been extracted from ankiconnect-server to `shared/prompts/*.json`
+(7 templates + `variables.json`). The ankiconnect-server reads from these JSON files.
+The anki-addon has its own copy (future: build step should copy from shared/).
+Android still has prompts hardcoded in Kotlin `PromptTemplates.kt`.
 
-## Inspiration: anki-defs Prompt Quality
+## Original Context
 
-anki-defs has extensive Bangla-specific rules that dramatically improve card quality:
+word2anki had a generic prompt. anki-defs had extensive Bangla-specific rules:
 
 ### Bangla Rules to Port
 

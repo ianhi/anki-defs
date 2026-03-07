@@ -4,7 +4,7 @@
 
 Share anki-defs' React frontend between web and Android. The Android app runs a local HTTP server that implements the same API contract, backed by AnkiDroid ContentProvider + Gemini API. One UI, two backends.
 
-## Status: IN PROGRESS (Phases 1-5 complete)
+## Status: DONE (Phases 1-5 complete, all three backends functional)
 
 ## Architecture
 
@@ -47,7 +47,7 @@ Each backend serves `client/dist/` and implements `/api/*` endpoints.
 | ---------------------------------------------- | ------------------------------------------ |
 | [repo-structure.md](repo-structure.md)         | Monorepo layout, build system              |
 | [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy for multi-agent work   |
-| [anki-addon.md](anki-addon.md)                 | Future: Python backend inside Anki Desktop |
+| [anki-addon.md](anki-addon.md)                 | Python backend inside Anki Desktop (implemented) |
 
 ## Key Decisions
 

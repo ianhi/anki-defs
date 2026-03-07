@@ -16,9 +16,10 @@ anki/                               ← repo root
 │   └── vite.config.ts
 ├── shared/                         ← TypeScript types + prompt data (shared by ALL backends)
 │   ├── types.ts                    ← API contract: source of truth
-│   ├── prompts/                    ← Language-specific prompt templates (JSON/YAML)
+│   ├── prompts/                    ← Prompt templates (JSON, {{variable}} syntax)
+│   ├── defaults/                   ← Default settings
 │   └── package.json
-├── ankiconnect-server/              ← Backend #1: Node.js + AnkiConnect (standalone/desktop)
+├── ankiconnect-server/             ← Backend #1: Node.js + AnkiConnect (standalone/desktop)
 │   ├── src/
 │   ├── dist/
 │   └── package.json
@@ -34,13 +35,23 @@ anki/                               ← repo root
 │   │   └── build.gradle.kts
 │   ├── gradle/
 │   └── build.gradle.kts
-├── anki-addon/                     ← Backend #3: Python inside Anki Desktop (future)
-│   └── ...
+├── anki-addon/                     ← Backend #3: Python inside Anki Desktop
+│   ├── __init__.py                 ← Entry point (menu item, profile hooks)
+│   ├── server/                     ← Non-blocking socket HTTP server
+│   ├── handlers/                   ← API route handlers
+│   ├── services/                   ← Anki collection + AI providers
+│   ├── tests/                      ← pytest tests (45 tests)
+│   ├── web/                        ← React frontend (copied from client/dist/)
+│   └── pyproject.toml              ← uv project config
+├── docs/                           ← Astro Starlight documentation site
+│   ├── src/content/docs/           ← Markdown pages
+│   └── astro.config.mjs
+├── scripts/                        ← Build/install scripts
+│   ├── build-addon.sh              ← Package .ankiaddon
+│   └── install-dev.sh              ← Symlink into Anki addons dir
 ├── package.json                    ← npm workspaces: client, shared, ankiconnect-server
 ├── CLAUDE.md                       ← Root: architecture, API contract, cross-cutting rules
-├── PLANNING/
-├── PROGRESS.md
-└── FUTURE_FEATURES.md
+└── PLANNING/
 ```
 
 ## Why this works

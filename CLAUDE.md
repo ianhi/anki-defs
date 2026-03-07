@@ -10,9 +10,12 @@ that serves the frontend and implements the same HTTP API.
 
 ```
 client/              -- React frontend (shared by ALL platforms)
-shared/              -- TypeScript types (API contract source of truth: shared/types.ts)
+shared/              -- TypeScript types + prompt templates (API contract: shared/types.ts)
 ankiconnect-server/  -- Backend #1: Node.js + Express + AnkiConnect (desktop/web)
 android/             -- Backend #2: Kotlin + NanoHTTPd + AnkiDroid ContentProvider
+anki-addon/          -- Backend #3: Python inside Anki Desktop (direct collection access)
+docs/                -- Astro Starlight documentation site (GitHub Pages)
+scripts/             -- Build/install scripts (build-addon.sh, install-dev.sh)
 ```
 
 ## Build Commands
@@ -25,6 +28,16 @@ npm run check                    # Typecheck + lint + format
 # Android
 cd android && export ANDROID_HOME=~/Android/Sdk && export JAVA_HOME=/usr
 ./gradlew assembleDebug
+
+# Anki add-on
+cd anki-addon
+uv sync --group dev              # Dev tools (ruff, pyright, pytest)
+uv run ruff check . && uv run pyright && uv run pytest tests/ -v
+scripts/build-addon.sh           # Package as .ankiaddon
+scripts/install-dev.sh           # Symlink into Anki addons dir
+
+# Docs site
+cd docs && npm install && npm run dev  # Local dev server
 ```
 
 ## Code Quality (Web)
@@ -50,9 +63,12 @@ agents commit directly to main. This prevents overlapping changes and merge conf
 
 ## Network & Security
 
-- Express binds to `127.0.0.1` only (not `0.0.0.0`). Phone access works via Tailscale
-  because Vite (`host: true`) proxies `/api` requests to Express on localhost.
-- CORS is restricted to localhost origins. All backends bind to localhost.
+- Express binds to `0.0.0.0` (all interfaces) for Tailscale access. Bearer token auth
+  protects all `/api/*` routes -- localhost requests are exempt, remote requests require
+  `Authorization: Bearer <token>`. Token auto-generated on first startup in settings.json.
+- Vite dev server also binds to all interfaces (`host: true`) with `allowedHosts` check.
+- CORS restricted to localhost origins on Express. Android NanoHTTPd binds to `127.0.0.1`.
+- Anki add-on binds to `0.0.0.0` with bearer token auth (same pattern as Express).
 - Note deletion requires the `auto-generated` tag -- prevents deleting hand-crafted cards.
 - See `PLANNING/security-audit.md` for the full audit and findings.
 

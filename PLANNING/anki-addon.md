@@ -1,6 +1,6 @@
 # Anki Desktop Add-on: Backend #3 Implementation Plan
 
-## Status: IMPLEMENTED (Phase 1-5 complete, Phase 6 pending)
+## Status: IMPLEMENTED (All phases complete)
 
 ### What's Done
 
@@ -16,14 +16,19 @@
 - Session persistence (SQLite in user_files/)
 - `/api/platform`, `/api/health`, `/api/settings`, `/api/session/*`
 - Zero vendored dependencies (all stdlib)
-- Dev workflow: `uv` + `ruff` + `mypy` + `pytest` (34 tests)
+- Bearer token auth (localhost exempt, same pattern as Express)
+- MAX_BODY_SIZE enforcement in ClientBuffer
+- Dev workflow: `uv` + `ruff` + `pyright` + `pytest` (45 tests)
 - Note deletion safety (requires `auto-generated` tag)
 - Backslash escaping in Anki search queries
+- Build script (`scripts/build-addon.sh`) -- packages as .ankiaddon
+- Dev install script (`scripts/install-dev.sh`) -- symlinks into Anki addons dir
 
 ### What's Remaining
 
-- Phase 6: Build script to copy client/dist/ to web/, package as .ankiaddon
-- Phase 0: Prompt template extraction to shared/prompts/ (currently inlined)
+- Manual testing inside Anki Desktop (not yet verified end-to-end)
+- Prompt templates are inlined -- should read from shared/prompts/ at build time
+- AnkiWeb publishing
 
 ## Development Workflow
 
