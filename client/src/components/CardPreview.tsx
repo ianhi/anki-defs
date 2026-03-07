@@ -23,6 +23,7 @@ import {
 
 interface CardPreviewProps {
   preview: CardPreviewType;
+  isDismissed?: boolean;
   onDismiss?: () => void;
 }
 
@@ -52,9 +53,8 @@ function highlightWord(sentence: string, word: string): React.ReactNode {
   );
 }
 
-export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
+export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProps) {
   const [isAdded, setIsAdded] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const [isQueued, setIsQueued] = useState(false);
   // Track what deck/model the card was actually added to
@@ -81,9 +81,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   const existsInSession = hasWord(currentWord);
   const alreadyExists = preview.alreadyExists || existsInSession;
 
-  if (isDismissed) {
-    return null;
-  }
+  if (isDismissed) return null;
 
   const handleAddCard = async () => {
     // If word exists and user hasn't confirmed, show confirmation
@@ -181,7 +179,6 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   };
 
   const handleDismiss = () => {
-    setIsDismissed(true);
     onDismiss?.();
   };
 
@@ -298,13 +295,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
           )}
         </CardContent>
       )}
-      <CardFooter className="pt-1.5 pb-2.5 sm:pt-2 sm:pb-3 px-3 sm:px-6 gap-2 flex-wrap">
+      <CardFooter
+        className={`pt-1.5 pb-2.5 sm:pt-2 sm:pb-3 px-3 sm:px-6 gap-2 flex-wrap ${settings.leftHanded ? 'flex-row' : 'flex-row-reverse'} justify-end`}
+      >
         {isAdded ? (
           <>
-            <Badge variant="default" className="bg-green-600">
-              <Check className="h-3 w-3 mr-1" />
-              Added to {addedToDeck}
-            </Badge>
             {addedNoteId && (
               <Button
                 variant="ghost"
@@ -323,13 +318,13 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
                 )}
               </Button>
             )}
+            <Badge variant="default" className="bg-green-600 mr-auto">
+              <Check className="h-3 w-3 mr-1" />
+              Added to {addedToDeck}
+            </Badge>
           </>
         ) : isQueued ? (
           <>
-            <Badge variant="default" className="bg-orange-600">
-              <Clock className="h-3 w-3 mr-1" />
-              Queued for {addedToDeck}
-            </Badge>
             <Button
               variant="ghost"
               size="sm"
@@ -339,12 +334,13 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
               <X className="h-3 w-3 mr-1" />
               Remove
             </Button>
+            <Badge variant="default" className="bg-orange-600 mr-auto">
+              <Clock className="h-3 w-3 mr-1" />
+              Queued for {addedToDeck}
+            </Badge>
           </>
         ) : confirmDuplicate ? (
           <>
-            <span className="text-sm text-yellow-600 dark:text-yellow-400 mr-2">
-              Add duplicate card?
-            </span>
             <Button
               onClick={handleAddCard}
               disabled={createNote.isPending}
@@ -360,6 +356,9 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
             <Button variant="outline" size="sm" onClick={handleDismiss}>
               No, skip
             </Button>
+            <span className="text-sm text-yellow-600 dark:text-yellow-400 mr-auto">
+              Add duplicate card?
+            </span>
           </>
         ) : (
           <>

@@ -108,9 +108,21 @@ export function useChat() {
             case 'usage':
               useTokenUsage.getState().addUsage(event.data);
               setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId ? { ...msg, tokenUsage: event.data } : msg
-                )
+                prev.map((msg) => {
+                  if (msg.id !== assistantMsgId) return msg;
+                  const existing = msg.tokenUsage;
+                  if (existing) {
+                    return {
+                      ...msg,
+                      tokenUsage: {
+                        ...existing,
+                        inputTokens: existing.inputTokens + event.data.inputTokens,
+                        outputTokens: existing.outputTokens + event.data.outputTokens,
+                      },
+                    };
+                  }
+                  return { ...msg, tokenUsage: event.data };
+                })
               );
               break;
             case 'error':

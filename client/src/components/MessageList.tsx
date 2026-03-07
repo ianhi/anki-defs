@@ -1,10 +1,10 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
 import { MODEL_PRICING } from 'shared';
 import ReactMarkdown from 'react-markdown';
 import { CardPreview } from './CardPreview';
 import { cn } from '@/lib/utils';
-import { User, Bot } from 'lucide-react';
+import { User, Bot, Eye } from 'lucide-react';
 
 function HighlightedText({ text, words }: { text: string; words: string[] }) {
   // Build a regex that matches any of the highlighted words
@@ -55,6 +55,45 @@ function AssistantMessage({ content, isStreaming }: { content: string; isStreami
   return (
     <div className="prose prose-base dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3">
       <ReactMarkdown>{content}</ReactMarkdown>
+    </div>
+  );
+}
+
+function CardPreviewList({
+  messageId,
+  previews,
+}: {
+  messageId: string;
+  previews: NonNullable<Message['cardPreviews']>;
+}) {
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [showDismissed, setShowDismissed] = useState(false);
+
+  const handleDismiss = useCallback((idx: number) => {
+    setDismissed((prev) => new Set(prev).add(idx));
+  }, []);
+
+  const dismissedCount = dismissed.size;
+
+  return (
+    <div className="mt-4 -mx-1 space-y-3">
+      {previews.map((preview, idx) => (
+        <CardPreview
+          key={`${messageId}-${preview.word}-${idx}`}
+          preview={preview}
+          isDismissed={dismissed.has(idx) && !showDismissed}
+          onDismiss={() => handleDismiss(idx)}
+        />
+      ))}
+      {dismissedCount > 0 && (
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          onClick={() => setShowDismissed(!showDismissed)}
+        >
+          <Eye className="h-3 w-3" />
+          {showDismissed ? 'Hide dismissed' : `Show ${dismissedCount} dismissed`}
+        </button>
+      )}
     </div>
   );
 }
@@ -148,11 +187,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
               )}
 
               {message.cardPreviews && message.cardPreviews.length > 0 && (
-                <div className="mt-4 -mx-1 space-y-3">
-                  {message.cardPreviews.map((preview, idx) => (
-                    <CardPreview key={`${preview.word}-${idx}`} preview={preview} />
-                  ))}
-                </div>
+                <CardPreviewList messageId={message.id} previews={message.cardPreviews} />
               )}
 
               {message.role === 'assistant' && message.tokenUsage && !showStreamingIndicator && (

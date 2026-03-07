@@ -129,7 +129,8 @@ chatRouter.post('/stream', async (req, res) => {
               ? extractInflectedForms(fullResponse)
               : undefined;
 
-          const { cardPreviews, errors } = await extractCards({
+          const settings2 = await getSettings();
+          const { cardPreviews, errors, totalUsage } = await extractCards({
             wordsForCards,
             fullResponse,
             originalSentence: newMessage,
@@ -145,6 +146,17 @@ chatRouter.post('/stream', async (req, res) => {
           }
           for (const error of errors) {
             sendSSE(res, { type: 'error', data: error });
+          }
+          if (totalUsage) {
+            sendSSE(res, {
+              type: 'usage',
+              data: {
+                inputTokens: totalUsage.inputTokens,
+                outputTokens: totalUsage.outputTokens,
+                provider: 'gemini',
+                model: settings2.geminiModel || 'gemini-2.5-flash-lite',
+              },
+            });
           }
         } catch (error) {
           console.error('[Chat] Error in onDone handler:', error);

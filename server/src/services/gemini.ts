@@ -96,11 +96,16 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
   }
 }
 
+export interface ExtractionUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 // Structured output for card extraction - single word mode (extract from AI examples)
 export async function extractCardData(
   word: string,
   explanation: string
-): Promise<Omit<CardPreview, 'alreadyExists'>> {
+): Promise<{ card: Omit<CardPreview, 'alreadyExists'>; usage?: ExtractionUsage }> {
   console.log('[Gemini] Extracting card data for single word:', word);
 
   const genai = await getClient();
@@ -145,11 +150,21 @@ export async function extractCardData(
   }
   console.log('[Gemini] Card data extracted:', data);
 
+  const usage = response.usageMetadata
+    ? {
+        inputTokens: response.usageMetadata.promptTokenCount ?? 0,
+        outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
+      }
+    : undefined;
+
   return {
-    word: data.word || word,
-    definition: data.definition || '',
-    exampleSentence: data.exampleSentence || '',
-    sentenceTranslation: data.sentenceTranslation || '',
+    card: {
+      word: data.word || word,
+      definition: data.definition || '',
+      exampleSentence: data.exampleSentence || '',
+      sentenceTranslation: data.sentenceTranslation || '',
+    },
+    usage,
   };
 }
 
@@ -159,7 +174,7 @@ export async function extractCardDataFromSentence(
   originalSentence: string,
   sentenceTranslation: string,
   explanation: string
-): Promise<Omit<CardPreview, 'alreadyExists'>> {
+): Promise<{ card: Omit<CardPreview, 'alreadyExists'>; usage?: ExtractionUsage }> {
   console.log('[Gemini] Extracting card data for word in sentence:', word);
 
   const genai = await getClient();
@@ -196,10 +211,20 @@ export async function extractCardDataFromSentence(
   }
   console.log('[Gemini] Card data extracted:', data);
 
+  const usage = response.usageMetadata
+    ? {
+        inputTokens: response.usageMetadata.promptTokenCount ?? 0,
+        outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
+      }
+    : undefined;
+
   return {
-    word: data.word || word,
-    definition: data.definition || '',
-    exampleSentence: originalSentence,
-    sentenceTranslation: sentenceTranslation,
+    card: {
+      word: data.word || word,
+      definition: data.definition || '',
+      exampleSentence: originalSentence,
+      sentenceTranslation: sentenceTranslation,
+    },
+    usage,
   };
 }

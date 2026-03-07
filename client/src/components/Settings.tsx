@@ -11,6 +11,7 @@ import { Badge } from './ui/Badge';
 import type { AIProvider, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS } from 'shared';
 import { Check, X, Loader2 } from 'lucide-react';
+import { usePlatform } from '@/hooks/usePlatform';
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -32,6 +33,9 @@ export function Settings() {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },
   });
+
+  const platform = usePlatform();
+  const isAndroid = platform.platform === 'android';
 
   const { data: ankiConnected } = useAnkiStatus();
   const { data: decks } = useDecks();
@@ -77,25 +81,56 @@ export function Settings() {
       </div>
 
       {/* Anki Connection Status */}
-      <div className="space-y-2">
-        <Label>AnkiConnect Status</Label>
-        <div className="flex items-center gap-2">
-          {ankiConnected ? (
-            <Badge variant="success" className="flex items-center gap-1">
-              <Check className="h-3 w-3" />
-              Connected
-            </Badge>
-          ) : (
-            <>
+      {isAndroid ? (
+        <div className="space-y-2">
+          <Label>AnkiDroid Status</Label>
+          <div className="flex items-center gap-2">
+            {platform.ankiAvailable ? (
+              <Badge variant="success" className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Installed
+              </Badge>
+            ) : (
               <Badge variant="destructive" className="flex items-center gap-1">
                 <X className="h-3 w-3" />
-                Disconnected
+                Not installed
               </Badge>
-              <span className="text-xs text-muted-foreground">Is Anki running?</span>
-            </>
-          )}
+            )}
+            {platform.ankiAvailable &&
+              (platform.hasPermission ? (
+                <Badge variant="success" className="flex items-center gap-1">
+                  <Check className="h-3 w-3" />
+                  Permission granted
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <X className="h-3 w-3" />
+                  No permission
+                </Badge>
+              ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-2">
+          <Label>AnkiConnect Status</Label>
+          <div className="flex items-center gap-2">
+            {ankiConnected ? (
+              <Badge variant="success" className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                Connected
+              </Badge>
+            ) : (
+              <>
+                <Badge variant="destructive" className="flex items-center gap-1">
+                  <X className="h-3 w-3" />
+                  Disconnected
+                </Badge>
+                <span className="text-xs text-muted-foreground">Is Anki running?</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* AI Provider */}
       <div className="space-y-2">
@@ -210,6 +245,20 @@ export function Settings() {
           checked={localSettings.showTransliteration}
           onChange={(e: ChangeEvent<HTMLInputElement>) =>
             handleChange('showTransliteration', e.target.checked)
+          }
+          className="h-4 w-4 rounded border-input"
+        />
+      </div>
+
+      {/* Left-handed Mode */}
+      <div className="flex items-center justify-between">
+        <Label htmlFor="left-handed">Left-handed mode</Label>
+        <input
+          id="left-handed"
+          type="checkbox"
+          checked={localSettings.leftHanded}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('leftHanded', e.target.checked)
           }
           className="h-4 w-4 rounded border-input"
         />

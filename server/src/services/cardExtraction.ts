@@ -1,8 +1,7 @@
 import * as gemini from './gemini.js';
+import type { ExtractionUsage } from './gemini.js';
 import * as ankiService from './anki.js';
 import type { CardPreview } from 'shared';
-
-type CardPreviewData = Omit<CardPreview, 'alreadyExists'>;
 
 interface ExtractionInput {
   wordsForCards: string[];
@@ -20,6 +19,7 @@ interface ExtractionInput {
 export interface ExtractionResult {
   cardPreviews: CardPreview[];
   errors: string[];
+  totalUsage?: ExtractionUsage;
 }
 
 /**
@@ -66,8 +66,8 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
 
   // Extract card data in parallel via Gemini structured output
   const results = await Promise.allSettled(
-    wordsForCards.map(async (word): Promise<{ word: string; cardData: CardPreviewData }> => {
-      const cardData = isSentenceMode
+    wordsForCards.map(async (word) => {
+      const result = isSentenceMode
         ? await gemini.extractCardDataFromSentence(
             word,
             originalSentence,
@@ -75,7 +75,7 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
             fullResponse
           )
         : await gemini.extractCardData(word, fullResponse);
-      return { word, cardData };
+      return { word, cardData: result.card, usage: result.usage };
     })
   );
 
@@ -89,6 +89,15 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
       }
     })
   );
+
+  // Aggregate extraction usage across all calls
+  const totalUsage: ExtractionUsage = { inputTokens: 0, outputTokens: 0 };
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value.usage) {
+      totalUsage.inputTokens += result.value.usage.inputTokens;
+      totalUsage.outputTokens += result.value.usage.outputTokens;
+    }
+  }
 
   // Build card previews
   const cardPreviews: CardPreview[] = [];
@@ -115,7 +124,11 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
     }
   }
 
-  return { cardPreviews, errors };
+  return {
+    cardPreviews,
+    errors,
+    totalUsage: totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0 ? totalUsage : undefined,
+  };
 }
 
 // Re-export extraction helpers for use in routes

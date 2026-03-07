@@ -115,6 +115,7 @@ export interface Settings {
   openRouterApiKey: string;
   openRouterModel: string;
   showTransliteration: boolean;
+  leftHanded: boolean;
   defaultDeck: string;
   defaultModel: string;
   ankiConnectUrl: string;
@@ -130,6 +131,7 @@ export const DEFAULT_SETTINGS: Settings = {
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash-lite',
   showTransliteration: false,
+  leftHanded: false,
   openRouterApiKey: '',
   openRouterModel: 'google/gemini-2.5-flash',
   defaultDeck: 'Bangla',
@@ -196,6 +198,13 @@ export interface TokenUsage {
   outputTokens: number;
   provider: AIProvider;
   model?: string;
+}
+
+// Platform detection
+export interface PlatformInfo {
+  platform: 'web' | 'android';
+  ankiAvailable?: boolean;
+  hasPermission?: boolean;
 }
 
 // SSE event types (discriminated union for type safety)
