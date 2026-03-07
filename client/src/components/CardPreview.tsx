@@ -265,7 +265,6 @@ export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProp
                 {existsInSession && !preview.alreadyExists ? 'In session' : 'In deck'}
               </Badge>
             )}
-
           </div>
           {!isAdded && !isQueued && (
             <Button

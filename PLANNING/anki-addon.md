@@ -535,11 +535,11 @@ def handle_platform():
 ```
 
 | Setting          | Web (ankiconnect-server/) | Android          | Anki Add-on       |
-| ---------------- | ---------------- | ---------------- | ----------------- |
-| AnkiConnect URL  | Show             | Hide             | Hide              |
-| Deck selector    | Via AnkiConnect  | Via ContentProv. | Via col.decks     |
-| Permission flow  | N/A              | AnkiDroid perm.  | N/A (inside Anki) |
-| Connection check | /api/anki/status | Always connected | Always connected  |
+| ---------------- | ------------------------- | ---------------- | ----------------- |
+| AnkiConnect URL  | Show                      | Hide             | Hide              |
+| Deck selector    | Via AnkiConnect           | Via ContentProv. | Via col.decks     |
+| Permission flow  | N/A                       | AnkiDroid perm.  | N/A (inside Anki) |
+| Connection check | /api/anki/status          | Always connected | Always connected  |
 
 ## Entry Point: `__init__.py`
 

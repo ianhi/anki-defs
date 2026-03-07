@@ -17,13 +17,7 @@ interface SyncAllState {
   failed: number;
 }
 
-function SyncAllResult({
-  state,
-  onDismiss,
-}: {
-  state: SyncAllState;
-  onDismiss: () => void;
-}) {
+function SyncAllResult({ state, onDismiss }: { state: SyncAllState; onDismiss: () => void }) {
   useEffect(() => {
     if (!state.active && state.total > 0) {
       const timer = setTimeout(onDismiss, 5000);
@@ -44,9 +38,7 @@ function SyncAllResult({
     return (
       <span className="text-xs font-medium">
         {state.succeeded > 0 && (
-          <span className="text-green-600 dark:text-green-400">
-            {state.succeeded} synced
-          </span>
+          <span className="text-green-600 dark:text-green-400">{state.succeeded} synced</span>
         )}
         {state.succeeded > 0 && state.failed > 0 && ', '}
         {state.failed > 0 && (
@@ -168,7 +160,13 @@ export function SessionCardsPanel() {
     if (!ankiConnected || syncAllState.active) return;
 
     const cardsToSync = [...pendingQueue];
-    setSyncAllState({ active: true, total: cardsToSync.length, completed: 0, succeeded: 0, failed: 0 });
+    setSyncAllState({
+      active: true,
+      total: cardsToSync.length,
+      completed: 0,
+      succeeded: 0,
+      failed: 0,
+    });
 
     let succeeded = 0;
     let failed = 0;

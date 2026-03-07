@@ -43,10 +43,10 @@ Each backend serves `client/dist/` and implements `/api/*` endpoints.
 
 ## Other Documents
 
-| Doc                                            | Contents                                   |
-| ---------------------------------------------- | ------------------------------------------ |
-| [repo-structure.md](repo-structure.md)         | Monorepo layout, build system              |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy for multi-agent work   |
+| Doc                                            | Contents                                         |
+| ---------------------------------------------- | ------------------------------------------------ |
+| [repo-structure.md](repo-structure.md)         | Monorepo layout, build system                    |
+| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy for multi-agent work         |
 | [anki-addon.md](anki-addon.md)                 | Python backend inside Anki Desktop (implemented) |
 
 ## Key Decisions

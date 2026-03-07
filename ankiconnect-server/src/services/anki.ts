@@ -167,9 +167,7 @@ export async function testConnection(): Promise<boolean> {
     const ankiClient = await getClient();
     await ankiClient.miscellaneous.version();
     // Refresh word cache on successful connection
-    refreshWordCache().catch((err) =>
-      console.warn('[Anki] Word cache refresh failed:', err)
-    );
+    refreshWordCache().catch((err) => console.warn('[Anki] Word cache refresh failed:', err));
     return true;
   } catch {
     return false;
@@ -205,8 +203,7 @@ async function refreshWordCache(): Promise<void> {
   const words = new Set<string>();
   for (const note of notesInfo) {
     if (!note) continue;
-    const value =
-      note.fields[wordField]?.value || note.fields[fallbackField]?.value;
+    const value = note.fields[wordField]?.value || note.fields[fallbackField]?.value;
     if (value) {
       words.add(value.toLowerCase());
     }
@@ -220,10 +217,7 @@ async function refreshWordCache(): Promise<void> {
  * Search for a word with fallback to the in-memory cache when Anki is offline.
  * Returns the same type as searchWord for compatibility.
  */
-export async function searchWordCached(
-  word: string,
-  deckName: string
-): Promise<AnkiNote | null> {
+export async function searchWordCached(word: string, deckName: string): Promise<AnkiNote | null> {
   try {
     return await searchWord(word, deckName);
   } catch {

@@ -39,14 +39,14 @@ branches. Never let multiple agents commit directly to main.
 
 ### Scoping guidelines
 
-| Agent scope | Owns | Must not touch |
-|-------------|------|----------------|
-| Frontend | `client/`, `client/PLANNING/`, `client/DOCS/` | `ankiconnect-server/`, `android/`, `anki-addon/` |
-| Backend (web) | `ankiconnect-server/`, its PLANNING/DOCS | `client/`, `android/`, `anki-addon/` |
-| Android | `android/`, its PLANNING/DOCS | `client/`, `ankiconnect-server/`, `anki-addon/` |
-| Anki add-on | `anki-addon/`, its PLANNING/DOCS | `client/`, `ankiconnect-server/`, `android/` |
-| Docs | `docs/` | Everything else |
-| Shared types | `shared/` | Backend internals |
+| Agent scope   | Owns                                          | Must not touch                                   |
+| ------------- | --------------------------------------------- | ------------------------------------------------ |
+| Frontend      | `client/`, `client/PLANNING/`, `client/DOCS/` | `ankiconnect-server/`, `android/`, `anki-addon/` |
+| Backend (web) | `ankiconnect-server/`, its PLANNING/DOCS      | `client/`, `android/`, `anki-addon/`             |
+| Android       | `android/`, its PLANNING/DOCS                 | `client/`, `ankiconnect-server/`, `anki-addon/`  |
+| Anki add-on   | `anki-addon/`, its PLANNING/DOCS              | `client/`, `ankiconnect-server/`, `android/`     |
+| Docs          | `docs/`                                       | Everything else                                  |
+| Shared types  | `shared/`                                     | Backend internals                                |
 
 If an agent needs to change files outside its scope (e.g., `shared/types.ts`), it should
 note the needed change in its output and let the coordinator handle it.

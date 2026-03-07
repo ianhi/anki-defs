@@ -5,6 +5,7 @@
 The project has three backends sharing one React frontend. All backends are functional.
 
 **Top priorities (in order):**
+
 1. ~~Add automated tests to the web stack~~ -- vitest set up, initial tests in place
 2. ~~Set up CI pipeline (GitHub Actions)~~ -- `.github/workflows/ci.yml` running
 3. Manually test the anki-addon inside Anki Desktop -- code complete but never run in Anki
@@ -52,6 +53,7 @@ The project has three backends sharing one React frontend. All backends are func
 ### 1. Web App Polish
 
 See [next-steps.md](next-steps.md) for prioritized TODOs:
+
 - Prompt testing end-to-end (lemmatization, mismatch badges)
 - Disambiguation support, root word suggestions
 - Unmarked sentence mode (auto-detect unknown words)
@@ -59,12 +61,14 @@ See [next-steps.md](next-steps.md) for prioritized TODOs:
 ### 2. Testing Infrastructure
 
 Vitest set up with 31 tests across 3 test files. CI pipeline in place.
+
 - Done: card extraction (14 tests), prompt rendering (9 tests), client utils (8 tests)
 - Remaining: API route tests, SSE streaming, auth middleware, React component tests
 
 ### 3. Anki Add-on Finalization
 
 See [anki-addon.md](anki-addon.md). Remaining:
+
 - Manual testing inside Anki Desktop
 - Potential AnkiWeb distribution
 
@@ -75,27 +79,27 @@ Phases 1-5 complete. Phase 6 (shared prompts) done. Phase 7 (quick-translate) is
 
 ## Plan Documents
 
-| Doc | Summary | Status |
-|-----|---------|--------|
-| [next-steps.md](next-steps.md) | Web app feature TODOs | Active |
-| [anki-addon.md](anki-addon.md) | Anki Desktop add-on plan | Phases 1-5 done, 6 done |
-| [security-audit.md](security-audit.md) | Security findings and fixes | Complete (9/9) |
-| [prompt-design.md](prompt-design.md) | Prompt template design | Done (shared/prompts/) |
-| [overview.md](overview.md) | WebView architecture + phase plan | Reference |
-| [architecture.md](architecture.md) | Data flow diagram | Reference |
-| [repo-structure.md](repo-structure.md) | Monorepo layout | Reference |
-| [progress.md](progress.md) | What's been built | Reference |
-| [team-workflow.md](team-workflow.md) | Coordinator playbook for multi-agent work | Reference |
+| Doc                                    | Summary                                   | Status                  |
+| -------------------------------------- | ----------------------------------------- | ----------------------- |
+| [next-steps.md](next-steps.md)         | Web app feature TODOs                     | Active                  |
+| [anki-addon.md](anki-addon.md)         | Anki Desktop add-on plan                  | Phases 1-5 done, 6 done |
+| [security-audit.md](security-audit.md) | Security findings and fixes               | Complete (9/9)          |
+| [prompt-design.md](prompt-design.md)   | Prompt template design                    | Done (shared/prompts/)  |
+| [overview.md](overview.md)             | WebView architecture + phase plan         | Reference               |
+| [architecture.md](architecture.md)     | Data flow diagram                         | Reference               |
+| [repo-structure.md](repo-structure.md) | Monorepo layout                           | Reference               |
+| [progress.md](progress.md)             | What's been built                         | Reference               |
+| [team-workflow.md](team-workflow.md)   | Coordinator playbook for multi-agent work | Reference               |
 
 ### Completed (kept for reference)
 
-| Doc | Summary |
-|-----|---------|
-| [migration.md](migration.md) | Monorepo merge (Phase 1) |
-| [frontend-changes.md](frontend-changes.md) | Frontend platform awareness (Phase 3) |
-| [webview-bridge.md](webview-bridge.md) | WebView + native bridges (Phases 4-5) |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design |
-| [settings-design.md](settings-design.md) | Android settings design |
+| Doc                                            | Summary                               |
+| ---------------------------------------------- | ------------------------------------- |
+| [migration.md](migration.md)                   | Monorepo merge (Phase 1)              |
+| [frontend-changes.md](frontend-changes.md)     | Frontend platform awareness (Phase 3) |
+| [webview-bridge.md](webview-bridge.md)         | WebView + native bridges (Phases 4-5) |
+| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design            |
+| [settings-design.md](settings-design.md)       | Android settings design               |
 
 ## How to Use This Directory
 
