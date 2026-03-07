@@ -33,7 +33,8 @@ function HighlightedText({ text, words }: { text: string; words: string[] }) {
 function formatCost(usage: TokenUsage): string {
   const pricing = usage.model ? MODEL_PRICING[usage.model] : undefined;
   if (!pricing) return '';
-  const cost = (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
+  const cost =
+    (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
   if (cost === 0) return '';
   return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
 }

@@ -33,7 +33,8 @@ export default function App() {
                 onClick={resetUsage}
               >
                 {totalTokens.toLocaleString()} tok
-                {totalCost > 0 && ` · $${totalCost < 0.01 ? totalCost.toFixed(4) : totalCost.toFixed(2)}`}
+                {totalCost > 0 &&
+                  ` · $${totalCost < 0.01 ? totalCost.toFixed(4) : totalCost.toFixed(2)}`}
               </button>
             )}
             <Button

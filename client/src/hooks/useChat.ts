@@ -109,9 +109,7 @@ export function useChat() {
             const usage = event.data as TokenUsage;
             useTokenUsage.getState().addUsage(usage);
             setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantMsgId ? { ...msg, tokenUsage: usage } : msg
-              )
+              prev.map((msg) => (msg.id === assistantMsgId ? { ...msg, tokenUsage: usage } : msg))
             );
           } else if (event.type === 'error') {
             setError(event.data as string);
