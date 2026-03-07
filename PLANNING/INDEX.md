@@ -2,13 +2,17 @@
 
 ## Start Here
 
-The project has two active work tracks:
+The project has three active work tracks:
 
 1. **Android WebView migration** (Phases 1-5 complete) -- see [overview.md](overview.md)
    for the full phase plan. The Android app now uses a WebView loading the React frontend
    from a local NanoHTTPd server, with platform-aware settings and native bridges.
 
-2. **Web app improvements** -- see [next-steps.md](next-steps.md) for prioritized TODOs
+2. **Anki Desktop add-on** (Backend #3, Phases 1-5 implemented) -- see [anki-addon.md](anki-addon.md).
+   Python add-on running inside Anki Desktop with direct collection access. Phase 6 (build
+   system + packaging) still needed.
+
+3. **Web app improvements** -- see [next-steps.md](next-steps.md) for prioritized TODOs
    (prompt testing, card field mapping, disambiguation, unmarked sentence mode).
 
 ## Phase Plan (Android WebView Migration)
@@ -41,7 +45,7 @@ See [next-steps.md](next-steps.md) for the prioritized list. Key items:
 | [repo-structure.md](repo-structure.md)         | Monorepo layout and build system                            |
 | [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design                                  |
 | [settings-design.md](settings-design.md)       | Android settings design                                     |
-| [anki-addon.md](anki-addon.md)                 | Planned: Python backend in Anki Desktop (research complete) |
+| [anki-addon.md](anki-addon.md)                 | Anki Desktop add-on backend (Phases 1-5 done, Phase 6 pending) |
 
 ## Completed
 

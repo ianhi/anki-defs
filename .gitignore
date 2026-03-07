@@ -33,5 +33,12 @@ npm-debug.log*
 local.properties
 .kotlin/
 
+# Python
+__pycache__/
+*.pyc
+
+# Anki add-on
+anki-addon/user_files/session.db
+
 # Misc
 *.bak

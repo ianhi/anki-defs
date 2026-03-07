@@ -1,6 +1,24 @@
 # Anki Desktop Add-on: Backend #3 Implementation Plan
 
-## Status: PLANNED (research complete)
+## Status: IMPLEMENTED (Phase 1-5 complete, Phase 6 pending)
+
+### What's Done
+- Entry point with menu item and profile hooks
+- Non-blocking socket HTTP server (QTimer-polled, AnkiConnect pattern)
+- URL router with path parameter matching
+- Static file serving with SPA fallback
+- All `/api/anki/*` endpoints (direct collection access)
+- All `/api/chat/*` endpoints (streaming SSE + non-streaming)
+- Claude, Gemini, OpenRouter providers (stdlib urllib.request only)
+- Card extraction pipeline (Gemini structured output)
+- Settings via Anki addon config system
+- Session persistence (SQLite in user_files/)
+- `/api/platform`, `/api/health`, `/api/settings`, `/api/session/*`
+- Zero vendored dependencies (all stdlib)
+
+### What's Remaining
+- Phase 6: Build script to copy client/dist/ to web/, package as .ankiaddon
+- Phase 0: Prompt template extraction to shared/prompts/ (currently inlined)
 
 ## Concept
 
