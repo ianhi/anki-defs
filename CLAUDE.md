@@ -25,3 +25,7 @@ All code must pass:
 - TypeScript strict mode (`npm run typecheck`)
 - ESLint (`npm run lint`)
 - Prettier formatting (`npm run format:check`)
+
+### Important Notes
+
+- This is a web application, not a library. There are no external consumers. Do not add backwards-compatibility shims, legacy code paths, or "kept for compatibility" comments. Just change or delete code directly.

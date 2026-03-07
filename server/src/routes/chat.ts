@@ -61,6 +61,7 @@ chatRouter.post('/stream', async (req, res) => {
 
   const settings = await getSettings();
   const targetDeck = deck || settings.defaultDeck;
+  const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
   // Determine if this is a single word or a sentence/phrase
   const trimmed = newMessage.trim();
@@ -72,15 +73,14 @@ chatRouter.post('/stream', async (req, res) => {
   let userMessage: string;
 
   if (hasHighlightedWords) {
-    // User highlighted specific words in a sentence - focus on those
-    systemPrompt = aiService.SYSTEM_PROMPTS.focusedWords;
+    systemPrompt = prompts.focusedWords;
     userMessage = `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
     console.log('[Chat] Using focused words prompt for:', highlightedWords);
   } else if (isSingleWord) {
-    systemPrompt = aiService.SYSTEM_PROMPTS.word;
+    systemPrompt = prompts.word;
     userMessage = newMessage;
   } else {
-    systemPrompt = aiService.SYSTEM_PROMPTS.sentence;
+    systemPrompt = prompts.sentence;
     userMessage = newMessage;
   }
 
@@ -222,7 +222,8 @@ chatRouter.post('/define', async (req, res) => {
       console.warn('[Chat] Anki search failed:', error);
     }
 
-    const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.define, word);
+    const prompts = aiService.getSystemPrompts(settings.showTransliteration);
+    const response = await aiService.getCompletion(prompts.define, word);
 
     let parsed;
     try {
@@ -252,7 +253,8 @@ chatRouter.post('/analyze', async (req, res) => {
     const settings = await getSettings();
     const targetDeck = deck || settings.defaultDeck;
 
-    const response = await aiService.getCompletion(aiService.SYSTEM_PROMPTS.analyze, sentence);
+    const prompts = aiService.getSystemPrompts(settings.showTransliteration);
+    const response = await aiService.getCompletion(prompts.analyze, sentence);
 
     let parsed: { translation?: string; words?: ParsedWord[]; grammar?: string };
     try {

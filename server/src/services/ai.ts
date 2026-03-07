@@ -54,12 +54,18 @@ export function resetClients(): void {
 }
 
 // System prompts for different operations
-export const SYSTEM_PROMPTS = {
-  // For single words - include examples
-  word: `You are a Bangla language tutor. Define the word directly and concisely.
+// transliteration param controls whether romanized pronunciation is included
+export function getSystemPrompts(transliteration: boolean) {
+  const translit = transliteration ? ' ([transliteration])' : '';
+  const translitInstr = transliteration
+    ? ' Include romanized transliteration in parentheses after each Bangla word.'
+    : ' Do NOT include romanized transliteration/pronunciation.';
+
+  return {
+    word: `You are a Bangla language tutor. Define the word directly and concisely.${translitInstr}
 
 Format:
-**[word]** ([transliteration]) - [English meaning]
+**[word]**${translit} - [English meaning]
 
 *[part of speech]*
 
@@ -71,14 +77,13 @@ Format:
 
 Be direct. No preamble like "Let's break down..." or "Absolutely!". Start with the word itself.`,
 
-  // For sentences or phrases - morphological analysis
-  sentence: `You are a Bangla language tutor. Analyze the sentence with focus on morphology.
+    sentence: `You are a Bangla language tutor. Analyze the sentence with focus on morphology.${translitInstr}
 
 Format:
 **Translation:** [English translation]
 
 **Word-by-word:**
-- **[word as it appears]** ([transliteration]) — [meaning]. From **[lemma/dictionary form]**. [Explain any suffixes, conjugations, or how it relates to other words. For verbs: tense, person, aspect. For nouns: case markers, plural. For postpositions: what they attach to.]
+- **[word as it appears]**${translit} — [meaning]. From **[lemma/dictionary form]**. [Explain any suffixes, conjugations, or how it relates to other words. For verbs: tense, person, aspect. For nouns: case markers, plural. For postpositions: what they attach to.]
 [continue for each word]
 
 At the end, list vocabulary worth learning as LEMMATIZED dictionary forms (not the inflected forms from the sentence). For example: কাঁপা not কেঁপে, যাওয়া not যাচ্ছে, বড় not বড়ো:
@@ -86,8 +91,7 @@ At the end, list vocabulary worth learning as LEMMATIZED dictionary forms (not t
 
 Be direct. No preamble. No general grammar explanations like "Bangla uses SOV order". Focus on the specific morphology of each word.`,
 
-  // For sentences with specific highlighted words to focus on
-  focusedWords: `You are a Bangla language tutor. The user has pasted a sentence and highlighted specific words they want to learn.
+    focusedWords: `You are a Bangla language tutor. The user has pasted a sentence and highlighted specific words they want to learn.${translitInstr}
 
 Format your response as:
 
@@ -96,7 +100,7 @@ Format your response as:
 Then for EACH highlighted word, give the LEMMATIZED dictionary form as the heading (not the inflected form from the sentence). For example if the sentence has কেঁপে, the heading should be কাঁপা:
 
 ---
-**[lemma/dictionary form]** ([transliteration]) — [meaning]
+**[lemma/dictionary form]**${translit} — [meaning]
 
 *[part of speech]*
 
@@ -108,15 +112,7 @@ In this sentence: [the inflected form used and why — explain the conjugation/d
 
 Be direct. No preamble. Focus on the highlighted words in the context of the given sentence.`,
 
-  // Legacy chat prompt (kept for compatibility)
-  chat: `You are a Bangla language tutor. Help the user understand Bangla words and sentences.
-
-For single words: Give meaning, pronunciation, part of speech, 2-3 example sentences, and usage notes.
-For sentences: Translate, break down vocabulary, explain grammar.
-
-Be direct and concise. No preamble like "Let's break down..." or "Absolutely!". Use markdown formatting.`,
-
-  extractCard: `Extract flashcard data from the conversation. Return ONLY valid JSON with this exact structure:
+    extractCard: `Extract flashcard data from the conversation. Return ONLY valid JSON with this exact structure:
 {
   "word": "the Bangla word in LEMMATIZED dictionary form (e.g. কাঁপা not কেঁপে, যাওয়া not গেছে)",
   "definition": "concise English definition",
@@ -126,7 +122,7 @@ Be direct and concise. No preamble like "Let's break down..." or "Absolutely!". 
 
 Pick the best single example sentence. Keep the definition concise (under 10 words if possible). Always use the dictionary/lemma form for the word field.`,
 
-  define: `You are a Bangla language expert. When given a Bangla word, return ONLY valid JSON:
+    define: `You are a Bangla language expert. When given a Bangla word, return ONLY valid JSON:
 {
   "word": "the original word",
   "lemma": "dictionary form if different",
@@ -138,7 +134,7 @@ Pick the best single example sentence. Keep the definition concise (under 10 wor
   "notes": "any additional usage notes"
 }`,
 
-  analyze: `You are a Bangla language expert. Analyze the given Bangla sentence and return ONLY valid JSON:
+    analyze: `You are a Bangla language expert. Analyze the given Bangla sentence and return ONLY valid JSON:
 {
   "translation": "English translation of the full sentence",
   "words": [
@@ -151,4 +147,5 @@ Pick the best single example sentence. Keep the definition concise (under 10 wor
   ],
   "grammar": "any notable grammatical patterns"
 }`,
-};
+  };
+}

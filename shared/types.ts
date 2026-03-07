@@ -78,6 +78,7 @@ export interface Settings {
   geminiModel: string;
   openRouterApiKey: string;
   openRouterModel: string;
+  showTransliteration: boolean;
   defaultDeck: string;
   defaultModel: string;
   ankiConnectUrl: string;
@@ -88,6 +89,7 @@ export const DEFAULT_SETTINGS: Settings = {
   claudeApiKey: '',
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash-lite',
+  showTransliteration: false,
   openRouterApiKey: '',
   openRouterModel: 'google/gemini-2.5-flash',
   defaultDeck: 'Bangla',

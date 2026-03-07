@@ -43,7 +43,7 @@ export function Settings() {
     }
   }, [serverSettings, loadSettings]);
 
-  const handleChange = (key: keyof SettingsType, value: string) => {
+  const handleChange = (key: keyof SettingsType, value: string | boolean) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -195,6 +195,20 @@ export function Settings() {
           </div>
         </>
       )}
+
+      {/* Transliteration Toggle */}
+      <div className="flex items-center justify-between">
+        <Label htmlFor="transliteration">Show transliteration</Label>
+        <input
+          id="transliteration"
+          type="checkbox"
+          checked={localSettings.showTransliteration}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('showTransliteration', e.target.checked)
+          }
+          className="h-4 w-4 rounded border-input"
+        />
+      </div>
 
       {/* Default Deck */}
       <div className="space-y-2">
