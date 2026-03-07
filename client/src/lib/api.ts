@@ -12,6 +12,7 @@ import type {
   SessionState,
   SessionCard,
   PendingCard,
+  PlatformInfo,
 } from 'shared';
 
 const API_BASE = '/api';
@@ -32,6 +33,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
   return response.json();
 }
+
+// Platform API
+export const platformApi = {
+  get: () => fetchJson<PlatformInfo>('/platform'),
+};
 
 // Settings API
 export const settingsApi = {

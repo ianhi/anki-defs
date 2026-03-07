@@ -4,7 +4,7 @@
 
 Share anki-defs' React frontend between web and Android. The Android app runs a local HTTP server that implements the same API contract, backed by AnkiDroid ContentProvider + Gemini API. One UI, two backends.
 
-## Status: IN PROGRESS (Phase 1 complete)
+## Status: IN PROGRESS (Phases 1-5 complete)
 
 ## Architecture
 
@@ -33,10 +33,10 @@ Each backend serves `client/dist/` and implements `/api/*` endpoints.
 | Phase | Task                                              | Status   | Details                                    |
 | ----- | ------------------------------------------------- | -------- | ------------------------------------------ |
 | 1     | Repo restructure (monorepo)                       | **Done** | [migration.md](migration.md)               |
-| 2     | Android backend: local HTTP server + API handlers | **Next** | [android-backend.md](android-backend.md)   |
-| 3     | Frontend platform awareness (Android mode)        | Planned  | [frontend-changes.md](frontend-changes.md) |
-| 4     | WebView Activity + asset bundling                 | Planned  | [webview-bridge.md](webview-bridge.md)     |
-| 5     | Native bridges (share intents, permissions)       | Planned  | [webview-bridge.md](webview-bridge.md)     |
+| 2     | Android backend: local HTTP server + API handlers | **Done** | [android-backend.md](android-backend.md)   |
+| 3     | Frontend platform awareness (Android mode)        | **Done** | [frontend-changes.md](frontend-changes.md) |
+| 4     | WebView Activity + asset bundling                 | **Done** | [webview-bridge.md](webview-bridge.md)     |
+| 5     | Native bridges (share intents, permissions)       | **Done** | [webview-bridge.md](webview-bridge.md)     |
 | 6     | Port prompt improvements to shared backend        | Planned  | [prompt-design.md](prompt-design.md)       |
 | 7     | Quick-translate native popup (later)              | Future   | [quick-translate.md](quick-translate.md)   |
 

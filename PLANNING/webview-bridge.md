@@ -1,5 +1,7 @@
 # WebView Setup & Native Bridges
 
+## Status: DONE
+
 ## WebView Activity
 
 Replace current `ChatScreen` + `SettingsScreen` Compose navigation with a single WebView that loads the React app from the local server.

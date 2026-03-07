@@ -1,59 +1,73 @@
 package com.word2anki
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import com.google.gson.Gson
 import com.word2anki.data.FlashCardsContract
-import com.word2anki.ui.screens.ChatScreen
-import com.word2anki.ui.screens.SettingsScreen
-import com.word2anki.ui.theme.Word2AnkiTheme
+import com.word2anki.server.LocalServer
 
 class MainActivity : ComponentActivity() {
 
-    private var sharedText by mutableStateOf<String?>(null)
-    private var autoSend by mutableStateOf(false)
+    private lateinit var webView: WebView
+    private val gson = Gson()
+    private var pendingSharedText: String? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        // Permission result will be handled by the ViewModel
+    ) { granted ->
+        if (granted) {
+            webView.evaluateJavascript(
+                "window.dispatchEvent(new CustomEvent('ankiPermissionChanged', { detail: true }))",
+                null
+            )
+        }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Handle shared text intent
-        handleIntent(intent)
+        webView = WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.mediaPlaybackRequiresUserGesture = false
 
-        // Request AnkiDroid permission if needed
-        requestAnkiPermissionIfNeeded()
+            addJavascriptInterface(AndroidBridge(), "Android")
 
-        setContent {
-            Word2AnkiTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Word2AnkiNavigation(sharedText = sharedText, autoSend = autoSend)
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean = false
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    pendingSharedText?.let { text ->
+                        dispatchSharedText(text)
+                        pendingSharedText = null
+                    }
                 }
             }
+
+            webChromeClient = WebChromeClient()
         }
+
+        setContentView(webView)
+
+        handleIntent(intent)
+        requestAnkiPermissionIfNeeded()
+
+        webView.loadUrl("http://localhost:${LocalServer.PORT}")
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -61,21 +75,39 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    @Deprecated("Use onBackPressedDispatcher")
+    override fun onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            @Suppress("DEPRECATION")
+            super.onBackPressed()
+        }
+    }
+
     private fun handleIntent(intent: Intent?) {
-        when (intent?.action) {
-            Intent.ACTION_SEND -> {
-                if (intent.type == "text/plain") {
-                    sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-                }
-            }
-            Intent.ACTION_PROCESS_TEXT -> {
-                val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
-                if (!text.isNullOrBlank()) {
-                    sharedText = text
-                    autoSend = true
-                }
+        val text = when (intent?.action) {
+            Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)
+            Intent.ACTION_PROCESS_TEXT ->
+                intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
+            else -> null
+        }
+
+        if (!text.isNullOrBlank()) {
+            if (::webView.isInitialized) {
+                dispatchSharedText(text)
+            } else {
+                pendingSharedText = text
             }
         }
+    }
+
+    private fun dispatchSharedText(text: String) {
+        val jsonText = gson.toJson(text)
+        webView.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('sharedText', { detail: $jsonText }))",
+            null
+        )
     }
 
     private fun requestAnkiPermissionIfNeeded() {
@@ -86,32 +118,25 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
-@Composable
-fun Word2AnkiNavigation(sharedText: String?, autoSend: Boolean = false) {
-    val navController = rememberNavController()
-
-    NavHost(
-        navController = navController,
-        startDestination = "chat"
-    ) {
-        composable("chat") {
-            ChatScreen(
-                onNavigateToSettings = {
-                    navController.navigate("settings")
-                },
-                sharedText = sharedText,
-                autoSend = autoSend
-            )
+    inner class AndroidBridge {
+        @android.webkit.JavascriptInterface
+        fun requestAnkiPermission() {
+            runOnUiThread {
+                permissionLauncher.launch(FlashCardsContract.READ_WRITE_PERMISSION)
+            }
         }
 
-        composable("settings") {
-            SettingsScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+        @android.webkit.JavascriptInterface
+        fun isAnkiInstalled(): Boolean {
+            val app = application as Word2AnkiApp
+            return app.ankiRepository.isAnkiDroidInstalled()
+        }
+
+        @android.webkit.JavascriptInterface
+        fun hasAnkiPermission(): Boolean {
+            val app = application as Word2AnkiApp
+            return app.ankiRepository.hasAnkiPermission()
         }
     }
 }

@@ -8,6 +8,7 @@ import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
 import { useTokenUsage } from './hooks/useTokenUsage';
 import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
+import { usePlatform } from './hooks/usePlatform';
 
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
@@ -16,6 +17,8 @@ export default function App() {
   const totalCards = cards.length + pendingQueue.length;
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
   const totalTokens = totalInputTokens + totalOutputTokens;
+  const platform = usePlatform();
+  const isAndroid = platform.platform === 'android';
   const sync = useAnkiSync();
   const { data: ankiConnected } = useAnkiStatus();
 
@@ -45,7 +48,7 @@ export default function App() {
                   ` · $${totalCost < 0.01 ? totalCost.toFixed(4) : totalCost.toFixed(2)}`}
               </button>
             )}
-            {ankiConnected && (
+            {!isAndroid && ankiConnected && (
               <Button
                 variant="ghost"
                 size="icon"

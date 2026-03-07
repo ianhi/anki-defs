@@ -1,5 +1,7 @@
 # Changes Needed in anki-defs Frontend
 
+## Status: DONE
+
 ## Goal
 
 Make the React frontend platform-aware so it works on both web and Android without forking.

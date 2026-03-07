@@ -3,6 +3,26 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// Task: Build React frontend and copy dist/ into Android assets
+val buildFrontend = tasks.register("buildFrontend", Exec::class) {
+    workingDir = file("${rootProject.projectDir}/..")
+    commandLine("npm", "run", "build:client")
+    inputs.dir("${rootProject.projectDir}/../client/src")
+    inputs.file("${rootProject.projectDir}/../client/index.html")
+    inputs.file("${rootProject.projectDir}/../client/vite.config.ts")
+    outputs.dir("${rootProject.projectDir}/../client/dist")
+}
+
+val copyFrontendAssets = tasks.register("copyFrontendAssets", Copy::class) {
+    dependsOn(buildFrontend)
+    from("${rootProject.projectDir}/../client/dist")
+    into("${projectDir}/src/main/assets/www")
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyFrontendAssets)
+}
+
 android {
     namespace = "com.word2anki"
     compileSdk = 34

@@ -94,3 +94,6 @@ apikeys.properties
 # Test outputs
 test-results/
 test-output/
+
+# Bundled frontend assets (built from client/)
+app/src/main/assets/www/

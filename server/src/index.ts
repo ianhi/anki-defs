@@ -40,6 +40,11 @@ app.use('/api/chat', chatRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/session', sessionRouter);
 
+// Platform info
+app.get('/api/platform', (_req, res) => {
+  res.json({ platform: 'web' });
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

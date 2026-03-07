@@ -4,9 +4,9 @@
 
 The project has two active work tracks:
 
-1. **Android WebView migration** (Phase 2 is next) -- see [overview.md](overview.md)
-   for the full phase plan. Phase 1 (monorepo merge) is done. Next: build the NanoHTTPd
-   local server in android/ that implements the same API contract as server/.
+1. **Android WebView migration** (Phases 1-5 complete) -- see [overview.md](overview.md)
+   for the full phase plan. The Android app now uses a WebView loading the React frontend
+   from a local NanoHTTPd server, with platform-aware settings and native bridges.
 
 2. **Web app improvements** -- see [next-steps.md](next-steps.md) for prioritized TODOs
    (prompt testing, card field mapping, disambiguation, unmarked sentence mode).
@@ -17,9 +17,9 @@ The project has two active work tracks:
 | ----- | ------------------------------------- | -------- | ------------------------------------------ |
 | 1     | Monorepo restructure                  | **Done** | [migration.md](migration.md)               |
 | 2     | Android backend (NanoHTTPd + API)     | **Done** | [android-backend.md](android-backend.md)   |
-| 3     | Frontend platform awareness           | Planned  | [frontend-changes.md](frontend-changes.md) |
-| 4     | WebView Activity + asset bundling     | Planned  | [webview-bridge.md](webview-bridge.md)     |
-| 5     | Native bridges (intents, permissions) | Planned  | [webview-bridge.md](webview-bridge.md)     |
+| 3     | Frontend platform awareness           | **Done** | [frontend-changes.md](frontend-changes.md) |
+| 4     | WebView Activity + asset bundling     | **Done** | [webview-bridge.md](webview-bridge.md)     |
+| 5     | Native bridges (intents, permissions) | **Done** | [webview-bridge.md](webview-bridge.md)     |
 | 6     | Port prompts to shared backend        | Planned  | [prompt-design.md](prompt-design.md)       |
 | 7     | Quick-translate native popup          | Future   | [quick-translate.md](quick-translate.md)   |
 
@@ -45,9 +45,11 @@ See [next-steps.md](next-steps.md) for the prioritized list. Key items:
 
 ## Completed
 
-| Doc                          | Summary                          |
-| ---------------------------- | -------------------------------- |
-| [migration.md](migration.md) | Monorepo merge (Phase 1) -- done |
+| Doc                                            | Summary                                     |
+| ---------------------------------------------- | ------------------------------------------- |
+| [migration.md](migration.md)                   | Monorepo merge (Phase 1) -- done            |
+| [frontend-changes.md](frontend-changes.md)     | Frontend platform awareness (Phase 3) -- done |
+| [webview-bridge.md](webview-bridge.md)         | WebView + native bridges (Phases 4-5) -- done |
 
 ## Progress Tracking
 
