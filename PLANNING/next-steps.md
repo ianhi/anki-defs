@@ -45,10 +45,12 @@
 - Sync button (refresh icon) in header, visible on all screen sizes when Anki is connected
 - Triggers AnkiConnect sync so cards added on laptop appear on phone
 
-### Pending queue sync
+### ~~Pending queue sync~~ (Done)
 
-- When Anki comes back online, offer to sync all queued cards
-- Currently cards are queued but there's no "sync all" button
+- "Sync All" button in pending queue banner, visible when Anki is connected
+- Shows progress during sync ("Syncing 3/7..."), then summary ("5 synced, 1 failed")
+- Failed items stay in the pending queue for retry
+- Summary auto-dismisses after 5 seconds
 
 ## Lower Priority
 
