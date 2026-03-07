@@ -34,13 +34,13 @@ See [next-steps.md](next-steps.md) for the prioritized list. Key items:
 
 ## Architecture & Reference
 
-| Doc                                            | Summary                                  |
-| ---------------------------------------------- | ---------------------------------------- |
-| [overview.md](overview.md)                     | WebView architecture vision + phase plan |
-| [architecture.md](architecture.md)             | Data flow diagram and AI call pattern    |
-| [repo-structure.md](repo-structure.md)         | Monorepo layout and build system         |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design               |
-| [settings-design.md](settings-design.md)       | Android settings design                  |
+| Doc                                            | Summary                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------- |
+| [overview.md](overview.md)                     | WebView architecture vision + phase plan                    |
+| [architecture.md](architecture.md)             | Data flow diagram and AI call pattern                       |
+| [repo-structure.md](repo-structure.md)         | Monorepo layout and build system                            |
+| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design                                  |
+| [settings-design.md](settings-design.md)       | Android settings design                                     |
 | [anki-addon.md](anki-addon.md)                 | Planned: Python backend in Anki Desktop (research complete) |
 
 ## Completed

@@ -30,11 +30,11 @@ full anki-defs experience natively inside Anki Desktop.
 
 ### Target Versions
 
-| Anki Version | Python | Qt    | Notes                          |
-| ------------ | ------ | ----- | ------------------------------ |
-| 25.02+       | 3.9+   | Qt6   | Qt5 dropped, our minimum       |
-| 25.07+       | 3.13   | Qt6   | New launcher, ships Python 3.13|
-| 25.09+       | 3.13   | Qt6   | Latest stable                  |
+| Anki Version | Python | Qt  | Notes                           |
+| ------------ | ------ | --- | ------------------------------- |
+| 25.02+       | 3.9+   | Qt6 | Qt5 dropped, our minimum        |
+| 25.07+       | 3.13   | Qt6 | New launcher, ships Python 3.13 |
+| 25.09+       | 3.13   | Qt6 | Latest stable                   |
 
 **Minimum target: Anki 25.02** (Qt6-only era). Code should work with Python 3.9+.
 
@@ -114,6 +114,7 @@ class WebServer:
 ```
 
 **Timer setup in `__init__.py`:**
+
 ```python
 from aqt.qt import QTimer
 
@@ -376,21 +377,22 @@ deps and frontend assets).
 By using the QTimer-polled socket server (like AnkiConnect), we avoid needing Flask,
 Bottle, or any web framework. The only dependencies are:
 
-| Need              | Solution                              | Vendored? |
-| ----------------- | ------------------------------------- | --------- |
-| HTTP server       | Custom socket server (stdlib only)    | No        |
-| AI API calls      | `urllib.request` (stdlib)             | No        |
-| JSON parsing      | `json` (stdlib)                       | No        |
-| SSE formatting    | Custom helper (~50 lines)             | No        |
-| Session storage   | `sqlite3` (stdlib)                    | No        |
-| Settings storage  | Anki's addon config system            | No        |
-| Prompt templates  | JSON files, loaded with `json.load()` | No        |
+| Need             | Solution                              | Vendored? |
+| ---------------- | ------------------------------------- | --------- |
+| HTTP server      | Custom socket server (stdlib only)    | No        |
+| AI API calls     | `urllib.request` (stdlib)             | No        |
+| JSON parsing     | `json` (stdlib)                       | No        |
+| SSE formatting   | Custom helper (~50 lines)             | No        |
+| Session storage  | `sqlite3` (stdlib)                    | No        |
+| Settings storage | Anki's addon config system            | No        |
+| Prompt templates | JSON files, loaded with `json.load()` | No        |
 
 **All stdlib = zero vendoring hassles, zero version conflicts with other add-ons.**
 
 ### If We Need `requests` Later
 
 If `urllib.request` proves insufficient for streaming AI APIs:
+
 - Vendor `requests` + `urllib3` + `charset_normalizer` + `certifi` + `idna` into a
   `vendor/` directory
 - Add `sys.path.insert(0, os.path.join(os.path.dirname(__file__), "vendor"))` to
@@ -399,8 +401,8 @@ If `urllib.request` proves insufficient for streaming AI APIs:
 
 ### Platform Compatibility
 
-| Platform | Anki Location                              | Notes          |
-| -------- | ------------------------------------------ | -------------- |
+| Platform | Anki Location                             | Notes          |
+| -------- | ----------------------------------------- | -------------- |
 | Linux    | `~/.local/share/Anki2/addons21/<id>/`     | Primary dev    |
 | macOS    | `~/Library/Application Support/Anki2/...` | Same structure |
 | Windows  | `%APPDATA%\Anki2\addons21\<id>\`          | Same structure |
@@ -413,6 +415,7 @@ Extract prompt templates from `server/src/services/ai.ts` into JSON files in
 `shared/prompts/`. Each backend reads the same JSON at startup.
 
 **JSON format per prompt:**
+
 ```json
 {
   "id": "word",
@@ -436,6 +439,7 @@ Extract prompt templates from `server/src/services/ai.ts` into JSON files in
 simple template engine (string replacement -- no Jinja2 needed).
 
 **Migration order:**
+
 1. Extract prompts from `server/src/services/ai.ts` -> `shared/prompts/*.json`
 2. Update Node.js server to read from JSON files
 3. Android backend reads same JSON files
@@ -453,12 +457,12 @@ def handle_platform():
     return {"platform": "anki-addon"}
 ```
 
-| Setting          | Web (server/)    | Android          | Anki Add-on              |
-| ---------------- | ---------------- | ---------------- | ------------------------ |
-| AnkiConnect URL  | Show             | Hide             | Hide                     |
-| Deck selector    | Via AnkiConnect  | Via ContentProv. | Via col.decks            |
-| Permission flow  | N/A              | AnkiDroid perm.  | N/A (inside Anki)        |
-| Connection check | /api/anki/status | Always connected | Always connected         |
+| Setting          | Web (server/)    | Android          | Anki Add-on       |
+| ---------------- | ---------------- | ---------------- | ----------------- |
+| AnkiConnect URL  | Show             | Hide             | Hide              |
+| Deck selector    | Via AnkiConnect  | Via ContentProv. | Via col.decks     |
+| Permission flow  | N/A              | AnkiDroid perm.  | N/A (inside Anki) |
+| Connection check | /api/anki/status | Always connected | Always connected  |
 
 ## Entry Point: `__init__.py`
 
@@ -515,16 +519,16 @@ mw.form.menuTools.addAction(action)
 
 ### Risks
 
-| Risk                             | Severity | Mitigation                                     |
-| -------------------------------- | -------- | ---------------------------------------------- |
-| QTimer poll latency (25ms)       | Low      | Good enough for UI; AnkiConnect proves this     |
-| SSE + main thread contention     | Medium   | Daemon threads for AI streaming, Future bridge  |
-| AI streaming via urllib           | Medium   | urllib supports streaming reads; fallback: vendor requests |
-| Port conflicts                   | Low      | Make port configurable; try multiple ports       |
-| Add-on update wipes files        | Low      | Use `user_files/` for persistent data            |
-| Large frontend bundle size       | Low      | Vite tree-shaking keeps it small (~500KB)        |
-| Python 3.9 vs 3.13 compat       | Low      | Avoid 3.10+ features (match/case, etc.)          |
-| Collection access during sync    | Medium   | Check `mw.col` is not None before operations     |
+| Risk                          | Severity | Mitigation                                                 |
+| ----------------------------- | -------- | ---------------------------------------------------------- |
+| QTimer poll latency (25ms)    | Low      | Good enough for UI; AnkiConnect proves this                |
+| SSE + main thread contention  | Medium   | Daemon threads for AI streaming, Future bridge             |
+| AI streaming via urllib       | Medium   | urllib supports streaming reads; fallback: vendor requests |
+| Port conflicts                | Low      | Make port configurable; try multiple ports                 |
+| Add-on update wipes files     | Low      | Use `user_files/` for persistent data                      |
+| Large frontend bundle size    | Low      | Vite tree-shaking keeps it small (~500KB)                  |
+| Python 3.9 vs 3.13 compat     | Low      | Avoid 3.10+ features (match/case, etc.)                    |
+| Collection access during sync | Medium   | Check `mw.col` is not None before operations               |
 
 ### Open Questions
 
@@ -549,11 +553,13 @@ mw.form.menuTools.addAction(action)
 ## Implementation Phases
 
 ### Phase 0: Prerequisites (shared work)
+
 - Extract prompt templates from Node.js server to `shared/prompts/*.json`
 - Update Node.js server to consume JSON prompt files
 - This benefits all backends and should be done before add-on work
 
 ### Phase 1: Skeleton Add-on + HTTP Server (~3 days)
+
 - `__init__.py` with menu item and profile hooks
 - Non-blocking socket HTTP server (port from AnkiConnect's `web.py` pattern)
 - URL router with path matching
@@ -562,6 +568,7 @@ mw.form.menuTools.addAction(action)
 - **Test**: Install add-on, click menu item, see React UI in browser
 
 ### Phase 2: Anki Collection Endpoints (~2 days)
+
 - `/api/anki/decks` -- list decks
 - `/api/anki/models` -- list models
 - `/api/anki/models/:name/fields` -- field introspection
@@ -573,6 +580,7 @@ mw.form.menuTools.addAction(action)
 - **Test**: Frontend can list decks, create cards, search
 
 ### Phase 3: AI Chat (Non-Streaming) (~2 days)
+
 - AI provider abstraction (Claude, Gemini, OpenRouter)
 - `/api/chat/define` -- word definition
 - `/api/chat/relemmatize` -- re-lemmatization
@@ -581,6 +589,7 @@ mw.form.menuTools.addAction(action)
 - **Test**: Can define words and analyze sentences
 
 ### Phase 4: SSE Streaming (~2 days)
+
 - `/api/chat/stream` -- streaming AI response with card extraction
 - Daemon thread for AI API streaming
 - `mw.taskman.run_on_main()` bridge for mid-stream collection access
@@ -588,11 +597,13 @@ mw.form.menuTools.addAction(action)
 - **Test**: Full chat experience with streaming text and card previews
 
 ### Phase 5: Session Management (~1 day)
+
 - SQLite session store in `user_files/session.db`
 - All `/api/session/*` endpoints
 - **Test**: Cards persist across browser refreshes
 
 ### Phase 6: Build System + Distribution (~1 day)
+
 - Build script: `npm run build` (client) + copy dist/ to add-on web/
 - Copy `shared/prompts/*.json` to add-on prompts/
 - Package as `.ankiaddon` (zip with correct structure)

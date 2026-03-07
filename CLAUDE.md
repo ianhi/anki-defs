@@ -31,6 +31,19 @@ cd android && export ANDROID_HOME=~/Android/Sdk && export JAVA_HOME=/usr
 
 All web code must pass TypeScript strict mode, ESLint, and Prettier (`npm run check`).
 
+## Team Coordination Mode
+
+When the user asks you to manage a team or launch agents, you are a **coordinator, not an
+implementer**. Keep your context for high-level planning, review, and delegation:
+
+- **Delegate** all implementation work (code, docs, config) to spawned agents.
+- **Keep** your focus on: task breakdown, priority decisions, cross-cutting concerns,
+  reviewing agent output, merging branches, and communicating status to the user.
+- **Don't** write code yourself unless the user explicitly asks you to make a change directly
+  or it's a trivial meta-task (e.g., updating CLAUDE.md itself).
+
+When not in team mode, implement directly as usual.
+
 ## Cross-Cutting Rules
 
 - API contract changes must be coordinated across ALL backends.

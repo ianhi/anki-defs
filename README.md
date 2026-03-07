@@ -52,17 +52,32 @@ Open http://localhost:5173, enter your API key in Settings, and start looking up
 
 ## Architecture
 
+One React frontend, three backends. The frontend calls relative `/api/*` URLs and doesn't know which backend is serving it.
+
 ```
-client/    React frontend (shared across all platforms)
-shared/    TypeScript types -- API contract source of truth
-server/    Node.js + Express backend (desktop/web)
-android/   Kotlin Android app (AnkiDroid integration)
+┌─────────────────────────────────────────────────────┐
+│              client/ — React Frontend               │
+│         (shared by ALL platforms via /api/*)         │
+│                                                     │
+│   shared/ — TypeScript types (API contract)         │
+└────────────────────────┬────────────────────────────┘
+                         │
+           ┌─────────────┼─────────────┐
+           │             │             │
+┌──────────┴───┐ ┌───────┴──────┐ ┌────┴───────────┐
+│   server/    │ │  android/    │ │  anki-addon/   │
+│              │ │              │ │   (planned)    │
+│  Express.js  │ │  NanoHTTPd   │ │  Python HTTP   │
+│  AnkiConnect │ │ ContentProv. │ │  Direct Anki   │
+│  Multi-AI    │ │  Gemini API  │ │  DB access     │
+│              │ │              │ │                │
+│ Desktop/Web  │ │   Android    │ │  Anki Desktop  │
+└──────────────┘ └──────────────┘ └────────────────┘
 ```
 
-The React frontend doesn't know which backend it's talking to -- it just calls `/api/*` endpoints. This lets us share one UI across platforms:
-
-- **Desktop/Web**: Express server proxies AI APIs and talks to Anki via AnkiConnect
-- **Android** (in progress): Local HTTP server in-app, WebView loads the React frontend, talks to AnkiDroid via ContentProvider
+- **Desktop/Web** (`server/`): Express server proxies AI APIs and talks to Anki via AnkiConnect
+- **Android** (`android/`): Local HTTP server in-app, WebView loads the React frontend, talks to AnkiDroid via ContentProvider
+- **Anki Add-on** (planned): Python backend running inside Anki's process with direct database access — no AnkiConnect needed
 
 ## Development
 
