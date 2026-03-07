@@ -1,13 +1,15 @@
 # Android App (word2anki)
 
 Android backend for the vocabulary flashcard tool. Integrates with AnkiDroid via
-ContentProvider API and uses Gemini for AI definitions.
+ContentProvider API and uses Gemini for AI definitions. The UI is a WebView loading
+the shared React frontend from a local NanoHTTPd server.
 
 See root [CLAUDE.md](../CLAUDE.md) for project-wide architecture.
 
 ## Tech Stack
 
-- Kotlin, Jetpack Compose (Material 3), MVVM with ViewModels
+- Kotlin, WebView (loads React frontend from local HTTP server)
+- NanoHTTPd local server implementing the same API contract as server/
 - Google Gemini API (`com.google.ai.client.generativeai`)
 - AnkiDroid ContentProvider API for flashcard CRUD
 - Kotlin StateFlow for state, DataStore for persistence
@@ -15,9 +17,10 @@ See root [CLAUDE.md](../CLAUDE.md) for project-wide architecture.
 
 ## Patterns
 
-- **MVVM**: UI layer never imports AI or data layer directly -- all through ViewModels
-- **StateFlow**: Use `_uiState.update { it.copy(...) }` for atomic state (never `.value = .value.copy()`)
-- **Channel for one-shot events**: Snackbars use `Channel<String>`, NOT StateFlow (avoids replay)
+- **WebView + NanoHTTPd**: MainActivity hosts a WebView pointing at `localhost:18765`. The NanoHTTPd server serves the React frontend from `assets/www/` and implements `/api/*` endpoints.
+- **JS Bridge**: `AndroidBridge` class exposes `requestAnkiPermission()`, `isAnkiInstalled()`, `hasAnkiPermission()` to frontend JS via `window.Android`.
+- **Share intents**: `ACTION_SEND` and `ACTION_PROCESS_TEXT` intents dispatch a `sharedText` CustomEvent to the WebView.
+- **Asset bundling**: Gradle tasks `buildFrontend` and `copyFrontendAssets` build the React frontend and copy `client/dist/` into `assets/www/` before each build.
 - **No DI framework**: Manual dependency injection (app is small)
 - **ContentProvider for Anki**: Official AnkiDroid API, most stable integration
 
@@ -28,7 +31,7 @@ cd android
 export ANDROID_HOME=~/Android/Sdk
 export JAVA_HOME=/usr
 
-./gradlew assembleDebug      # Build debug APK
+./gradlew assembleDebug      # Build debug APK (also builds React frontend)
 ./gradlew installDebug       # Install on connected device/emulator
 ./gradlew test               # Run unit tests
 ./gradlew lint               # Lint check
@@ -38,18 +41,8 @@ export JAVA_HOME=/usr
 
 - Android SDK (API 34)
 - JDK 17 (bundled with Android Studio, or system JDK)
+- Node.js + npm (for building the React frontend)
 - Device or emulator (API 26+)
-
-### Headless Emulator (SSH/CLI)
-
-```bash
-echo "no" | $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager create avd \
-  -n Pixel_7a -k "system-images;android-34;google_apis;x86_64" -d pixel_7
-$ANDROID_HOME/emulator/emulator -avd Pixel_7a -no-window -no-audio -gpu swiftshader_indirect &
-adb wait-for-device && adb shell getprop sys.boot_completed
-```
-
-Compose elements often don't appear in `uiautomator dump` -- use TAB/ENTER keyboard nav as fallback.
 
 ### Debugging
 

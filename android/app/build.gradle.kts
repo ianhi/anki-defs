@@ -60,12 +60,7 @@ android {
     }
 
     buildFeatures {
-        compose = true
         buildConfig = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
     }
 
     packaging {
@@ -79,24 +74,14 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime)
     implementation(libs.lifecycle.viewmodel)
-    implementation(libs.activity.compose)
+    implementation(libs.activity.ktx)
 
-    implementation(platform(libs.compose.bom))
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.graphics)
-    implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.compose.material3)
-    implementation(libs.compose.icons)
-
-    implementation(libs.navigation.compose)
     implementation(libs.datastore)
 
     implementation(libs.gemini)
 
     implementation(libs.nanohttpd)
     implementation(libs.gson)
-
-    debugImplementation(libs.compose.ui.tooling)
 
     // Testing
     testImplementation(libs.test.junit)
