@@ -1,0 +1,248 @@
+package com.word2anki.data
+
+import android.content.ContentValues
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import com.word2anki.data.models.Deck
+import com.word2anki.data.models.NoteModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+private const val TAG = "AnkiRepository"
+
+/**
+ * Repository for interacting with AnkiDroid via ContentProvider API.
+ */
+class AnkiRepository(private val context: Context) {
+    private val contentResolver = context.contentResolver
+
+    /**
+     * Check if AnkiDroid is installed on the device.
+     */
+    fun isAnkiDroidInstalled(): Boolean {
+        return try {
+            context.packageManager.resolveContentProvider(
+                FlashCardsContract.AUTHORITY, 0
+            ) != null
+        } catch (e: Exception) {
+            Log.w(TAG, "Error checking AnkiDroid installation", e)
+            false
+        }
+    }
+
+    /**
+     * Check if we have permission to access AnkiDroid database.
+     */
+    fun hasAnkiPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            context.checkSelfPermission(FlashCardsContract.READ_WRITE_PERMISSION) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+    }
+
+    private val isAvailable: Boolean
+        get() = isAnkiDroidInstalled() && hasAnkiPermission()
+
+    /**
+     * Get all available decks from AnkiDroid.
+     */
+    suspend fun getDecks(): List<Deck> = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext emptyList()
+
+        try {
+            val cursor = contentResolver.query(
+                FlashCardsContract.Deck.CONTENT_URI,
+                arrayOf(
+                    FlashCardsContract.Deck.DECK_ID,
+                    FlashCardsContract.Deck.DECK_NAME
+                ),
+                null, null, null
+            ) ?: return@withContext emptyList()
+
+            cursor.use {
+                val decks = mutableListOf<Deck>()
+                val idIndex = it.getColumnIndexOrThrow(FlashCardsContract.Deck.DECK_ID)
+                val nameIndex = it.getColumnIndexOrThrow(FlashCardsContract.Deck.DECK_NAME)
+
+                while (it.moveToNext()) {
+                    decks.add(
+                        Deck(
+                            id = it.getLong(idIndex),
+                            name = it.getString(nameIndex)
+                        )
+                    )
+                }
+                decks.sortedBy { deck -> deck.name }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load decks", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Get available note models from AnkiDroid.
+     */
+    private suspend fun getModels(): List<NoteModel> = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext emptyList()
+
+        try {
+            val cursor = contentResolver.query(
+                FlashCardsContract.Model.CONTENT_URI,
+                arrayOf(
+                    FlashCardsContract.Model._ID,
+                    FlashCardsContract.Model.NAME
+                ),
+                null, null, null
+            ) ?: return@withContext emptyList()
+
+            cursor.use {
+                val models = mutableListOf<NoteModel>()
+                val idIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model._ID)
+                val nameIndex = it.getColumnIndexOrThrow(FlashCardsContract.Model.NAME)
+
+                while (it.moveToNext()) {
+                    models.add(NoteModel(it.getLong(idIndex), it.getString(nameIndex)))
+                }
+                models
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to load models", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Check if a note with the given word already exists in the specified deck.
+     * Uses Anki's browser search syntax.
+     */
+    suspend fun noteExists(word: String, deckName: String): Boolean = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext false
+
+        try {
+            // Use Anki browser search syntax to find notes.
+            // Escape quotes and backslashes to prevent query injection.
+            val safeDeckName = deckName.replace("\\", "\\\\").replace("\"", "\\\"")
+            val safeWord = word.replace("\\", "\\\\").replace("\"", "\\\"")
+            val searchQuery = "deck:\"$safeDeckName\" \"$safeWord\""
+            val cursor = contentResolver.query(
+                FlashCardsContract.Note.CONTENT_URI,
+                arrayOf(FlashCardsContract.Note._ID),
+                searchQuery,
+                null,
+                null
+            )
+            cursor?.use { it.count > 0 } ?: false
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to check note existence for '$word'", e)
+            false
+        }
+    }
+
+    /**
+     * Add a new note to AnkiDroid.
+     *
+     * @param modelId The ID of the note model/type to use
+     * @param deckId The ID of the deck to add the note to
+     * @param fields List of field values (order must match model's field order)
+     * @param tags Optional tags for the note
+     * @return The ID of the created note, or null if creation failed
+     */
+    suspend fun addNote(
+        modelId: Long,
+        deckId: Long,
+        fields: List<String>,
+        tags: Set<String>? = null
+    ): Long? = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext null
+
+        try {
+            val values = ContentValues().apply {
+                put(FlashCardsContract.Note.MID, modelId)
+                put(FlashCardsContract.Note.DECK_ID, deckId)
+                put(FlashCardsContract.Note.FLDS, fields.joinToString(FlashCardsContract.FIELD_SEPARATOR.toString()))
+                tags?.let { put(FlashCardsContract.Note.TAGS, it.joinToString(" ")) }
+            }
+
+            val resultUri = contentResolver.insert(FlashCardsContract.Note.CONTENT_URI, values)
+            resultUri?.lastPathSegment?.toLongOrNull()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to add note", e)
+            null
+        }
+    }
+
+    /**
+     * Get the first available "Basic" model ID.
+     * Falls back to any available model if Basic is not found.
+     */
+    suspend fun getBasicModelId(): Long? = withContext(Dispatchers.IO) {
+        val models = getModels()
+        // Try to find a "Basic" model first
+        models.find { it.name.equals("Basic", ignoreCase = true) }?.id
+            ?: models.firstOrNull()?.id
+    }
+
+    private suspend fun findModelByName(name: String): Long? = withContext(Dispatchers.IO) {
+        val models = getModels()
+        models.find { it.name == name }?.id
+    }
+
+    /**
+     * Create a new note model in AnkiDroid.
+     * @return The model ID if created, null otherwise.
+     */
+    private suspend fun createModel(
+        name: String,
+        fields: List<String>,
+        frontTemplate: String,
+        backTemplate: String
+    ): Long? = withContext(Dispatchers.IO) {
+        if (!isAvailable) return@withContext null
+
+        try {
+            val values = ContentValues().apply {
+                put(FlashCardsContract.Model.NAME, name)
+                put(FlashCardsContract.Model.FIELD_NAMES,
+                    fields.joinToString(",") { "\"$it\"" }.let { "[$it]" })
+                put(FlashCardsContract.Model.NUM_CARDS, 1)
+                put(FlashCardsContract.Model.CARD_NAMES, "[\"Card 1\"]")
+                put(FlashCardsContract.Model.QFMT, "[\"$frontTemplate\"]")
+                put(FlashCardsContract.Model.AFMT, "[\"$backTemplate\"]")
+            }
+
+            val resultUri = contentResolver.insert(FlashCardsContract.Model.CONTENT_URI, values)
+            resultUri?.lastPathSegment?.toLongOrNull()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to create model '$name'", e)
+            null
+        }
+    }
+
+    /**
+     * Find or create the word2anki 4-field note model.
+     * Fields: English, Bangla, ExampleSentence, SentenceTranslation
+     * @return The model ID, or null if creation is not supported.
+     */
+    suspend fun ensureWord2AnkiModel(): Long? {
+        // Try to find existing model
+        findModelByName(WORD2ANKI_MODEL_NAME)?.let { return it }
+
+        // Try to create it
+        return createModel(
+            name = WORD2ANKI_MODEL_NAME,
+            fields = WORD2ANKI_FIELDS,
+            frontTemplate = "{{English}}",
+            backTemplate = "{{Bangla}}<br><br><i>{{ExampleSentence}}</i><br>{{SentenceTranslation}}"
+        )
+    }
+
+    companion object {
+        const val WORD2ANKI_MODEL_NAME = "word2anki"
+        val WORD2ANKI_FIELDS = listOf("English", "Bangla", "ExampleSentence", "SentenceTranslation")
+    }
+}

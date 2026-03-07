@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#6650a4"
+        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0"/>
+
+    <!-- Letter W -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M35,35 L40,35 L45,55 L50,40 L55,40 L60,55 L65,35 L70,35 L62,70 L57,70 L52.5,52 L48,70 L43,70 Z"/>
+
+    <!-- Anki-style card shape at bottom -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.8"
+        android:pathData="M38,72 L68,72 L68,78 L38,78 Z"/>
+</vector>
