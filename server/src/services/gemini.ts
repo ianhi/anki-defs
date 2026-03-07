@@ -100,7 +100,7 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
 export async function extractCardData(
   word: string,
   explanation: string
-): Promise<Omit<CardPreview, 'alreadyExists' | 'noteId'>> {
+): Promise<Omit<CardPreview, 'alreadyExists'>> {
   console.log('[Gemini] Extracting card data for single word:', word);
 
   const genai = await getClient();
@@ -159,7 +159,7 @@ export async function extractCardDataFromSentence(
   originalSentence: string,
   sentenceTranslation: string,
   explanation: string
-): Promise<Omit<CardPreview, 'alreadyExists' | 'noteId'>> {
+): Promise<Omit<CardPreview, 'alreadyExists'>> {
   console.log('[Gemini] Extracting card data for word in sentence:', word);
 
   const genai = await getClient();
