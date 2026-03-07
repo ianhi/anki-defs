@@ -229,19 +229,20 @@ def handle_relemmatize(_params, _headers, body):
         return Response.error("word is required", 400)
 
     try:
+        import os
+
+        prompts_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            "shared",
+            "prompts",
+        )
+        with open(os.path.join(prompts_dir, "relemmatize.json"), "r", encoding="utf-8") as f:
+            relemmatize_prompt = json.load(f)
+
         context = "\nContext sentence: {}".format(sentence) if sentence else ""
         prompt = (
-            'What is the correct Bangla dictionary/lemma form of "{word}"?{context}\n\n'
-            "Return ONLY valid JSON:\n"
-            "{{\n"
-            '  "lemma": "the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)",\n'
-            '  "definition": "concise English definition (under 10 words)"\n'
-            "}}\n\n"
-            "Bangla Lemmatization Rules:\n"
-            "- Nouns: Remove case endings.\n"
-            "- Verbs: Convert to verbal noun.\n"
-            "- Adjectives: Use base form."
-        ).format(word=word, context=context)
+            relemmatize_prompt["system"].replace("{{word}}", word).replace("{{context}}", context)
+        )
 
         response = ai_service.get_completion(prompt, word)
 
