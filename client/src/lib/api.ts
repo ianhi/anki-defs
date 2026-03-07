@@ -4,6 +4,8 @@ import type {
   CreateNoteRequest,
   DefineRequest,
   AnalyzeRequest,
+  RelemmatizeRequest,
+  RelemmatizeResponse,
   WordAnalysis,
   SentenceAnalysis,
   SSEEvent,
@@ -72,6 +74,12 @@ export const chatApi = {
 
   analyze: (request: AnalyzeRequest) =>
     fetchJson<SentenceAnalysis>('/chat/analyze', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
+  relemmatize: (request: RelemmatizeRequest) =>
+    fetchJson<RelemmatizeResponse>('/chat/relemmatize', {
       method: 'POST',
       body: JSON.stringify(request),
     }),

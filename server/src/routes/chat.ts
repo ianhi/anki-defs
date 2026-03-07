@@ -3,7 +3,14 @@ import * as aiService from '../services/ai.js';
 import * as gemini from '../services/gemini.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
-import type { ChatStreamRequest, DefineRequest, AnalyzeRequest, SSEEvent, AnkiNote } from 'shared';
+import type {
+  ChatStreamRequest,
+  DefineRequest,
+  AnalyzeRequest,
+  RelemmatizeRequest,
+  SSEEvent,
+  AnkiNote,
+} from 'shared';
 
 export const chatRouter = Router();
 
@@ -181,14 +188,19 @@ chatRouter.post('/stream', async (req, res) => {
             if (result.status === 'fulfilled') {
               const { word, cardData } = result.value;
               const inflectedForm = cardData.word !== word ? word : undefined;
-              const exists =
-                ankiResults.get(cardData.word) || ankiResults.get(word) || false;
+              const lemmaMismatch = cardData.word !== word;
+              const exists = ankiResults.get(cardData.word) || ankiResults.get(word) || false;
+              if (lemmaMismatch) {
+                console.log('[Chat] Lemma mismatch: vocab=%s, extracted=%s', word, cardData.word);
+              }
               sendSSE(res, {
                 type: 'card_preview',
                 data: {
                   ...cardData,
                   inflectedForm,
                   alreadyExists: exists,
+                  lemmaMismatch,
+                  originalLemma: lemmaMismatch ? word : undefined,
                 },
               });
             } else {
@@ -257,6 +269,47 @@ chatRouter.post('/define', async (req, res) => {
   } catch (error) {
     console.error('[Chat] Error defining word:', error);
     res.status(500).json({ error: 'Failed to get definition' });
+  }
+});
+
+// POST /api/chat/relemmatize - Re-check the dictionary form of a word
+chatRouter.post('/relemmatize', async (req, res) => {
+  const { word, sentence } = req.body as RelemmatizeRequest;
+
+  if (!word) {
+    res.status(400).json({ error: 'word is required' });
+    return;
+  }
+
+  try {
+    const context = sentence ? `\nContext sentence: ${sentence}` : '';
+    const prompt = `What is the correct Bangla dictionary/lemma form of "${word}"?${context}
+
+Return ONLY valid JSON:
+{
+  "lemma": "the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)",
+  "definition": "concise English definition (under 10 words)"
+}
+
+Bangla Lemmatization Rules:
+- Nouns: Remove case endings. বাজারে→বাজার, বাজারের→বাজার, বাজারকে→বাজার
+- Verbs: Convert to verbal noun. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া
+- Adjectives: Use base form. বড়ো→বড়`;
+
+    const response = await aiService.getCompletion(prompt, word);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(response);
+    } catch {
+      res.json({ lemma: word, definition: '' });
+      return;
+    }
+
+    res.json({ lemma: parsed.lemma || word, definition: parsed.definition || '' });
+  } catch (error) {
+    console.error('[Chat] Error relemmatizing word:', error);
+    res.status(500).json({ error: 'Failed to relemmatize word' });
   }
 });
 

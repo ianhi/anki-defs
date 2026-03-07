@@ -8,7 +8,18 @@ import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
 import { boldWordInSentence } from '@/lib/utils';
-import { Check, Plus, Loader2, X, AlertTriangle, Clock, Undo2 } from 'lucide-react';
+import { chatApi } from '@/lib/api';
+import {
+  Check,
+  Plus,
+  Loader2,
+  X,
+  AlertTriangle,
+  Clock,
+  Undo2,
+  Pencil,
+  RefreshCw,
+} from 'lucide-react';
 
 interface CardPreviewProps {
   preview: CardPreviewType;
@@ -50,6 +61,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   const [addedToDeck, setAddedToDeck] = useState<string | null>(null);
   const [addedNoteId, setAddedNoteId] = useState<number | null>(null);
   const [pendingQueueId, setPendingQueueId] = useState<string | null>(null);
+  // Editable word and definition
+  const [editedWord, setEditedWord] = useState<string | null>(null);
+  const [editedDefinition, setEditedDefinition] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isRelemmatizing, setIsRelemmatizing] = useState(false);
 
   const { settings } = useSettingsStore();
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } =
@@ -58,8 +74,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
 
+  const currentWord = editedWord ?? preview.word;
+  const currentDefinition = editedDefinition ?? preview.definition;
+
   // Check if word exists in session cards (in addition to Anki check from server)
-  const existsInSession = hasWord(preview.word);
+  const existsInSession = hasWord(currentWord);
   const alreadyExists = preview.alreadyExists || existsInSession;
 
   if (isDismissed) {
@@ -75,10 +94,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
 
     const targetDeck = settings.defaultDeck;
     const targetModel = settings.defaultModel;
+    const cardPreview = { ...preview, word: currentWord, definition: currentDefinition };
 
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
-      const queueId = addToPendingQueue(preview, targetDeck, targetModel);
+      const queueId = addToPendingQueue(cardPreview, targetDeck, targetModel);
       setIsQueued(true);
       setAddedToDeck(targetDeck);
       setPendingQueueId(queueId);
@@ -90,11 +110,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
         deckName: targetDeck,
         modelName: targetModel,
         fields: {
-          Word: preview.word,
-          Definition: preview.definition,
+          Word: currentWord,
+          Definition: currentDefinition,
           Example: boldWordInSentence(
             preview.exampleSentence,
-            preview.inflectedForm || preview.word
+            preview.inflectedForm || currentWord
           ),
           Translation: preview.sentenceTranslation,
         },
@@ -103,11 +123,11 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       setIsAdded(true);
       setAddedToDeck(targetDeck);
       setAddedNoteId(noteId);
-      addCard(preview, targetDeck, targetModel, noteId);
+      addCard(cardPreview, targetDeck, targetModel, noteId);
     } catch (error) {
       console.error('Failed to create card, adding to queue:', error);
       // If Anki fails, add to pending queue
-      const queueId = addToPendingQueue(preview, targetDeck, targetModel);
+      const queueId = addToPendingQueue(cardPreview, targetDeck, targetModel);
       setIsQueued(true);
       setAddedToDeck(targetDeck);
       setPendingQueueId(queueId);
@@ -141,6 +161,25 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
     setAddedToDeck(null);
   };
 
+  const handleRelemmatize = async () => {
+    setIsRelemmatizing(true);
+    try {
+      const result = await chatApi.relemmatize({
+        word: preview.inflectedForm || currentWord,
+        sentence: preview.exampleSentence || undefined,
+      });
+      setEditedWord(result.lemma);
+      if (result.definition) {
+        setEditedDefinition(result.definition);
+      }
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to relemmatize:', error);
+    } finally {
+      setIsRelemmatizing(false);
+    }
+  };
+
   const handleDismiss = () => {
     setIsDismissed(true);
     onDismiss?.();
@@ -153,9 +192,73 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       <CardHeader className="pb-2 pt-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            <CardTitle className="text-lg">{preview.word}</CardTitle>
-            <span className="text-muted-foreground">—</span>
-            <span className="text-base">{preview.definition}</span>
+            {isEditing ? (
+              <>
+                <input
+                  type="text"
+                  value={currentWord}
+                  onChange={(e) => setEditedWord(e.target.value)}
+                  className="text-lg font-semibold bg-muted border border-input rounded px-2 py-0.5 w-32"
+                  autoFocus
+                />
+                <span className="text-muted-foreground">—</span>
+                <input
+                  type="text"
+                  value={currentDefinition}
+                  onChange={(e) => setEditedDefinition(e.target.value)}
+                  className="text-base bg-muted border border-input rounded px-2 py-0.5 w-48"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={() => setIsEditing(false)}
+                >
+                  <Check className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs"
+                  onClick={handleRelemmatize}
+                  disabled={isRelemmatizing}
+                  title="Ask AI for correct dictionary form"
+                >
+                  {isRelemmatizing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <CardTitle className="text-lg">{currentWord}</CardTitle>
+                <span className="text-muted-foreground">—</span>
+                <span className="text-base">{currentDefinition}</span>
+                {!isAdded && !isQueued && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => setIsEditing(true)}
+                    title="Edit word or definition"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </>
+            )}
+            {preview.lemmaMismatch && !editedWord && (
+              <Badge
+                variant="outline"
+                className="border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer"
+                onClick={() => setIsEditing(true)}
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {preview.originalLemma} → {preview.word}
+              </Badge>
+            )}
             {alreadyExists && (
               <Badge
                 variant="outline"
@@ -186,10 +289,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       {preview.exampleSentence && (
         <CardContent className="pb-2 pt-0">
           <p className="text-sm">
-            {highlightWord(
-              preview.exampleSentence,
-              preview.inflectedForm || preview.word
-            )}
+            {highlightWord(preview.exampleSentence, preview.inflectedForm || preview.word)}
           </p>
           {preview.sentenceTranslation && (
             <p className="text-sm text-muted-foreground">{preview.sentenceTranslation}</p>
