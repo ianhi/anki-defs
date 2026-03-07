@@ -17,18 +17,20 @@ export default function App() {
   const totalTokens = totalInputTokens + totalOutputTokens;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
+    <div className="flex h-dvh w-screen overflow-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold">Bangla Vocabulary</h1>
-            <HeaderDeckSelector />
+        <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <h1 className="text-lg sm:text-xl font-semibold whitespace-nowrap">Bangla</h1>
+            <div className="hidden sm:block">
+              <HeaderDeckSelector />
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {totalTokens > 0 && (
               <button
-                className="text-xs text-muted-foreground mr-2 tabular-nums hover:text-foreground transition-colors"
+                className="text-xs text-muted-foreground mr-1 sm:mr-2 tabular-nums hover:text-foreground transition-colors hidden sm:block"
                 title={`Input: ${totalInputTokens.toLocaleString()} | Output: ${totalOutputTokens.toLocaleString()}\nClick to reset`}
                 onClick={resetUsage}
               >
@@ -64,9 +66,9 @@ export default function App() {
         <Chat />
       </div>
 
-      {/* Cards Sidebar */}
+      {/* Cards Sidebar - overlay on mobile, sidebar on desktop */}
       {showCards && (
-        <aside className="w-72 border-l border-border bg-card flex flex-col">
+        <aside className="fixed inset-0 z-40 bg-card sm:static sm:inset-auto sm:w-72 sm:border-l sm:border-border flex flex-col">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h2 className="font-medium">Session Cards</h2>
             <Button
@@ -82,9 +84,20 @@ export default function App() {
         </aside>
       )}
 
-      {/* Settings Sidebar */}
+      {/* Settings Sidebar - overlay on mobile, sidebar on desktop */}
       {showSettings && (
-        <aside className="w-80 border-l border-border bg-card overflow-y-auto">
+        <aside className="fixed inset-0 z-40 bg-card overflow-y-auto sm:static sm:inset-auto sm:w-80 sm:border-l sm:border-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border sm:hidden">
+            <h2 className="font-medium">Settings</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setShowSettings(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
           <Settings />
         </aside>
       )}

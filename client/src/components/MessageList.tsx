@@ -69,11 +69,10 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        <div className="text-center space-y-3 max-w-md px-4">
-          <p className="text-2xl font-medium">Bangla Vocabulary</p>
-          <p className="text-base">
-            Type a Bangla word to get its definition and create flashcards, or paste a sentence to
-            analyze it.
+        <div className="text-center space-y-3 max-w-md px-6">
+          <p className="text-xl sm:text-2xl font-medium">Bangla Vocabulary</p>
+          <p className="text-sm sm:text-base">
+            Type a Bangla word or sentence to get definitions and create flashcards.
           </p>
           <div className="text-sm space-y-1 mt-4">
             <p>Examples:</p>
@@ -85,7 +84,7 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+    <div className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6">
       {messages.map((message, index) => {
         const isLastMessage = index === messages.length - 1;
         const showStreamingIndicator = isStreaming && isLastMessage && message.role === 'assistant';
@@ -93,19 +92,22 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
         return (
           <div
             key={message.id}
-            className={cn('flex gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}
+            className={cn(
+              'flex gap-2 sm:gap-3',
+              message.role === 'user' ? 'justify-end' : 'justify-start'
+            )}
           >
             {message.role === 'assistant' && (
-              <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                <Bot className="w-5 h-5 text-primary-foreground" />
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
               </div>
             )}
 
             <div
               className={cn(
-                'max-w-[85%] rounded-xl px-5 py-4',
+                'max-w-[90%] sm:max-w-[85%] rounded-xl px-3 py-2.5 sm:px-5 sm:py-4',
                 message.role === 'user'
-                  ? 'bg-primary text-primary-foreground text-lg'
+                  ? 'bg-primary text-primary-foreground text-base sm:text-lg'
                   : 'bg-muted text-foreground'
               )}
             >
@@ -162,8 +164,8 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
             </div>
 
             {message.role === 'user' && (
-              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
-                <User className="w-5 h-5 text-secondary-foreground" />
+              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
+                <User className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
               </div>
             )}
           </div>

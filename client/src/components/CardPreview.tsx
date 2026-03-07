@@ -189,16 +189,16 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
     <Card
       className={`bg-background ${alreadyExists ? 'border-yellow-500/50' : 'border-primary/20'}`}
     >
-      <CardHeader className="pb-2 pt-3">
+      <CardHeader className="pb-1.5 pt-2.5 sm:pb-2 sm:pt-3 px-3 sm:px-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
             {isEditing ? (
               <>
                 <input
                   type="text"
                   value={currentWord}
                   onChange={(e) => setEditedWord(e.target.value)}
-                  className="text-lg font-semibold bg-muted border border-input rounded px-2 py-0.5 w-32"
+                  className="text-base sm:text-lg font-semibold bg-muted border border-input rounded px-2 py-0.5 w-28 sm:w-32"
                   autoFocus
                 />
                 <span className="text-muted-foreground">—</span>
@@ -206,7 +206,7 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
                   type="text"
                   value={currentDefinition}
                   onChange={(e) => setEditedDefinition(e.target.value)}
-                  className="text-base bg-muted border border-input rounded px-2 py-0.5 w-48"
+                  className="text-sm sm:text-base bg-muted border border-input rounded px-2 py-0.5 w-36 sm:w-48"
                 />
                 <Button
                   variant="ghost"
@@ -233,9 +233,9 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
               </>
             ) : (
               <>
-                <CardTitle className="text-lg">{currentWord}</CardTitle>
+                <CardTitle className="text-base sm:text-lg">{currentWord}</CardTitle>
                 <span className="text-muted-foreground">—</span>
-                <span className="text-base">{currentDefinition}</span>
+                <span className="text-sm sm:text-base">{currentDefinition}</span>
                 {!isAdded && !isQueued && (
                   <Button
                     variant="ghost"
@@ -287,16 +287,18 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
         </div>
       </CardHeader>
       {preview.exampleSentence && (
-        <CardContent className="pb-2 pt-0">
-          <p className="text-sm">
+        <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
+          <p className="text-xs sm:text-sm">
             {highlightWord(preview.exampleSentence, preview.inflectedForm || preview.word)}
           </p>
           {preview.sentenceTranslation && (
-            <p className="text-sm text-muted-foreground">{preview.sentenceTranslation}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {preview.sentenceTranslation}
+            </p>
           )}
         </CardContent>
       )}
-      <CardFooter className="pt-2 pb-3 gap-2 flex-wrap">
+      <CardFooter className="pt-1.5 pb-2.5 sm:pt-2 sm:pb-3 px-3 sm:px-6 gap-2 flex-wrap">
         {isAdded ? (
           <>
             <Badge variant="default" className="bg-green-600">

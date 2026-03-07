@@ -23,7 +23,7 @@ function getCleanText(text: string): string {
 export function MessageInput({
   onSend,
   disabled = false,
-  placeholder = 'Type a Bangla word or sentence... (Ctrl+B to highlight unknown words)',
+  placeholder = 'Bangla word or sentence...',
 }: MessageInputProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -98,7 +98,7 @@ export function MessageInput({
   const highlightedWords = parseHighlightedWords(value);
 
   return (
-    <div className="border-t border-border p-4">
+    <div className="border-t border-border p-2 sm:p-4">
       <div className="max-w-4xl mx-auto space-y-2">
         {highlightedWords.length > 0 && (
           <div className="flex items-center gap-2 text-sm">
@@ -125,7 +125,7 @@ export function MessageInput({
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+            className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 sm:px-4 sm:py-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
           />
           <Button onClick={handleSubmit} disabled={disabled || !value.trim()} size="icon">
             <Send className="h-4 w-4" />
