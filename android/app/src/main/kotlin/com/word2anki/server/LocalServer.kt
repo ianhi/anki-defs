@@ -3,6 +3,7 @@ package com.word2anki.server
 import android.content.Context
 import android.util.Log
 import com.word2anki.ai.GeminiService
+import com.word2anki.ai.SharedPromptLoader
 import com.word2anki.data.AnkiRepository
 import com.word2anki.data.SettingsRepository
 import fi.iki.elonen.NanoHTTPD
@@ -14,10 +15,11 @@ class LocalServer(
     private val context: Context,
     private val ankiRepository: AnkiRepository,
     private val settingsRepository: SettingsRepository,
-    private val geminiServiceProvider: () -> GeminiService?
+    private val geminiServiceProvider: () -> GeminiService?,
+    promptLoader: SharedPromptLoader
 ) : NanoHTTPD("127.0.0.1", PORT) {
 
-    private val chatHandler = ChatHandler(ankiRepository, geminiServiceProvider)
+    private val chatHandler = ChatHandler(ankiRepository, geminiServiceProvider, promptLoader)
     private val ankiHandler = AnkiHandler(ankiRepository)
     private val settingsHandler = SettingsHandler(settingsRepository)
 

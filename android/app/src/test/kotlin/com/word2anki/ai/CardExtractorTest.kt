@@ -142,8 +142,9 @@ class CardExtractorTest {
     fun `buildExtractionPrompt includes user input and AI response`() {
         val userInput = "hello"
         val aiResponse = "This is a response"
+        val extractionPrompt = "Extract flashcard data from the conversation."
 
-        val prompt = CardExtractor.buildExtractionPrompt(userInput, aiResponse)
+        val prompt = CardExtractor.buildExtractionPrompt(userInput, aiResponse, extractionPrompt)
 
         assert(prompt.contains("hello"))
         assert(prompt.contains("This is a response"))

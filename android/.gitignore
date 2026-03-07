@@ -97,3 +97,6 @@ test-output/
 
 # Bundled frontend assets (built from client/)
 app/src/main/assets/www/
+
+# Shared prompt templates (copied from shared/prompts/)
+app/src/main/assets/prompts/

@@ -119,9 +119,13 @@ object CardExtractor {
     /**
      * Build the extraction prompt with conversation context.
      */
-    fun buildExtractionPrompt(userInput: String, aiResponse: String): String {
+    fun buildExtractionPrompt(
+        userInput: String,
+        aiResponse: String,
+        extractionPromptText: String
+    ): String {
         return """
-${PromptTemplates.CARD_EXTRACTION}
+$extractionPromptText
 
 User asked about: $userInput
 

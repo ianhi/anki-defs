@@ -3,6 +3,7 @@ package com.word2anki
 import android.app.Application
 import android.util.Log
 import com.word2anki.ai.GeminiService
+import com.word2anki.ai.SharedPromptLoader
 import com.word2anki.data.AnkiRepository
 import com.word2anki.data.SettingsRepository
 import com.word2anki.server.LocalServer
@@ -28,11 +29,16 @@ class Word2AnkiApp : Application() {
         ankiRepository = AnkiRepository(this)
         settingsRepository = SettingsRepository(this)
 
+        val promptLoader = SharedPromptLoader { path ->
+            assets.open(path).bufferedReader().use { it.readText() }
+        }
+
         localServer = LocalServer(
             context = this,
             ankiRepository = ankiRepository,
             settingsRepository = settingsRepository,
-            geminiServiceProvider = ::getOrCreateGeminiService
+            geminiServiceProvider = ::getOrCreateGeminiService,
+            promptLoader = promptLoader
         )
 
         try {

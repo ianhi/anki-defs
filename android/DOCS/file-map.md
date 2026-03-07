@@ -10,7 +10,8 @@ All source under `app/src/main/kotlin/com/word2anki/`.
 ## AI (`ai/`)
 
 - `GeminiService.kt` -- Gemini API streaming client with multi-turn conversation context
-- `PromptTemplates.kt` -- Prompt type detection (word/sentence/focused) and template generation
+- `SharedPromptLoader.kt` -- Loads shared prompt templates from `assets/prompts/*.json` with variable substitution
+- `PromptTemplates.kt` -- Input type classification (word/sentence/focused)
 - `CardExtractor.kt` -- Parse AI responses into card data (JSON extraction with heuristic fallback)
 
 ## Data (`data/`)
@@ -36,7 +37,7 @@ All source under `app/src/main/kotlin/com/word2anki/`.
 
 Located in `app/src/test/kotlin/com/word2anki/`:
 
-- `ai/PromptTemplatesTest.kt` (23 tests), `ai/CardExtractorTest.kt` (24 tests)
+- `ai/PromptTemplatesTest.kt` (16 tests), `ai/CardExtractorTest.kt` (24 tests), `ai/SharedPromptLoaderTest.kt` (9 tests)
 - `viewmodel/ChatViewModelTest.kt` (12), `viewmodel/SettingsViewModelTest.kt` (8)
 - `data/ModelsTest.kt` (9), `data/models/MessageTest.kt` (9), `ui/MarkdownTextTest.kt` (10)
 

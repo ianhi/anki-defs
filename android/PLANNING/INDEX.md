@@ -13,6 +13,12 @@ for the phase plan. Relevant root planning docs:
 - [settings-design.md](../../PLANNING/settings-design.md) -- Android settings design
 - [quick-translate.md](../../PLANNING/quick-translate.md) -- Native popup for text selection **(Phase 7)**
 
+## Completed
+
+- **Shared prompt integration** -- Android now loads prompts from `shared/prompts/*.json`
+  (copied into `assets/prompts/` at build time) instead of hardcoded Kotlin strings.
+  All three backends share identical prompt templates.
+
 ## Android-Specific Plans
 
 | Doc                                          | Summary                                              |

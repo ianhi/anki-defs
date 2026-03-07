@@ -19,8 +19,13 @@ val copyFrontendAssets = tasks.register("copyFrontendAssets", Copy::class) {
     into("${projectDir}/src/main/assets/www")
 }
 
+val copyPromptAssets = tasks.register("copyPromptAssets", Copy::class) {
+    from("${rootProject.projectDir}/../shared/prompts")
+    into("${projectDir}/src/main/assets/prompts")
+}
+
 tasks.named("preBuild") {
-    dependsOn(copyFrontendAssets)
+    dependsOn(copyFrontendAssets, copyPromptAssets)
 }
 
 android {

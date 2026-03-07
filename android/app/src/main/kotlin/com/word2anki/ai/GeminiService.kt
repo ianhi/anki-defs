@@ -45,19 +45,19 @@ class GeminiService(private val apiKey: String) {
      * System prompt is prepended to the first user message since SDK 0.9.0 doesn't
      * reliably support the systemInstruction parameter with newer models.
      */
-    fun generateStreamingResponse(input: String, history: List<Message> = emptyList()): Flow<String> {
-        val systemPrompt = PromptTemplates.getUnifiedSystemPrompt()
-
+    fun generateStreamingResponse(
+        input: String,
+        systemPrompt: String,
+        history: List<Message> = emptyList()
+    ): Flow<String> {
         return flow {
             withTimeout(STREAMING_TIMEOUT_MS) {
                 val chat: com.google.ai.client.generativeai.Chat
                 val message: String
 
                 if (history.isEmpty()) {
-                    // First message: prepend system prompt + type hint
-                    val typeHint = PromptTemplates.getTypeHint(input)
                     chat = model.startChat()
-                    message = "$systemPrompt\n\n$typeHint$input"
+                    message = "$systemPrompt\n\n$input"
                 } else {
                     // Multi-turn: prepend system prompt to the first user message in history
                     val chatHistory = history.mapIndexed { index, msg ->
@@ -84,7 +84,11 @@ class GeminiService(private val apiKey: String) {
     /**
      * Extract card data from conversation using AI.
      */
-    suspend fun extractCard(userInput: String, aiResponse: String): CardPreview? {
+    suspend fun extractCard(
+        userInput: String,
+        aiResponse: String,
+        extractionPromptText: String
+    ): CardPreview? {
         // First try simple extraction without API call
         val simpleExtraction = CardExtractor.extractFromResponse(userInput, aiResponse)
         if (simpleExtraction != null &&
@@ -96,8 +100,10 @@ class GeminiService(private val apiKey: String) {
         // Fall back to AI extraction with timeout
         return try {
             withTimeout(EXTRACTION_TIMEOUT_MS) {
-                val extractionPrompt = CardExtractor.buildExtractionPrompt(userInput, aiResponse)
-                val response = extractionModel.generateContent(extractionPrompt)
+                val prompt = CardExtractor.buildExtractionPrompt(
+                    userInput, aiResponse, extractionPromptText
+                )
+                val response = extractionModel.generateContent(prompt)
                 response.text?.let { CardExtractor.parseCardJson(it) }
             }
         } catch (e: Exception) {

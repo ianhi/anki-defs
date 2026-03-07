@@ -6,6 +6,8 @@ import com.google.gson.JsonObject
 import com.word2anki.ai.CardExtractor
 import com.word2anki.ai.GeminiService
 import com.word2anki.ai.PromptTemplates
+import com.word2anki.ai.PromptType
+import com.word2anki.ai.SharedPromptLoader
 import com.word2anki.data.AnkiRepository
 import com.word2anki.server.LocalServer.Companion.jsonResponse
 import com.word2anki.server.LocalServer.Companion.parseBody
@@ -23,7 +25,8 @@ private const val TAG = "ChatHandler"
 
 class ChatHandler(
     private val ankiRepository: AnkiRepository,
-    private val geminiServiceProvider: () -> GeminiService?
+    private val geminiServiceProvider: () -> GeminiService?,
+    private val promptLoader: SharedPromptLoader
 ) {
     private val gson = Gson()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -52,6 +55,14 @@ class ChatHandler(
         val geminiService = geminiServiceProvider()
             ?: return jsonResponse(Response.Status.SERVICE_UNAVAILABLE, """{"error":"AI service not configured. Set Gemini API key in settings."}""")
 
+        // Select the right system prompt based on input type
+        val prompts = promptLoader.getSystemPrompts(transliteration = true)
+        val systemPrompt = when (PromptTemplates.getPromptType(newMessage)) {
+            PromptType.WORD_DEFINITION -> prompts.word
+            PromptType.SENTENCE_ANALYSIS -> prompts.sentence
+            PromptType.FOCUSED_WORDS -> prompts.focusedWords
+        }
+
         val pipedInput = PipedInputStream()
         val pipedOutput = PipedOutputStream(pipedInput)
 
@@ -59,7 +70,7 @@ class ChatHandler(
             try {
                 val fullResponse = StringBuilder()
 
-                geminiService.generateStreamingResponse(newMessage).collect { chunk ->
+                geminiService.generateStreamingResponse(newMessage, systemPrompt).collect { chunk ->
                     fullResponse.append(chunk)
                     val event = gson.toJson(mapOf("type" to "text", "data" to chunk))
                     pipedOutput.write("data: $event\n\n".toByteArray())
@@ -68,7 +79,9 @@ class ChatHandler(
 
                 // Extract card preview from the response
                 try {
-                    val card = geminiService.extractCard(newMessage, fullResponse.toString())
+                    val card = geminiService.extractCard(
+                        newMessage, fullResponse.toString(), prompts.extractCard
+                    )
                     if (card != null) {
                         val exists = if (deck != null) {
                             ankiRepository.noteExists(card.word, deck)
@@ -124,7 +137,6 @@ class ChatHandler(
         return runBlocking {
             try {
                 var existsInAnki = false
-                var noteId: Long? = null
 
                 if (deck != null) {
                     try {
@@ -134,17 +146,10 @@ class ChatHandler(
                     }
                 }
 
-                val prompt = """Define this word concisely. Return ONLY valid JSON:
-{
-  "word": "$word",
-  "lemma": "dictionary form",
-  "partOfSpeech": "noun/verb/adj/etc",
-  "definition": "concise English definition",
-  "examples": ["example sentence 1", "example sentence 2"]
-}"""
+                val systemPrompt = promptLoader.getSystemPrompts(transliteration = true).define
 
                 val responseText = StringBuilder()
-                geminiService.generateStreamingResponse(prompt).collect { chunk ->
+                geminiService.generateStreamingResponse(word, systemPrompt).collect { chunk ->
                     responseText.append(chunk)
                 }
 
@@ -152,7 +157,6 @@ class ChatHandler(
                     val parsed = gson.fromJson(responseText.toString()
                         .replace("```json", "").replace("```", "").trim(), JsonObject::class.java)
                     parsed.addProperty("existsInAnki", existsInAnki)
-                    noteId?.let { parsed.addProperty("noteId", it) }
                     gson.toJson(parsed)
                 } catch (e: Exception) {
                     gson.toJson(mapOf(
@@ -182,22 +186,10 @@ class ChatHandler(
 
         return runBlocking {
             try {
-                val context = if (sentence != null) "\nContext sentence: $sentence" else ""
-                val prompt = """What is the correct Bangla dictionary/lemma form of "$word"?$context
-
-Return ONLY valid JSON:
-{
-  "lemma": "the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)",
-  "definition": "concise English definition (under 10 words)"
-}
-
-Bangla Lemmatization Rules:
-- Nouns: Remove case endings. বাজারে→বাজার, বাজারের→বাজার, বাজারকে→বাজার
-- Verbs: Convert to verbal noun. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া
-- Adjectives: Use base form. বড়ো→বড়"""
+                val systemPrompt = promptLoader.getRelemmatizePrompt(word, sentence)
 
                 val responseText = StringBuilder()
-                geminiService.generateStreamingResponse(prompt).collect { chunk ->
+                geminiService.generateStreamingResponse("", systemPrompt).collect { chunk ->
                     responseText.append(chunk)
                 }
 
@@ -232,18 +224,10 @@ Bangla Lemmatization Rules:
 
         return runBlocking {
             try {
-                val prompt = """Analyze this sentence. Return ONLY valid JSON:
-{
-  "translation": "English translation",
-  "words": [
-    {"word": "original", "lemma": "dictionary form", "partOfSpeech": "noun/verb/etc", "meaning": "English meaning"}
-  ]
-}
-
-Sentence: $sentence"""
+                val systemPrompt = promptLoader.getSystemPrompts(transliteration = true).analyze
 
                 val responseText = StringBuilder()
-                geminiService.generateStreamingResponse(prompt).collect { chunk ->
+                geminiService.generateStreamingResponse(sentence, systemPrompt).collect { chunk ->
                     responseText.append(chunk)
                 }
 
@@ -272,12 +256,12 @@ Sentence: $sentence"""
                     }
                 }
 
-                val result = JsonObject()
-                result.addProperty("originalSentence", sentence)
-                result.addProperty("translation", parsed.get("translation")?.asString ?: "")
-                result.add("words", parsed.getAsJsonArray("words") ?: com.google.gson.JsonArray())
+                val resultObj = JsonObject()
+                resultObj.addProperty("originalSentence", sentence)
+                resultObj.addProperty("translation", parsed.get("translation")?.asString ?: "")
+                resultObj.add("words", parsed.getAsJsonArray("words") ?: com.google.gson.JsonArray())
 
-                jsonResponse(Response.Status.OK, gson.toJson(result))
+                jsonResponse(Response.Status.OK, gson.toJson(resultObj))
             } catch (e: Exception) {
                 Log.e(TAG, "Error analyzing sentence", e)
                 jsonResponse(Response.Status.INTERNAL_ERROR, """{"error":"Failed to analyze sentence"}""")
