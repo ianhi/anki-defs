@@ -57,9 +57,32 @@ implementer**. Keep your context for high-level planning, review, and delegation
 
 When not in team mode, implement directly as usual.
 
-**Worktree discipline**: Always launch agents with `isolation: "worktree"` so they work
-on separate branches. Merge their branches sequentially after review — never let multiple
-agents commit directly to main. This prevents overlapping changes and merge conflicts.
+### Git Worktree Discipline
+
+**Hard rule**: Always launch agents with `isolation: "worktree"` so they work on isolated
+branches. Never let multiple agents commit directly to main.
+
+**Coordinator workflow**:
+
+1. **Launch** agents with `isolation: "worktree"`. Each gets its own branch and working copy.
+2. **Scope** each agent to non-overlapping directories when possible (e.g., one agent owns
+   `client/`, another owns `ankiconnect-server/`). State the scope in the agent prompt.
+3. **Merge** completed agent branches one at a time on main:
+   ```
+   git merge <agent-branch> --no-ff
+   ```
+   If two agents touched overlapping files, merge the first, then rebase the second
+   before merging.
+4. **Rebase stale agents**: If main has advanced while an agent is working, the agent's
+   branch may need rebasing before merge. The coordinator handles this, not the agent.
+5. **Cross-cutting changes** (shared/types.ts, CLAUDE.md, root PLANNING/) should be done
+   by the coordinator directly on main, not by agents, to avoid conflicts.
+
+**Agent prompt template** -- include these in every agent prompt:
+- Which directories/files the agent owns (and must not touch outside of)
+- That they must update PLANNING/ and DOCS/ in the same commit as code changes
+- That they should commit early and often with descriptive messages
+- The current branch and any recent main commits they should be aware of
 
 ## Network & Security
 
@@ -83,6 +106,9 @@ agents commit directly to main. This prevents overlapping changes and merge conf
 
 **Read first**: Before starting work, read `PLANNING/INDEX.md` for current status and
 priorities. Read the relevant plan doc for your task.
+
+**Hard rule**: Every commit that changes code MUST also update the relevant PLANNING/ or
+DOCS/ file. If no doc update is needed, state why in the commit message.
 
 **Update as you go** -- in the same commit as code changes:
 
