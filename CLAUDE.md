@@ -44,45 +44,14 @@ cd docs && npm install && npm run dev  # Local dev server
 
 All web code must pass TypeScript strict mode, ESLint, and Prettier (`npm run check`).
 
-## Team Coordination Mode
+## Team Coordination
 
-When the user asks you to manage a team or launch agents, you are a **coordinator, not an
-implementer**. Keep your context for high-level planning, review, and delegation:
+When working as a team with multiple agents, see `PLANNING/team-workflow.md` for the
+coordinator's playbook (worktree discipline, merge strategy, agent prompt template).
 
-- **Delegate** all implementation work (code, docs, config) to spawned agents.
-- **Keep** your focus on: task breakdown, priority decisions, cross-cutting concerns,
-  reviewing agent output, merging branches, and communicating status to the user.
-- **Don't** write code yourself unless the user explicitly asks you to make a change directly
-  or it's a trivial meta-task (e.g., updating CLAUDE.md itself).
-
-When not in team mode, implement directly as usual.
-
-### Git Worktree Discipline
-
-**Hard rule**: Always launch agents with `isolation: "worktree"` so they work on isolated
-branches. Never let multiple agents commit directly to main.
-
-**Coordinator workflow**:
-
-1. **Launch** agents with `isolation: "worktree"`. Each gets its own branch and working copy.
-2. **Scope** each agent to non-overlapping directories when possible (e.g., one agent owns
-   `client/`, another owns `ankiconnect-server/`). State the scope in the agent prompt.
-3. **Merge** completed agent branches one at a time on main:
-   ```
-   git merge <agent-branch> --no-ff
-   ```
-   If two agents touched overlapping files, merge the first, then rebase the second
-   before merging.
-4. **Rebase stale agents**: If main has advanced while an agent is working, the agent's
-   branch may need rebasing before merge. The coordinator handles this, not the agent.
-5. **Cross-cutting changes** (shared/types.ts, CLAUDE.md, root PLANNING/) should be done
-   by the coordinator directly on main, not by agents, to avoid conflicts.
-
-**Agent prompt template** -- include these in every agent prompt:
-- Which directories/files the agent owns (and must not touch outside of)
-- That they must update PLANNING/ and DOCS/ in the same commit as code changes
-- That they should commit early and often with descriptive messages
-- The current branch and any recent main commits they should be aware of
+**For agents (team members)**: You own the directories stated in your task prompt. Update
+the relevant PLANNING/ and DOCS/ files in the same commit as code changes. Do not modify
+files outside your stated scope.
 
 ## Network & Security
 

@@ -84,6 +84,7 @@ Phases 1-5 complete. Phase 6 (shared prompts) and Phase 7 (quick-translate) are 
 | [architecture.md](architecture.md) | Data flow diagram | Reference |
 | [repo-structure.md](repo-structure.md) | Monorepo layout | Reference |
 | [progress.md](progress.md) | What's been built | Reference |
+| [team-workflow.md](team-workflow.md) | Coordinator playbook for multi-agent work | Reference |
 
 ### Completed (kept for reference)
 
