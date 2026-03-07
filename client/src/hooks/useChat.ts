@@ -2,12 +2,9 @@ import { useCallback, useRef } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { chatApi } from '@/lib/api';
+import { generateId } from '@/lib/utils';
 import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15);
-}
 
 interface ChatState {
   messages: Message[];

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CardContent } from 'shared';
+import { generateId } from '@/lib/utils';
 
 // A card that has been added to Anki this session
 export interface SessionCard extends CardContent {
@@ -38,10 +39,6 @@ interface SessionCardsState {
   // Check if word exists in session
   hasWord: (word: string) => boolean;
   getWordsByLemma: () => Set<string>;
-}
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 15);
 }
 
 export const useSessionCards = create<SessionCardsState>()(
