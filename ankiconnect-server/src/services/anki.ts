@@ -179,8 +179,13 @@ export async function testConnection(): Promise<boolean> {
 // --- Word cache for offline duplicate detection ---
 
 const wordCache = new Map<string, Set<string>>();
+let lastCacheRefresh = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // Refresh at most every 5 minutes
 
 async function refreshWordCache(): Promise<void> {
+  const now = Date.now();
+  if (now - lastCacheRefresh < CACHE_TTL_MS) return;
+  lastCacheRefresh = now;
   const settings = await getSettings();
   const deckName = settings.defaultDeck;
   if (!deckName) return;
