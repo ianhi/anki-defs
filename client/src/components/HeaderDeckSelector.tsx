@@ -11,8 +11,11 @@ export function HeaderDeckSelector() {
 
   if (!connected) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <AlertCircle className="h-4 w-4 text-destructive" />
+      <div
+        className="flex items-center gap-2 text-sm text-red-500 font-medium"
+        title="Anki Desktop must be running with AnkiConnect installed. Cards will be queued and synced when Anki is available."
+      >
+        <AlertCircle className="h-4 w-4" />
         <span>Anki not connected</span>
       </div>
     );
@@ -52,8 +55,13 @@ export function MobileDeckSelector() {
 
   if (!connected) {
     return (
-      <Button variant="ghost" size="icon" disabled title="Anki not connected">
-        <AlertCircle className="h-4 w-4 text-destructive" />
+      <Button
+        variant="ghost"
+        size="icon"
+        disabled
+        title="Anki Desktop must be running with AnkiConnect installed. Cards will be queued and synced when Anki is available."
+      >
+        <AlertCircle className="h-4 w-4 text-red-500" />
       </Button>
     );
   }
