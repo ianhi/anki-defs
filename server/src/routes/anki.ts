@@ -119,6 +119,17 @@ ankiRouter.delete('/notes/:id', async (req, res) => {
   }
 });
 
+// POST /api/anki/sync - Trigger Anki sync
+ankiRouter.post('/sync', async (_req, res) => {
+  try {
+    await ankiService.sync();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error syncing Anki:', error);
+    res.status(500).json({ error: 'Failed to sync. Is Anki running?' });
+  }
+});
+
 // GET /api/anki/status - Check AnkiConnect status
 ankiRouter.get('/status', async (_req, res) => {
   try {

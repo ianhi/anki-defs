@@ -152,6 +152,11 @@ export async function deleteNote(noteId: number): Promise<void> {
   await ankiClient.note.deleteNotes({ notes: [noteId] });
 }
 
+export async function sync(): Promise<void> {
+  const ankiClient = await getClient();
+  await ankiClient.miscellaneous.sync();
+}
+
 export async function testConnection(): Promise<boolean> {
   try {
     const ankiClient = await getClient();

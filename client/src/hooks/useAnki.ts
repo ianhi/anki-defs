@@ -52,6 +52,12 @@ export function useCreateNote() {
   });
 }
 
+export function useAnkiSync() {
+  return useMutation({
+    mutationFn: () => ankiApi.sync(),
+  });
+}
+
 export function useDeleteNote() {
   const queryClient = useQueryClient();
 

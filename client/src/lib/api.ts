@@ -65,6 +65,7 @@ export const ankiApi = {
   deleteNote: (id: number) =>
     fetchJson<{ success: boolean }>(`/anki/notes/${id}`, { method: 'DELETE' }),
   getStatus: () => fetchJson<{ connected: boolean }>('/anki/status').then((r) => r.connected),
+  sync: () => fetchJson<{ success: boolean }>('/anki/sync', { method: 'POST' }),
 };
 
 // Chat API

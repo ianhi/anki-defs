@@ -3,10 +3,11 @@ import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { SessionCardsPanel } from './components/SessionCardsPanel';
-import { SettingsIcon, X, Layers } from 'lucide-react';
+import { SettingsIcon, X, Layers, RefreshCw } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
 import { useTokenUsage } from './hooks/useTokenUsage';
+import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
 
 export default function App() {
   const [showSettings, setShowSettings] = useState(false);
@@ -15,6 +16,8 @@ export default function App() {
   const totalCards = cards.length + pendingQueue.length;
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
   const totalTokens = totalInputTokens + totalOutputTokens;
+  const sync = useAnkiSync();
+  const { data: ankiConnected } = useAnkiStatus();
 
   return (
     <div className="flex h-dvh w-screen overflow-hidden">
@@ -38,6 +41,19 @@ export default function App() {
                 {totalCost > 0 &&
                   ` · $${totalCost < 0.01 ? totalCost.toFixed(4) : totalCost.toFixed(2)}`}
               </button>
+            )}
+            {ankiConnected && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => sync.mutate()}
+                disabled={sync.isPending}
+                title="Sync Anki"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${sync.isPending ? 'animate-spin' : ''} ${sync.isSuccess ? 'text-green-500' : ''} ${sync.isError ? 'text-destructive' : ''}`}
+                />
+              </Button>
             )}
             <Button
               variant={showCards ? 'secondary' : 'ghost'}
