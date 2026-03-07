@@ -1,9 +1,11 @@
 # Android Backend: Local HTTP Server
 
 ## Overview
+
 Replace ViewModels + Compose UI with a local HTTP server that serves the React frontend and implements the API endpoints using existing Kotlin services.
 
 ## Technology: NanoHTTPd
+
 - Single Java file (~3000 lines), no dependencies
 - Battle-tested in Android apps (used by KDE Connect, Termux, etc.)
 - Supports streaming responses (for SSE)
@@ -48,13 +50,14 @@ class LocalServer(
 
 ### Chat Endpoints
 
-| Endpoint | Web (Express) | Android (NanoHTTPd) |
-|----------|---------------|---------------------|
-| POST /api/chat/stream | Claude/Gemini/OpenRouter streaming → SSE | GeminiService streaming → SSE |
-| POST /api/chat/define | AI structured output | GeminiService with define prompt |
-| POST /api/chat/relemmatize | AI relemmatization | GeminiService with relemmatize prompt |
+| Endpoint                   | Web (Express)                            | Android (NanoHTTPd)                   |
+| -------------------------- | ---------------------------------------- | ------------------------------------- |
+| POST /api/chat/stream      | Claude/Gemini/OpenRouter streaming → SSE | GeminiService streaming → SSE         |
+| POST /api/chat/define      | AI structured output                     | GeminiService with define prompt      |
+| POST /api/chat/relemmatize | AI relemmatization                       | GeminiService with relemmatize prompt |
 
 **SSE streaming in NanoHTTPd:**
+
 ```kotlin
 // Return a chunked response with SSE content type
 fun streamChat(session: IHTTPSession): Response {
@@ -77,28 +80,28 @@ fun streamChat(session: IHTTPSession): Response {
 
 ### Anki Endpoints
 
-| Endpoint | Implementation |
-|----------|---------------|
-| GET /api/anki/decks | `ankiRepository.getDecks()` (already exists) |
-| GET /api/anki/models | NEW: `ankiRepository.getModels()` |
-| GET /api/anki/models/:name/fields | NEW: `ankiRepository.getModelFields(name)` |
-| POST /api/anki/search | NEW: `ankiRepository.searchNotes(query)` |
-| POST /api/anki/notes | `ankiRepository.addNote(...)` (already exists) |
-| GET /api/anki/notes/:id | NEW: `ankiRepository.getNote(id)` |
-| DELETE /api/anki/notes/:id | NEW: `ankiRepository.deleteNote(id)` |
-| GET /api/anki/status | `ankiRepository.isAnkiDroidInstalled()` (already exists) |
+| Endpoint                          | Implementation                                           |
+| --------------------------------- | -------------------------------------------------------- |
+| GET /api/anki/decks               | `ankiRepository.getDecks()` (already exists)             |
+| GET /api/anki/models              | NEW: `ankiRepository.getModels()`                        |
+| GET /api/anki/models/:name/fields | NEW: `ankiRepository.getModelFields(name)`               |
+| POST /api/anki/search             | NEW: `ankiRepository.searchNotes(query)`                 |
+| POST /api/anki/notes              | `ankiRepository.addNote(...)` (already exists)           |
+| GET /api/anki/notes/:id           | NEW: `ankiRepository.getNote(id)`                        |
+| DELETE /api/anki/notes/:id        | NEW: `ankiRepository.deleteNote(id)`                     |
+| GET /api/anki/status              | `ankiRepository.isAnkiDroidInstalled()` (already exists) |
 
 ### Settings Endpoints
 
-| Endpoint | Implementation |
-|----------|---------------|
+| Endpoint          | Implementation                                                  |
+| ----------------- | --------------------------------------------------------------- |
 | GET /api/settings | `settingsRepository.settingsFlow.first()` → JSON (mask API key) |
-| PUT /api/settings | Parse JSON → `settingsRepository.update*()` methods |
+| PUT /api/settings | Parse JSON → `settingsRepository.update*()` methods             |
 
 ### Platform Endpoint
 
-| Endpoint | Implementation |
-|----------|---------------|
+| Endpoint          | Implementation                                                 |
+| ----------------- | -------------------------------------------------------------- |
 | GET /api/platform | Return `{ platform: "android", ankiAvailable, hasPermission }` |
 
 ## New AnkiRepository Methods Needed
@@ -133,6 +136,7 @@ class Word2AnkiApp : Application() {
 ```
 
 ## Estimated Size
+
 - `LocalServer.kt`: ~100 lines (routing + asset serving)
 - `ChatHandler.kt`: ~200 lines (streaming + extraction)
 - `AnkiHandler.kt`: ~150 lines (CRUD endpoints)
@@ -141,6 +145,7 @@ class Word2AnkiApp : Application() {
 - **Total: ~680 lines new Kotlin code**
 
 ## Dependencies to Add
+
 ```kotlin
 // app/build.gradle.kts
 implementation("org.nanohttpd:nanohttpd:2.3.1")

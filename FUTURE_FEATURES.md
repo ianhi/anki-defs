@@ -21,6 +21,7 @@ Features documented for future implementation. See `PROGRESS.md` for completed w
 **Problem:** Currently uses `ACTION_SEND` which only appears in the share sheet. `ACTION_PROCESS_TEXT` appears in the text selection floating toolbar — much faster for looking up words while reading.
 
 **Solution:**
+
 1. Add `<intent-filter>` for `ACTION_PROCESS_TEXT` in `AndroidManifest.xml`
 2. Handle `EXTRA_PROCESS_TEXT` in `MainActivity.handleIntent()`
 3. Optionally auto-send the text (since user clearly wants a definition)
@@ -36,6 +37,7 @@ Features documented for future implementation. See `PROGRESS.md` for completed w
 **Problem:** All definitions are in English. Users learning Bangla want definitions that include Bangla translations.
 
 **Solution:**
+
 1. Add `targetLanguage: String` to Settings/DataStore
 2. Parameterize all prompts in `PromptTemplates.kt` with target language
 3. Add language picker in SettingsScreen (presets: Bangla, Hindi, Spanish, French + custom)
@@ -52,15 +54,18 @@ Features documented for future implementation. See `PROGRESS.md` for completed w
 **Solution:** Use [TranslateGemma 4B](https://huggingface.co/google/translategemma-4b-it), Google's open translation model built on Gemma 3. Purpose-built for translation across 55 languages (including Bangla), it outperforms general-purpose models at translation tasks.
 
 **Architecture:** Split responsibilities between two engines:
+
 - **Gemini API** → conversational tutor (definitions, grammar, examples)
 - **TranslateGemma 4B (on-device)** → accurate translations for flashcard fields (Bangla definition, sentence translation)
 
 **Deployment path:**
+
 1. MediaPipe LLM Inference API for Android (preferred, pending official `.task` bundle)
 2. [LiteRT community conversion](https://huggingface.co/litert-community/TranslateGemma-4B-IT) as interim option
 3. Fallback to Gemini API translation when on-device model is unavailable
 
 **Prerequisites:**
+
 - Target Language Configuration feature (below) must be implemented first
 - Official Android-compatible MediaPipe bundle for TranslateGemma (not yet available as of March 2026)
 
@@ -75,6 +80,7 @@ Features documented for future implementation. See `PROGRESS.md` for completed w
 **Problem:** Even with TranslateGemma for translation, the tutor/definition features still require Gemini API.
 
 **Options:**
+
 - Gemma 3n E2B (2GB RAM) — small enough for Pixel 7a
 - MediaPipe LLM Inference API for Android
 - Google AI Edge SDK

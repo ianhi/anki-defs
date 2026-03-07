@@ -87,27 +87,30 @@ class AndroidBridge(private val activity: MainActivity) {
 ## Frontend Integration Points
 
 ### Shared Text Event Listener
+
 ```typescript
 // In Chat.tsx or useChat hook
 useEffect(() => {
-    const handler = (e: CustomEvent) => {
-        setInput(e.detail)
-        // optionally auto-send
-    }
-    window.addEventListener('sharedText', handler)
-    return () => window.removeEventListener('sharedText', handler)
-}, [])
+  const handler = (e: CustomEvent) => {
+    setInput(e.detail);
+    // optionally auto-send
+  };
+  window.addEventListener('sharedText', handler);
+  return () => window.removeEventListener('sharedText', handler);
+}, []);
 ```
 
 ### Platform Detection (alternative to /api/platform)
+
 ```typescript
 // Can also detect via JS bridge
-const isAndroid = typeof window.Android !== 'undefined'
+const isAndroid = typeof window.Android !== 'undefined';
 ```
 
 ## Intent Filters (AndroidManifest.xml)
 
 Keep existing intent filters — they work with WebView just as well:
+
 ```xml
 <intent-filter>
     <action android:name="android.intent.action.SEND" />
@@ -124,6 +127,7 @@ Keep existing intent filters — they work with WebView just as well:
 ## What Gets Removed
 
 These Compose files become unnecessary:
+
 - `ui/screens/ChatScreen.kt` (555 lines)
 - `ui/screens/SettingsScreen.kt` (403 lines)
 - `ui/components/CardPreviewComponent.kt`

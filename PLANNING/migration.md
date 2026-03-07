@@ -31,6 +31,7 @@ We need them under `android/` in the target repo.
 Two approaches:
 
 **Approach A: Move files in word2anki first, then subtree add**
+
 ```bash
 cd /home/claude/dev/word2anki
 git checkout -b prep/android-subdir
@@ -49,6 +50,7 @@ git commit -m "refactor: Move Android project into android/ subdirectory"
 ```
 
 Then in anki-defs:
+
 ```bash
 cd /home/claude/dev/anki-defs
 git remote add word2anki /home/claude/dev/word2anki
@@ -75,6 +77,7 @@ git subtree add --prefix=android word2anki/claude/word2anki-android-app-ODHeY
 ```
 
 This preserves word2anki's full commit history. Files land at:
+
 - `android/app/src/main/kotlin/...`
 - `android/build.gradle.kts`
 - `android/gradlew`
@@ -110,6 +113,7 @@ ls android/.gitignore  # keep if Android-specific, merge with root if needed
 ### 4. Update .gitignore
 
 Merge both projects' .gitignore rules. Root .gitignore should cover:
+
 - Node.js: `node_modules/`, `dist/`
 - Android: `.gradle/`, `*.apk`, `local.properties`
 - IDE: `.idea/` (both IntelliJ/AS)
@@ -118,6 +122,7 @@ Merge both projects' .gitignore rules. Root .gitignore should cover:
 ### 5. Write CLAUDE.md hierarchy
 
 Create/update:
+
 - Root `CLAUDE.md` — architecture, API contract, cross-cutting rules
 - `android/CLAUDE.md` — rewrite for Android-specific context
 - Keep existing web docs (client/server don't need CLAUDE.md yet, root covers enough)

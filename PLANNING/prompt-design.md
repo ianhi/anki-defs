@@ -1,12 +1,15 @@
 # Prompt Design: Language-Specific Rules
 
 ## Current State
+
 word2anki has a generic prompt in `PromptTemplates.getUnifiedSystemPrompt()` that says "You are a language tutor" with basic formatting guidelines. No language-specific rules.
 
 ## Inspiration: anki-defs Prompt Quality
+
 anki-defs has extensive Bangla-specific rules that dramatically improve card quality:
 
 ### Bangla Rules to Port
+
 1. **Lemmatization rules**:
    - Nouns: Remove case endings (e.g. bajaare → bajaar)
    - Verbs: Convert to verbal noun, NOT infinitive (e.g. kaadte → kaada, jaabo → jaowa)
@@ -30,12 +33,15 @@ anki-defs has extensive Bangla-specific rules that dramatically improve card qua
 ## New Prompt Structure
 
 ### Base System Prompt (all languages)
+
 Generic language tutor instructions + formatting rules (similar to current).
 
 ### Language-Specific Addendum
+
 Appended when targetLanguage is set. Initially only Bangla has specific rules; other languages get generic rules.
 
 ### Transliteration Instruction
+
 Conditional block added when `showTransliteration = true`.
 
 ## Implementation: PromptTemplates.kt Changes
@@ -65,13 +71,16 @@ private fun getLanguageRules(language: String): String = when (language) {
 ```
 
 ## Card Extraction Prompt Update
+
 The extraction prompt should also be language-aware:
+
 - Word field = target language word (lemmatized)
 - Definition field = English definition
 - Example = target language sentence
 - Translation = English translation
 
 ## Note Model Field Names
+
 Current: English, Bangla, ExampleSentence, SentenceTranslation
 These are Bangla-specific. For now we keep these field names (the model is called "word2anki") but the prompts should produce content appropriate for any target language.
 

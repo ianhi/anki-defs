@@ -1,14 +1,9 @@
-# word2anki - Development Guide
+# Android App (word2anki)
 
-## Development Process
+Android backend for the anki-defs vocabulary flashcard tool. Integrates with AnkiDroid
+via ContentProvider API and uses Gemini for AI definitions.
 
-**Document as you go.** Updating documentation is part of completing any change — not a separate cleanup step. When you make a code change, update the relevant docs (this file, `PROGRESS.md`, `FUTURE_FEATURES.md`) in the same commit. We should never have to come back and clean up docs afterwards.
-
-## Project Overview
-
-word2anki is a native Android app that helps users create Anki flashcards from AI-generated vocabulary definitions. It integrates with AnkiDroid via its ContentProvider API and uses Google's Gemini API for generating definitions.
-
-**Key Value Proposition:** User pastes a word or sentence → AI generates definition/breakdown → User taps to add as Anki flashcard.
+See root [CLAUDE.md](../CLAUDE.md) for project-wide architecture and API contract.
 
 ## Tech Stack
 
@@ -24,7 +19,7 @@ word2anki is a native Android app that helps users create Anki flashcards from A
 ## Project Structure
 
 ```
-word2anki/
+android/
 ├── app/
 │   ├── build.gradle.kts              # App-level build config
 │   └── src/
@@ -105,80 +100,20 @@ Required permission: `com.ichi2.anki.permission.READ_WRITE_DATABASE`
 ### Quick Start
 
 ```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd word2anki
+cd android
+export ANDROID_HOME=~/Android/Sdk
+export JAVA_HOME=/usr
 
-# 2. Open in Android Studio
-#    File → Open → Select the word2anki folder
-
-# 3. Wait for Gradle sync to complete
-
-# 4. Run the app
-#    Click the green "Run" button, or:
-./gradlew installDebug
-
-# 5. On first run, configure your Gemini API key in Settings
-```
-
-### Getting a Gemini API Key
-
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key
-5. In the word2anki app, go to Settings and paste the key
-
-### Setting Up AnkiDroid for Testing
-
-1. Install AnkiDroid from [Play Store](https://play.google.com/store/apps/details?id=com.ichi2.anki) or [F-Droid](https://f-droid.org/packages/com.ichi2.anki/)
-2. Open AnkiDroid and create a deck:
-   - Tap the "+" button
-   - Select "Create deck"
-   - Name it (e.g., "Test Vocabulary")
-3. When you first run word2anki, it will request permission to access AnkiDroid - grant it
-
-### Development Commands
-
-```bash
-# Build debug APK
-./gradlew assembleDebug
-
-# Build and install on connected device
-./gradlew installDebug
-
-# Run all unit tests
-./gradlew test
-
-# Run tests with detailed output
-./gradlew test --info
-
-# Generate test report
-./gradlew test
-# Report at: app/build/reports/tests/testDebugUnitTest/index.html
-
-# Lint check
-./gradlew lint
-
-# Clean build
-./gradlew clean
-
-# Build release APK (unsigned)
-./gradlew assembleRelease
-
-# List connected devices
-adb devices
-
-# View app logs
-adb logcat | grep -i word2anki
-
-# Uninstall the app
-adb uninstall com.word2anki
+./gradlew assembleDebug      # Build debug APK
+./gradlew installDebug       # Build and install on connected device
+./gradlew test               # Run all unit tests
+./gradlew lint               # Lint check
 ```
 
 ### Testing Without AnkiDroid
 
 The app can run without AnkiDroid installed:
+
 - AI definitions will work normally
 - A warning banner will show "AnkiDroid not installed"
 - The "Add to Anki" button will be disabled
@@ -188,6 +123,7 @@ This is useful for testing the AI/UI portions without the full AnkiDroid setup.
 ### Testing with Android Emulator
 
 #### GUI Method (Android Studio)
+
 1. In Android Studio: Tools → Device Manager
 2. Click "Create Device"
 3. Select a device (e.g., Pixel 6)
@@ -221,6 +157,7 @@ $ANDROID_HOME/platform-tools/adb shell am start -n com.word2anki/.MainActivity
 ```
 
 **UI Interaction via ADB:**
+
 ```bash
 # Inspect UI elements (preferred over screenshots for automation)
 adb shell uiautomator dump /sdcard/ui.xml && adb shell cat /sdcard/ui.xml
@@ -242,11 +179,13 @@ adb logcat -d -t 50 *:E | grep -i word2anki
 ```
 
 **Important notes for headless emulator interaction:**
+
 - Jetpack Compose elements often don't appear in `uiautomator dump`. Use TAB/ENTER keyboard navigation as a fallback.
 - AnkiDroid onboarding requires: toggle "All files access" switch → system settings page → toggle → back
 - The emulator needs KVM for acceptable performance
 
 **AnkiDroid Setup on Emulator:**
+
 1. Download AnkiDroid APK from [GitHub Releases](https://github.com/ankidroid/Anki-Android/releases)
 2. Install: `adb install AnkiDroid-*.apk`
 3. Launch and complete onboarding (grant "All files access" permission)
@@ -255,6 +194,7 @@ adb logcat -d -t 50 *:E | grep -i word2anki
 ### Debugging Tips
 
 **View Logs:**
+
 ```bash
 # All logs from the app
 adb logcat *:S word2anki:V
@@ -264,11 +204,13 @@ adb logcat *:E | grep -i word2anki
 ```
 
 **Network Debugging:**
+
 - Check if API key is valid in Settings
 - Gemini API requires internet connection
 - Check Android Studio's "Logcat" for network errors
 
 **AnkiDroid Integration Issues:**
+
 - Ensure AnkiDroid is installed and has at least one deck
 - Check that permission was granted
 - Verify with: Settings → Apps → word2anki → Permissions
@@ -278,6 +220,7 @@ adb logcat *:E | grep -i word2anki
 ### API Key Setup
 
 Users must provide their own Gemini API key:
+
 1. Get key from [Google AI Studio](https://aistudio.google.com/)
 2. Open app → Settings → Enter API key
 3. Key is stored securely in DataStore
@@ -335,11 +278,4 @@ Located in `app/src/test/kotlin/com/word2anki/`
 
 ## Future Improvements
 
-See `FUTURE_FEATURES.md` for detailed specs. Key items:
-
-- [ ] Chat history persistence (Room database)
-- [ ] On-device AI models (Gemma 3n)
-- [ ] Audio pronunciation
-- [ ] Word highlighting via long-press
-- [ ] `ACTION_PROCESS_TEXT` for text selection toolbar
-- [ ] Target language configuration
+See root [`FUTURE_FEATURES.md`](../FUTURE_FEATURES.md) for detailed specs.

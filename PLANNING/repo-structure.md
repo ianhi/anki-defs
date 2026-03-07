@@ -1,6 +1,7 @@
 # Repo Structure: Monorepo Layout
 
 ## Key Insight
+
 The React frontend is not "the web app" — it's THE frontend, shared by all platforms.
 Each platform provides its own backend that serves the frontend and implements the API.
 
@@ -52,6 +53,7 @@ anki/                               ← repo root
 ## How it differs from current anki-defs
 
 Barely at all. We're essentially:
+
 1. Adding `android/` next to the existing directories
 2. Moving root docs (CLAUDE.md, PLANNING/, etc.) to accommodate the broader project
 3. That's it — no restructuring of anki-defs itself
@@ -59,17 +61,20 @@ Barely at all. We're essentially:
 ## Build Flow
 
 ### Desktop/web development (unchanged from anki-defs)
+
 ```bash
 npm run dev          # Vite dev server + Express, proxy /api
 ```
 
 ### Android
+
 ```bash
 npm run build:client                    # Build React frontend → client/dist/
 cd android && ./gradlew assembleDebug   # Copies client/dist/ to assets, builds APK
 ```
 
 ### Gradle copy task
+
 ```kotlin
 // android/app/build.gradle.kts
 tasks.register<Copy>("copyClientAssets") {
@@ -86,16 +91,19 @@ tasks.named("preBuild") {
 Since anki-defs already has the right structure at its root, the simplest path is:
 
 ### Option A: anki-defs repo is the base (recommended)
+
 1. In anki-defs repo: add `android/` directory with word2anki's Android project
 2. Use `git subtree add --prefix=android` from word2anki to preserve history
 3. Rename repo if desired
 
 ### Option B: word2anki repo is the base
+
 1. Move Android files into `android/` subdirectory via `git mv`
 2. Use `git subtree add` to bring in anki-defs at root level
 3. More complex because anki-defs files go to root, not a subdirectory
 
 ### Option C: Fresh repo
+
 1. New repo, `git subtree add` both projects
 2. Cleanest, but more work
 
@@ -104,6 +112,7 @@ Since anki-defs already has the right structure at its root, the simplest path i
 ## Future: Syncing if repos stay separate temporarily
 
 If both repos continue to exist independently during transition:
+
 ```bash
 # Pull anki-defs changes into monorepo
 git subtree pull --prefix=. anki-defs/main  # (if anki-defs is base)
