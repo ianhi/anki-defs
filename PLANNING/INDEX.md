@@ -38,22 +38,22 @@ See [next-steps.md](next-steps.md) for the prioritized list. Key items:
 
 ## Architecture & Reference
 
-| Doc                                            | Summary                                                     |
-| ---------------------------------------------- | ----------------------------------------------------------- |
-| [overview.md](overview.md)                     | WebView architecture vision + phase plan                    |
-| [architecture.md](architecture.md)             | Data flow diagram and AI call pattern                       |
-| [repo-structure.md](repo-structure.md)         | Monorepo layout and build system                            |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design                                  |
-| [settings-design.md](settings-design.md)       | Android settings design                                     |
+| Doc                                            | Summary                                                        |
+| ---------------------------------------------- | -------------------------------------------------------------- |
+| [overview.md](overview.md)                     | WebView architecture vision + phase plan                       |
+| [architecture.md](architecture.md)             | Data flow diagram and AI call pattern                          |
+| [repo-structure.md](repo-structure.md)         | Monorepo layout and build system                               |
+| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design                                     |
+| [settings-design.md](settings-design.md)       | Android settings design                                        |
 | [anki-addon.md](anki-addon.md)                 | Anki Desktop add-on backend (Phases 1-5 done, Phase 6 pending) |
 
 ## Completed
 
-| Doc                                            | Summary                                     |
-| ---------------------------------------------- | ------------------------------------------- |
-| [migration.md](migration.md)                   | Monorepo merge (Phase 1) -- done            |
-| [frontend-changes.md](frontend-changes.md)     | Frontend platform awareness (Phase 3) -- done |
-| [webview-bridge.md](webview-bridge.md)         | WebView + native bridges (Phases 4-5) -- done |
+| Doc                                        | Summary                                       |
+| ------------------------------------------ | --------------------------------------------- |
+| [migration.md](migration.md)               | Monorepo merge (Phase 1) -- done              |
+| [frontend-changes.md](frontend-changes.md) | Frontend platform awareness (Phase 3) -- done |
+| [webview-bridge.md](webview-bridge.md)     | WebView + native bridges (Phases 4-5) -- done |
 
 ## Progress Tracking
 

@@ -1,4 +1,4 @@
-# Server -- Express Backend
+# AnkiConnect Server -- Express Backend
 
 Node.js backend for desktop/web platform. Proxies AI APIs, manages AnkiConnect, serves settings.
 
@@ -19,7 +19,7 @@ Node.js backend for desktop/web platform. Proxies AI APIs, manages AnkiConnect, 
 
 ## Boundaries
 
-- **You own**: `server/` (Express backend)
+- **You own**: `ankiconnect-server/` (Express backend)
 - **You consume**: `shared/types.ts` (API contract -- do not modify without coordinating)
 - **You do NOT touch**: `client/`, `android/`
 - If you change the API contract, note that the Android backend and client need updating.

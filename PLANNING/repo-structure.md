@@ -18,7 +18,7 @@ anki/                               ← repo root
 │   ├── types.ts                    ← API contract: source of truth
 │   ├── prompts/                    ← Language-specific prompt templates (JSON/YAML)
 │   └── package.json
-├── server/                         ← Backend #1: Node.js + AnkiConnect (standalone/desktop)
+├── ankiconnect-server/              ← Backend #1: Node.js + AnkiConnect (standalone/desktop)
 │   ├── src/
 │   ├── dist/
 │   └── package.json
@@ -36,7 +36,7 @@ anki/                               ← repo root
 │   └── build.gradle.kts
 ├── anki-addon/                     ← Backend #3: Python inside Anki Desktop (future)
 │   └── ...
-├── package.json                    ← npm workspaces: client, shared, server
+├── package.json                    ← npm workspaces: client, shared, ankiconnect-server
 ├── CLAUDE.md                       ← Root: architecture, API contract, cross-cutting rules
 ├── PLANNING/
 ├── PROGRESS.md
@@ -45,9 +45,9 @@ anki/                               ← repo root
 
 ## Why this works
 
-1. **anki-defs already uses this layout** — `client/`, `server/`, `shared/` are the existing npm workspaces. We just add `android/` alongside them.
-2. **npm workspaces stay the same** — `package.json` workspaces are `["shared", "server", "client"]`. Gradle ignores them. npm ignores `android/`.
-3. **Each backend is independent** — `server/` is Node.js, `android/` is Gradle, `anki-addon/` is Python. They don't know about each other.
+1. **anki-defs already uses this layout** — `client/`, `ankiconnect-server/`, `shared/` are the existing npm workspaces. We just add `android/` alongside them.
+2. **npm workspaces stay the same** — `package.json` workspaces are `["shared", "ankiconnect-server", "client"]`. Gradle ignores them. npm ignores `android/`.
+3. **Each backend is independent** — `ankiconnect-server/` is Node.js, `android/` is Gradle, `anki-addon/` is Python. They don't know about each other.
 4. **Frontend is clearly shared** — `client/` is not inside any backend. All backends consume its build output.
 
 ## How it differs from current anki-defs

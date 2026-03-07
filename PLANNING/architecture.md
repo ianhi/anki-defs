@@ -56,19 +56,19 @@ POST /api/anki/notes ---> AnkiConnect ---> Anki
 
 ## Key Files
 
-| File                                    | Purpose                                                         |
-| --------------------------------------- | --------------------------------------------------------------- |
-| `server/src/routes/chat.ts`             | SSE endpoint, prompt selection, delegates to cardExtraction     |
-| `server/src/services/cardExtraction.ts` | Card extraction orchestration (Anki checks + Gemini extraction) |
-| `server/src/services/ai.ts`             | System prompts, provider routing                                |
-| `server/src/services/gemini.ts`         | Gemini provider + structured card extraction                    |
-| `server/src/services/claude.ts`         | Claude provider                                                 |
-| `server/src/services/openrouter.ts`     | OpenRouter provider                                             |
-| `server/src/services/anki.ts`           | AnkiConnect wrapper (search, create, delete)                    |
-| `server/src/services/settings.ts`       | Settings persistence (JSON file)                                |
-| `client/src/hooks/useChat.ts`           | Chat state (zustand + persist)                                  |
-| `client/src/hooks/useSessionCards.ts`   | Session card tracking + pending queue                           |
-| `client/src/hooks/useTokenUsage.ts`     | Token/cost accumulation                                         |
-| `client/src/components/CardPreview.tsx` | Card preview UI with editing                                    |
-| `client/src/lib/api.ts`                 | API client (REST + SSE)                                         |
-| `shared/types.ts`                       | All shared TypeScript types                                     |
+| File                                                | Purpose                                                         |
+| --------------------------------------------------- | --------------------------------------------------------------- |
+| `ankiconnect-server/src/routes/chat.ts`             | SSE endpoint, prompt selection, delegates to cardExtraction     |
+| `ankiconnect-server/src/services/cardExtraction.ts` | Card extraction orchestration (Anki checks + Gemini extraction) |
+| `ankiconnect-server/src/services/ai.ts`             | System prompts, provider routing                                |
+| `ankiconnect-server/src/services/gemini.ts`         | Gemini provider + structured card extraction                    |
+| `ankiconnect-server/src/services/claude.ts`         | Claude provider                                                 |
+| `ankiconnect-server/src/services/openrouter.ts`     | OpenRouter provider                                             |
+| `ankiconnect-server/src/services/anki.ts`           | AnkiConnect wrapper (search, create, delete)                    |
+| `ankiconnect-server/src/services/settings.ts`       | Settings persistence (JSON file)                                |
+| `client/src/hooks/useChat.ts`                       | Chat state (zustand + persist)                                  |
+| `client/src/hooks/useSessionCards.ts`               | Session card tracking + pending queue                           |
+| `client/src/hooks/useTokenUsage.ts`                 | Token/cost accumulation                                         |
+| `client/src/components/CardPreview.tsx`             | Card preview UI with editing                                    |
+| `client/src/lib/api.ts`                             | API client (REST + SSE)                                         |
+| `shared/types.ts`                                   | All shared TypeScript types                                     |

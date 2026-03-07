@@ -53,15 +53,15 @@ An Anki Desktop add-on that runs anki-defs directly inside Anki. Instead of runn
 
 ## How it differs from the web version
 
-| | Web version | Anki add-on |
-|---|---|---|
-| **Anki connection** | Requires AnkiConnect add-on | Direct collection access (built in) |
-| **Setup** | Clone repo, npm install, run server | Install one .ankiaddon file |
-| **Runs where** | In your terminal + browser | Inside Anki Desktop |
-| **Dependencies** | Node.js 18+ | None (Python stdlib only) |
-| **AnkiConnect URL setting** | Shown in Settings | Hidden (not needed) |
-| **Sync button** | Triggers AnkiConnect sync | Triggers native Anki sync |
-| **Connection status** | Can disconnect if Anki closes | Always connected |
+|                             | Web version                         | Anki add-on                         |
+| --------------------------- | ----------------------------------- | ----------------------------------- |
+| **Anki connection**         | Requires AnkiConnect add-on         | Direct collection access (built in) |
+| **Setup**                   | Clone repo, npm install, run server | Install one .ankiaddon file         |
+| **Runs where**              | In your terminal + browser          | Inside Anki Desktop                 |
+| **Dependencies**            | Node.js 18+                         | None (Python stdlib only)           |
+| **AnkiConnect URL setting** | Shown in Settings                   | Hidden (not needed)                 |
+| **Sync button**             | Triggers AnkiConnect sync           | Triggers native Anki sync           |
+| **Connection status**       | Can disconnect if Anki closes       | Always connected                    |
 
 The add-on serves the same React frontend at `http://localhost:28735`. The "anki-defs" menu item just opens that URL in your default browser.
 

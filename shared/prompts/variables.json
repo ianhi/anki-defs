@@ -1,0 +1,13 @@
+{
+  "lemmaRules": "Bangla Lemmatization Rules (ALWAYS apply):\n- Nouns: Remove case endings. বাজারে→বাজার (locative -এ/-তে), বাজারের→বাজার (genitive -র/-এর), বাজারকে→বাজার (accusative/dative -কে)\n- Verbs: Convert to verbal noun (dictionary form), NOT infinitive -তে. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া, কেঁপে→কাঁপা\n- Adjectives: Use base form. বড়ো→বড়\n\nSpelling tolerance: Accept common confusions (ব/ৰ, ণ/ন, শ/ষ/স, missing/extra chandrabindu ঁ) and silently correct them.",
+  "transliteration": {
+    "instruction": {
+      "true": " Include romanized transliteration in parentheses after each Bangla word.",
+      "false": " Do NOT include romanized transliteration/pronunciation."
+    },
+    "marker": {
+      "true": " ([transliteration])",
+      "false": ""
+    }
+  }
+}

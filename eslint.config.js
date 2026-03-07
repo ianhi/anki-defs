@@ -8,7 +8,14 @@ import prettierConfig from 'eslint-config-prettier';
 export default [
   eslint.configs.recommended,
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.vite/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.vite/**',
+      'docs/**',
+      'android/**',
+      'anki-addon/**',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

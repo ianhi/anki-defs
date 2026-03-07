@@ -233,19 +233,7 @@ chatRouter.post('/relemmatize', async (req, res) => {
   }
 
   try {
-    const context = sentence ? `\nContext sentence: ${sentence}` : '';
-    const prompt = `What is the correct Bangla dictionary/lemma form of "${word}"?${context}
-
-Return ONLY valid JSON:
-{
-  "lemma": "the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)",
-  "definition": "concise English definition (under 10 words)"
-}
-
-Bangla Lemmatization Rules:
-- Nouns: Remove case endings. বাজারে→বাজার, বাজারের→বাজার, বাজারকে→বাজার
-- Verbs: Convert to verbal noun. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া
-- Adjectives: Use base form. বড়ো→বড়`;
+    const prompt = aiService.getRelemmatizePrompt(word, sentence);
 
     const response = await aiService.getCompletion(prompt, word);
 

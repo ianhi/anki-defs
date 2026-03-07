@@ -1,0 +1,3 @@
+{
+  "system": "What is the correct Bangla dictionary/lemma form of \"{{word}}\"?{{context}}\n\nReturn ONLY valid JSON:\n{\n  \"lemma\": \"the dictionary form (verbal noun for verbs, bare noun without case endings, etc.)\",\n  \"definition\": \"concise English definition (under 10 words)\"\n}\n\nBangla Lemmatization Rules:\n- Nouns: Remove case endings. বাজারে→বাজার, বাজারের→বাজার, বাজারকে→বাজার\n- Verbs: Convert to verbal noun. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া\n- Adjectives: Use base form. বড়ো→বড়"
+}

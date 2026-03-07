@@ -6,7 +6,7 @@ description: Run anki-defs directly inside Anki Desktop -- no AnkiConnect needed
 import { Aside, Steps } from '@astrojs/starlight/components';
 
 <Aside type="caution">
-The Anki add-on is in beta. It works, but may have rough edges compared to the web version.
+  The Anki add-on is in beta. It works, but may have rough edges compared to the web version.
 </Aside>
 
 ## What it is
@@ -47,14 +47,14 @@ Changes to the Python code take effect after restarting Anki. Changes to the fro
 
 ## How it differs from the web version
 
-| Feature | Web version | Add-on |
-|---------|------------|--------|
-| Anki connection | AnkiConnect (network) | Direct database access |
-| Requires AnkiConnect | Yes | No |
-| AI providers | Claude, Gemini, OpenRouter | Claude, Gemini, OpenRouter |
-| Runs on | Any browser | Inside Anki Desktop |
-| Server | Express (Node.js) | Python stdlib HTTP server |
-| Configuration | Settings UI + `settings.json` | Same Settings UI, config stored via Anki's add-on config |
+| Feature              | Web version                   | Add-on                                                   |
+| -------------------- | ----------------------------- | -------------------------------------------------------- |
+| Anki connection      | AnkiConnect (network)         | Direct database access                                   |
+| Requires AnkiConnect | Yes                           | No                                                       |
+| AI providers         | Claude, Gemini, OpenRouter    | Claude, Gemini, OpenRouter                               |
+| Runs on              | Any browser                   | Inside Anki Desktop                                      |
+| Server               | Express (Node.js)             | Python stdlib HTTP server                                |
+| Configuration        | Settings UI + `settings.json` | Same Settings UI, config stored via Anki's add-on config |
 
 ## Configuration
 

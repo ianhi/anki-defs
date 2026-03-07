@@ -1,0 +1,19 @@
+{
+  "aiProvider": "claude",
+  "claudeApiKey": "",
+  "geminiApiKey": "",
+  "geminiModel": "gemini-2.5-flash-lite",
+  "showTransliteration": false,
+  "leftHanded": false,
+  "openRouterApiKey": "",
+  "openRouterModel": "google/gemini-2.5-flash",
+  "defaultDeck": "Bangla",
+  "defaultModel": "Bangla (and reversed)",
+  "ankiConnectUrl": "http://localhost:8765",
+  "fieldMapping": {
+    "Word": "Bangla",
+    "Definition": "Eng_trans",
+    "Example": "example sentence",
+    "Translation": "sentence-trans"
+  }
+}

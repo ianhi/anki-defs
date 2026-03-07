@@ -9,10 +9,10 @@ The React frontend is THE frontend for all platforms. Each platform provides its
 that serves the frontend and implements the same HTTP API.
 
 ```
-client/    -- React frontend (shared by ALL platforms)
-shared/    -- TypeScript types (API contract source of truth: shared/types.ts)
-server/    -- Backend #1: Node.js + Express + AnkiConnect (desktop/web)
-android/   -- Backend #2: Kotlin + NanoHTTPd + AnkiDroid ContentProvider
+client/              -- React frontend (shared by ALL platforms)
+shared/              -- TypeScript types (API contract source of truth: shared/types.ts)
+ankiconnect-server/  -- Backend #1: Node.js + Express + AnkiConnect (desktop/web)
+android/             -- Backend #2: Kotlin + NanoHTTPd + AnkiDroid ContentProvider
 ```
 
 ## Build Commands
@@ -44,10 +44,18 @@ implementer**. Keep your context for high-level planning, review, and delegation
 
 When not in team mode, implement directly as usual.
 
+## Network & Security
+
+- Express binds to `127.0.0.1` only (not `0.0.0.0`). Phone access works via Tailscale
+  because Vite (`host: true`) proxies `/api` requests to Express on localhost.
+- CORS is restricted to localhost origins. All backends bind to localhost.
+- Note deletion requires the `auto-generated` tag -- prevents deleting hand-crafted cards.
+- See `PLANNING/security-audit.md` for the full audit and findings.
+
 ## Cross-Cutting Rules
 
 - API contract changes must be coordinated across ALL backends.
-- Prompt templates are shared data -- not duplicated per-backend.
+- Prompt templates live in `shared/prompts/*.json` -- not duplicated per-backend.
 - Platform-specific UI uses a platform detection hook, not separate components.
 - This is an application, not a library. No backwards-compatibility shims.
 

@@ -72,7 +72,7 @@ Contents:
 
 - Tech stack (TypeScript, React 19, Vite, Tailwind, Express 5)
 - Build commands (`npm run dev`, `npm run build`, `npm test`)
-- Workspace layout (client/, server/, shared/)
+- Workspace layout (client/, ankiconnect-server/, shared/)
 - Architecture patterns:
   - SSE streaming for AI responses
   - Zustand for state management

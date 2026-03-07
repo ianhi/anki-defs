@@ -1,7 +1,7 @@
 # Security & Safety Audit
 
 **Date**: 2026-03-07
-**Scope**: All three backends (server/, android/, anki-addon/) and client/ configuration
+**Scope**: All three backends (ankiconnect-server/, android/, anki-addon/) and client/ configuration
 **Focus**: Anki database safety, network exposure, data integrity
 
 ---
@@ -15,7 +15,7 @@
 All three backends pass user-provided query strings directly to Anki's search engine
 with no validation or allowlisting:
 
-- **server** (`server/src/routes/anki.ts:48`): `POST /api/anki/search` passes `req.body.query`
+- **server** (`ankiconnect-server/src/routes/anki.ts:48`): `POST /api/anki/search` passes `req.body.query`
   directly to `ankiClient.note.findNotes({ query })`
 - **android** (`AnkiHandler.kt:81`): passes query directly to `ankiRepository.searchNotes(query)`
 - **anki-addon** (`anki_routes.py:40`): passes query directly to `anki_service.search_notes(query)`
@@ -36,7 +36,7 @@ the primary concern -- fixing network exposure is the correct mitigation.
 
 #### C2. Express Server Binds to All Interfaces (No Auth)
 
-`server/src/index.ts:64`: `app.listen(PORT)` -- when no host is specified, Node.js/Express
+`ankiconnect-server/src/index.ts:64`: `app.listen(PORT)` -- when no host is specified, Node.js/Express
 binds to `0.0.0.0` (all interfaces). Combined with `cors()` at line 34 which allows ALL
 origins, any device on the local network (or Tailscale network) can:
 
@@ -52,6 +52,7 @@ origins, any device on the local network (or Tailscale network) can:
 **Current mitigation**: None. No authentication, no IP allowlist, fully open CORS.
 
 **Recommendation**:
+
 - Bind Express to `127.0.0.1` explicitly: `app.listen(PORT, '127.0.0.1')`
 - Replace `cors()` (allow-all) with a restrictive CORS policy that only allows
   `localhost` and `pop-os` origins
@@ -75,6 +76,7 @@ gets full API access through the proxy.
 **Current mitigation**: `allowedHosts` partially mitigates DNS rebinding but not direct IP access.
 
 **Recommendation**:
+
 - If Tailscale access is intentional, document this explicitly and add auth
 - Otherwise, remove `host: true` and use the default (localhost only)
 - Add the Tailscale hostname to `allowedHosts` if keeping `host: true`
@@ -91,6 +93,7 @@ confirmation step, no soft-delete, and no undo mechanism.
 - **anki-addon** (`anki_service.py:118-121`): Calls `col.remove_notes([note_id])`
 
 While each call only deletes a single note, there is no safeguard against:
+
 - Rapid sequential deletion calls (e.g., a frontend bug iterating over a list)
 - Deleting a note that was NOT created by this app (any note ID is accepted)
 
@@ -103,6 +106,7 @@ single-element array, but a code change could easily pass multiple IDs.
 has no such restriction.
 
 **Recommendation**:
+
 - Verify the note has the `auto-generated` tag before deleting (only delete our own notes)
 - Log deletions with note content for potential recovery
 - Consider adding an `X-Confirm-Delete` header requirement
@@ -130,6 +134,7 @@ The add-on (`anki-addon/services/anki_service.py`) runs inside Anki's process wi
 The QTimer model ensures single-threaded access.
 
 **Recommendation**:
+
 - Wrap `delete_note()` in try/except and verify note exists first
 - Add note existence check before deletion: `col.get_note(note_id)` first
 - Never call `remove_notes()` with an empty list or invalid IDs
@@ -152,6 +157,7 @@ add-on port and perform Anki operations.
 loads from `localhost`. The add-on binds to `127.0.0.1` which limits to local processes only.
 
 **Recommendation**:
+
 - On Android: NanoHTTPd binds to all interfaces by default (the `NanoHTTPD(PORT)` constructor
   does NOT specify a hostname). This means port 18765 is accessible from any device on the
   same network. Fix by using `NanoHTTPD("127.0.0.1", PORT)`.
@@ -163,7 +169,7 @@ loads from `localhost`. The add-on binds to `127.0.0.1` which limits to local pr
 
 #### M1. API Key Exposure via Settings Endpoint
 
-`GET /api/settings` (`server/src/routes/settings.ts:13-21`) masks API keys but exposes the
+`GET /api/settings` (`ankiconnect-server/src/routes/settings.ts:13-21`) masks API keys but exposes the
 last 4 characters. While the masked format prevents full key recovery, the last 4 chars
 can confirm whether a specific key is in use.
 
@@ -175,6 +181,7 @@ On a local network or Tailscale, these keys could be intercepted.
 **Current mitigation**: Keys are masked in GET responses. PUT only updates non-masked values.
 
 **Recommendation**:
+
 - Settings file is stored at `~/.config/bangla-anki/settings.json` with no file permission
   restrictions. Set file permissions to `0600` after writing.
 - Consider using environment variables exclusively for API keys rather than the settings API.
@@ -201,6 +208,7 @@ connects via `localhost`.
 #### M3. No Rate Limiting on Any Endpoint
 
 None of the three backends implement rate limiting. Rapid requests could:
+
 - Flood Anki with hundreds of notes via rapid `POST /api/anki/notes` calls
 - Exhaust AI API quotas via rapid `POST /api/chat/stream` calls
 - Create excessive load on Anki's search via rapid `POST /api/anki/search` calls
@@ -232,7 +240,7 @@ request if exceeded.
 
 #### M5. Session Data Loss
 
-The pending card queue is stored in SQLite on the server (`server/src/services/session.ts`)
+The pending card queue is stored in SQLite on the server (`ankiconnect-server/src/services/session.ts`)
 and in Zustand/localStorage on the client. If the session database is corrupted or the
 browser's localStorage is cleared, all queued (not yet synced to Anki) cards are lost.
 
@@ -268,7 +276,8 @@ HTML in cards. This is not a meaningful attack vector.
 
 #### L2. Search Query Escaping Is Incomplete
 
-`server/src/services/anki.ts:57-58` (`searchWord`):
+`ankiconnect-server/src/services/anki.ts:57-58` (`searchWord`):
+
 ```typescript
 const escapedDeck = deckName.replace(/"/g, '\\"');
 const escapedWord = word.replace(/"/g, '\\"');
@@ -293,6 +302,7 @@ better. The add-on backend (`anki_service.py:48-49`) matches the server's escapi
 #### L3. Error Messages May Leak Internal Details
 
 Error responses across all backends include raw exception messages:
+
 - `AnkiHandler.kt:49`: `"error":"Failed to fetch decks"` (generic, OK)
 - `anki_routes.py:14`: `Response.error(str(e))` (raw Python exception -- may include paths)
 - `LocalServer.kt:49`: `"error":"${e.message?.replace("\"", "'")}"` (raw message)
@@ -320,17 +330,17 @@ for the supported platforms.
 
 ## Current Mitigations Summary
 
-| Area | Mitigation | Adequate? |
-|------|-----------|-----------|
-| Deletion scope | API only accepts single note IDs | Partially -- no ownership check |
-| Search injection | Anki search is read-only (no SQL) | Yes for data safety, no for privacy |
-| Add-on threading | QTimer ensures single-threaded col access | Yes |
-| Add-on network | Binds to 127.0.0.1 | Yes |
-| API key masking | GET masks keys, PUT ignores masked values | Yes |
-| Note creation validation | Anki rejects empty first field, duplicates | Yes |
-| Static file traversal | normpath + `..` check in add-on | Yes |
-| Express body size | `express.json({ limit: '1mb' })` | Yes |
-| Android permissions | Requires explicit AnkiDroid permission grant | Yes |
+| Area                     | Mitigation                                   | Adequate?                           |
+| ------------------------ | -------------------------------------------- | ----------------------------------- |
+| Deletion scope           | API only accepts single note IDs             | Partially -- no ownership check     |
+| Search injection         | Anki search is read-only (no SQL)            | Yes for data safety, no for privacy |
+| Add-on threading         | QTimer ensures single-threaded col access    | Yes                                 |
+| Add-on network           | Binds to 127.0.0.1                           | Yes                                 |
+| API key masking          | GET masks keys, PUT ignores masked values    | Yes                                 |
+| Note creation validation | Anki rejects empty first field, duplicates   | Yes                                 |
+| Static file traversal    | normpath + `..` check in add-on              | Yes                                 |
+| Express body size        | `express.json({ limit: '1mb' })`             | Yes                                 |
+| Android permissions      | Requires explicit AnkiDroid permission grant | Yes                                 |
 
 ---
 
@@ -354,7 +364,7 @@ for the supported platforms.
 
 5. **DONE -- Enforce MAX_BODY_SIZE in add-on**: Content-length check in `ClientBuffer.feed()`.
 
-6. **DONE -- Escape backslashes in search**: `searchWord()` in `server/src/services/anki.ts`.
+6. **DONE -- Escape backslashes in search**: `searchWord()` in `ankiconnect-server/src/services/anki.ts`.
 
 7. **DONE -- Ownership check on delete**: Express DELETE endpoint verifies `auto-generated`
    tag before allowing deletion.
@@ -373,14 +383,14 @@ for the supported platforms.
 The `yanki-connect` library exposes these destructive AnkiConnect operations that this app
 does NOT currently call but should never call:
 
-| Operation | Risk | Used? |
-|-----------|------|-------|
-| `deleteNotes` (plural, with array) | Bulk deletion | Yes, but always single-element array |
-| `deleteDecks` | Destroys entire decks + all cards | No -- never use |
-| `clearUnusedTags` | Removes tags from DB | No -- low risk |
-| `removeEmptyNotes` | Bulk deletion of "empty" notes | No -- never use |
-| `updateNoteFields` | Overwrites existing content | No -- could be risky |
-| `changeDeck` | Moves cards between decks | No -- low risk |
+| Operation                          | Risk                              | Used?                                |
+| ---------------------------------- | --------------------------------- | ------------------------------------ |
+| `deleteNotes` (plural, with array) | Bulk deletion                     | Yes, but always single-element array |
+| `deleteDecks`                      | Destroys entire decks + all cards | No -- never use                      |
+| `clearUnusedTags`                  | Removes tags from DB              | No -- low risk                       |
+| `removeEmptyNotes`                 | Bulk deletion of "empty" notes    | No -- never use                      |
+| `updateNoteFields`                 | Overwrites existing content       | No -- could be risky                 |
+| `changeDeck`                       | Moves cards between decks         | No -- low risk                       |
 
 The app only uses: `addNote`, `deleteNotes` (single), `findNotes`, `notesInfo`, `deckNames`,
 `modelNames`, `modelFieldNames`, `sync`, `version`. This is a reasonable minimal surface area.

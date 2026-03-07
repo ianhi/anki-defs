@@ -7,7 +7,10 @@
     ".": {
       "types": "./types.ts",
       "default": "./types.ts"
-    }
+    },
+    "./prompts/*.json": "./prompts/*.json",
+    "./prompts/variables.json": "./prompts/variables.json",
+    "./defaults/settings.json": "./defaults/settings.json"
   },
   "main": "./types.ts",
   "types": "./types.ts"

@@ -6,7 +6,8 @@ description: How anki-defs is structured -- one frontend, three backends.
 import { Aside } from '@astrojs/starlight/components';
 
 <Aside>
-This page is for contributors and people curious about the internals. If you just want to use anki-defs, see the [Usage Guide](/anki-defs/usage/).
+  This page is for contributors and people curious about the internals. If you just want to use
+  anki-defs, see the [Usage Guide](/anki-defs/usage/).
 </Aside>
 
 ## One frontend, three backends
@@ -64,10 +65,10 @@ Prompt templates are shared data defined on the server side. They include Bangla
 
 ## Tech stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite, Tailwind CSS v4, TanStack Query, Zustand |
-| Desktop backend | Express 5, TypeScript, SSE streaming, SQLite |
-| Android | Kotlin, Jetpack Compose, Gemini API, NanoHTTPd |
-| Anki Add-on | Python (stdlib only), non-blocking socket server |
-| AI providers | Claude, Gemini, OpenRouter (unified streaming interface) |
+| Layer           | Technology                                               |
+| --------------- | -------------------------------------------------------- |
+| Frontend        | React 19, Vite, Tailwind CSS v4, TanStack Query, Zustand |
+| Desktop backend | Express 5, TypeScript, SSE streaming, SQLite             |
+| Android         | Kotlin, Jetpack Compose, Gemini API, NanoHTTPd           |
+| Anki Add-on     | Python (stdlib only), non-blocking socket server         |
+| AI providers    | Claude, Gemini, OpenRouter (unified streaming interface) |

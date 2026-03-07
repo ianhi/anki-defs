@@ -4,3 +4,8 @@ node_modules
 *.min.js
 package-lock.json
 android/
+anki-addon/
+
+# Astro generated
+docs/.astro/
+anki-addon/web/

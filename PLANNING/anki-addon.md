@@ -3,6 +3,7 @@
 ## Status: IMPLEMENTED (Phase 1-5 complete, Phase 6 pending)
 
 ### What's Done
+
 - Entry point with menu item and profile hooks
 - Non-blocking socket HTTP server (QTimer-polled, AnkiConnect pattern)
 - URL router with path parameter matching
@@ -20,6 +21,7 @@
 - Backslash escaping in Anki search queries
 
 ### What's Remaining
+
 - Phase 6: Build script to copy client/dist/ to web/, package as .ankiaddon
 - Phase 0: Prompt template extraction to shared/prompts/ (currently inlined)
 

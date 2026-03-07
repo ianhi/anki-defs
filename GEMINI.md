@@ -14,7 +14,7 @@ npm run check        # Run typecheck + lint + format check
 
 ### Key Directories
 
-- `server/src/` - Express backend with TypeScript
+- `ankiconnect-server/src/` - Express backend with TypeScript
 - `client/src/` - React frontend with Vite
 - `shared/` - Shared types
 

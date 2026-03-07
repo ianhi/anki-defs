@@ -94,16 +94,16 @@ For a more detailed usage guide, see [docs/USAGE.md](docs/USAGE.md).
 
 All settings are accessible via the gear icon in the header.
 
-| Setting | Description |
-|---------|-------------|
-| AI Provider | Claude, Gemini, or OpenRouter |
-| API Key | Your key for the selected provider |
-| Gemini/OpenRouter Model | Choose a specific model (affects cost and quality) |
-| Show transliteration | Include romanized pronunciation in definitions |
-| Left-handed mode | Move action buttons to the left |
-| Default Deck | Which Anki deck receives new cards |
-| Default Note Type | Which Anki note type to use |
-| Field Mapping | Map card data (Word, Definition, Example, Translation) to your note type's fields |
+| Setting                 | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| AI Provider             | Claude, Gemini, or OpenRouter                                                     |
+| API Key                 | Your key for the selected provider                                                |
+| Gemini/OpenRouter Model | Choose a specific model (affects cost and quality)                                |
+| Show transliteration    | Include romanized pronunciation in definitions                                    |
+| Left-handed mode        | Move action buttons to the left                                                   |
+| Default Deck            | Which Anki deck receives new cards                                                |
+| Default Note Type       | Which Anki note type to use                                                       |
+| Field Mapping           | Map card data (Word, Definition, Example, Translation) to your note type's fields |
 
 ---
 
@@ -122,7 +122,8 @@ One React frontend, three backends. The frontend calls relative `/api/*` URLs an
            ┌─────────────┼─────────────┐
            │             │             │
 ┌──────────┴───┐ ┌───────┴──────┐ ┌────┴───────────┐
-│   server/    │ │  android/    │ │  anki-addon/   │
+│ankiconnect-  │ │  android/    │ │  anki-addon/   │
+│   server/    │ │              │ │                │
 │              │ │              │ │                │
 │  Express.js  │ │  NanoHTTPd   │ │  Python HTTP   │
 │  AnkiConnect │ │ ContentProv. │ │  Direct Anki   │
@@ -132,7 +133,7 @@ One React frontend, three backends. The frontend calls relative `/api/*` URLs an
 └──────────────┘ └──────────────┘ └────────────────┘
 ```
 
-- **Desktop/Web** (`server/`): Express server proxies AI APIs and talks to Anki via AnkiConnect
+- **Desktop/Web** (`ankiconnect-server/`): Express server proxies AI APIs and talks to Anki via AnkiConnect
 - **Android** (`android/`): Local HTTP server in-app, WebView loads the React frontend, talks to AnkiDroid via ContentProvider
 - **Anki Add-on** (`anki-addon/`): Python backend running inside Anki's process with direct database access
 

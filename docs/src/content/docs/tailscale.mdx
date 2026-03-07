@@ -45,9 +45,7 @@ Phone (browser)  ──Tailscale──>  Desktop:5173 (Vite)  ──proxy──>
 
 </Steps>
 
-<Aside type="tip">
-Bookmark the URL on your phone's home screen for quick access.
-</Aside>
+<Aside type="tip">Bookmark the URL on your phone's home screen for quick access.</Aside>
 
 ## Security
 
@@ -59,7 +57,9 @@ The setup is designed so that sensitive services stay on localhost:
 - **Vite** binds to all interfaces (`host: true` in the config) with an `allowedHosts` check to prevent DNS rebinding attacks.
 
 <Aside type="caution">
-Only devices on your Tailscale network can reach port 5173. Tailscale uses WireGuard encryption, so traffic between your phone and desktop is encrypted in transit. However, the Vite dev server itself serves over HTTP (not HTTPS), so do not use this over untrusted networks without Tailscale.
+  Only devices on your Tailscale network can reach port 5173. Tailscale uses WireGuard encryption,
+  so traffic between your phone and desktop is encrypted in transit. However, the Vite dev server
+  itself serves over HTTP (not HTTPS), so do not use this over untrusted networks without Tailscale.
 </Aside>
 
 ## Syncing cards to AnkiWeb

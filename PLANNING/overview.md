@@ -18,7 +18,8 @@ Share anki-defs' React frontend between web and Android. The Android app runs a 
       ┌─────────────┼─────────────┐
       │             │             │
 ┌─────┴──────┐ ┌───┴────────┐ ┌──┴───────────┐
-│  server/   │ │ android/   │ │ anki-addon/  │
+│ankiconnect-│ │ android/   │ │ anki-addon/  │
+│  server/   │
 │  Express   │ │ NanoHTTPd  │ │ Python       │
 │ AnkiConnect│ │ContentProv.│ │Direct Anki DB│
 │  Multi-AI  │ │ Gemini API │ │  Multi-AI    │
