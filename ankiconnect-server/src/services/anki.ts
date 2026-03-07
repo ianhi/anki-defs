@@ -144,6 +144,11 @@ export async function createCard(params: CreateCardParams): Promise<number> {
     throw new Error('Failed to create note - duplicate or invalid');
   }
 
+  // Add word to cache for offline duplicate detection
+  if (params.word) {
+    addWordToCache(params.word, params.deck);
+  }
+
   return noteId;
 }
 
@@ -161,8 +166,104 @@ export async function testConnection(): Promise<boolean> {
   try {
     const ankiClient = await getClient();
     await ankiClient.miscellaneous.version();
+    // Refresh word cache on successful connection
+    refreshWordCache().catch((err) =>
+      console.warn('[Anki] Word cache refresh failed:', err)
+    );
     return true;
   } catch {
     return false;
   }
+}
+
+// --- Word cache for offline duplicate detection ---
+
+const wordCache = new Map<string, Set<string>>();
+
+async function refreshWordCache(): Promise<void> {
+  const settings = await getSettings();
+  const deckName = settings.defaultDeck;
+  if (!deckName) return;
+
+  const ankiClient = await getClient();
+  const escapedDeck = deckName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const noteIds = await ankiClient.note.findNotes({ query: `deck:"${escapedDeck}"` });
+  if (noteIds.length === 0) {
+    wordCache.set(deckName, new Set());
+    return;
+  }
+
+  const notesInfo = await ankiClient.note.notesInfo({ notes: noteIds });
+  const wordField = settings.fieldMapping?.Word || 'Word';
+  const fallbackField = 'Front';
+
+  const words = new Set<string>();
+  for (const note of notesInfo) {
+    if (!note) continue;
+    const value =
+      note.fields[wordField]?.value || note.fields[fallbackField]?.value;
+    if (value) {
+      words.add(value.toLowerCase());
+    }
+  }
+
+  wordCache.set(deckName, words);
+  console.log(`[Anki] Word cache refreshed for "${deckName}": ${words.size} words`);
+}
+
+/**
+ * Search for a word with fallback to the in-memory cache when Anki is offline.
+ * Returns the same type as searchWord for compatibility.
+ */
+export async function searchWordCached(
+  word: string,
+  deckName: string
+): Promise<AnkiNote | null> {
+  try {
+    return await searchWord(word, deckName);
+  } catch {
+    // Anki offline -- check the cache
+    const cached = wordCache.get(deckName);
+    if (cached && cached.has(word.toLowerCase())) {
+      return {
+        noteId: 0,
+        modelName: '',
+        tags: [],
+        fields: {},
+      };
+    }
+    return null;
+  }
+}
+
+/**
+ * Batch version of searchWordCached.
+ */
+export async function searchWordsCached(
+  words: string[],
+  deckName: string
+): Promise<Map<string, AnkiNote>> {
+  const results = new Map<string, AnkiNote>();
+  const entries = await Promise.all(
+    words.map(async (word) => {
+      const note = await searchWordCached(word, deckName);
+      return [word, note] as const;
+    })
+  );
+  for (const [word, note] of entries) {
+    if (note) {
+      results.set(word, note);
+    }
+  }
+  return results;
+}
+
+/** Add a word to the cache after successful card creation. */
+export function addWordToCache(word: string, deckName: string): void {
+  let cached = wordCache.get(deckName);
+  if (!cached) {
+    cached = new Set();
+    wordCache.set(deckName, cached);
+  }
+  cached.add(word.toLowerCase());
 }

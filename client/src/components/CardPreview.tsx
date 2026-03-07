@@ -265,11 +265,7 @@ export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProp
                 {existsInSession && !preview.alreadyExists ? 'In session' : 'In deck'}
               </Badge>
             )}
-            {!ankiConnected && !isAdded && !isQueued && (
-              <Badge variant="outline" className="border-orange-500 text-orange-600">
-                Anki offline
-              </Badge>
-            )}
+
           </div>
           {!isAdded && !isQueued && (
             <Button

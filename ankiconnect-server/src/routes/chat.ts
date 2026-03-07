@@ -83,7 +83,7 @@ chatRouter.post('/stream', async (req, res) => {
 
   for (const word of wordsToCheck) {
     try {
-      const existingNote = await ankiService.searchWord(word, targetDeck);
+      const existingNote = await ankiService.searchWordCached(word, targetDeck);
       ankiResults.set(word, !!existingNote);
     } catch (error) {
       console.warn('[Chat] Anki search failed:', error);
@@ -196,7 +196,7 @@ chatRouter.post('/define', async (req, res) => {
     let noteId: number | undefined;
 
     try {
-      const existingNote = await ankiService.searchWord(word, targetDeck);
+      const existingNote = await ankiService.searchWordCached(word, targetDeck);
       if (existingNote) {
         existsInAnki = true;
         noteId = existingNote.noteId;
@@ -281,7 +281,7 @@ chatRouter.post('/analyze', async (req, res) => {
 
     let ankiResults = new Map<string, AnkiNote>();
     try {
-      ankiResults = await ankiService.searchWords(lemmas, targetDeck);
+      ankiResults = await ankiService.searchWordsCached(lemmas, targetDeck);
     } catch (error) {
       console.warn('[Chat] Anki search failed:', error);
     }

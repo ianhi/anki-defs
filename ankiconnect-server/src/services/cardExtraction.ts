@@ -29,7 +29,7 @@ export interface ExtractionResult {
 async function checkAnki(word: string, deck: string, results: Map<string, boolean>): Promise<void> {
   if (results.has(word)) return;
   try {
-    const note = await ankiService.searchWord(word, deck);
+    const note = await ankiService.searchWordCached(word, deck);
     results.set(word, !!note);
   } catch (error) {
     console.warn('[CardExtraction] Anki search failed for "%s":', word, error);
