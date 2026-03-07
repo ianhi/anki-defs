@@ -12,6 +12,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // Security tradeoff: host: true exposes dev server on all interfaces
+    // (needed for Tailscale access from phone). CORS on the API server restricts API access.
     host: true,
     allowedHosts: ['pop-os'],
     proxy: {

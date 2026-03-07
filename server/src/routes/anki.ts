@@ -111,6 +111,17 @@ ankiRouter.delete('/notes/:id', async (req, res) => {
       return;
     }
 
+    // Only allow deleting notes created by this app (tagged 'auto-generated')
+    const note = await ankiService.getNoteById(noteId);
+    if (!note) {
+      res.status(404).json({ error: 'Note not found' });
+      return;
+    }
+    if (!note.tags.includes('auto-generated')) {
+      res.status(403).json({ error: 'Cannot delete notes not created by this app' });
+      return;
+    }
+
     await ankiService.deleteNote(noteId);
     res.json({ success: true });
   } catch (error) {

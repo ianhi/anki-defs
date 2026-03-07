@@ -15,7 +15,7 @@ class LocalServer(
     private val ankiRepository: AnkiRepository,
     private val settingsRepository: SettingsRepository,
     private val geminiServiceProvider: () -> GeminiService?
-) : NanoHTTPD(PORT) {
+) : NanoHTTPD("127.0.0.1", PORT) {
 
     private val chatHandler = ChatHandler(ankiRepository, geminiServiceProvider)
     private val ankiHandler = AnkiHandler(ankiRepository)

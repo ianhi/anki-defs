@@ -218,6 +218,8 @@ class ClientBuffer:
                         self._content_length = int(line.split(b":", 1)[1].strip())
                     except ValueError:
                         pass
+            if self._content_length > MAX_BODY_SIZE:
+                raise ValueError("Request body too large")
 
     def is_complete(self):
         if not self._headers_complete:

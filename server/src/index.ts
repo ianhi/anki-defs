@@ -29,9 +29,18 @@ import { settingsRouter } from './routes/settings.js';
 import { sessionRouter } from './routes/session.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(String(process.env.PORT || 3001), 10);
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:3001',
+    ],
+  })
+);
 app.use(express.json({ limit: '1mb' }));
 
 // Routes
@@ -61,6 +70,6 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`Server running on http://127.0.0.1:${PORT}`);
 });

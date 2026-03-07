@@ -54,8 +54,8 @@ export async function searchNotes(query: string): Promise<AnkiNote[]> {
 }
 
 export async function searchWord(word: string, deckName: string): Promise<AnkiNote | null> {
-  const escapedDeck = deckName.replace(/"/g, '\\"');
-  const escapedWord = word.replace(/"/g, '\\"');
+  const escapedDeck = deckName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const escapedWord = word.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
   // Search the word field from settings mapping, plus common fallbacks
   const settings = await getSettings();
