@@ -27,8 +27,8 @@ The project has three backends sharing one React frontend. All backends are func
   scripts in `scripts/`.
 
 - **Shared prompts** (`shared/prompts/`): 7 prompt templates + variables.json extracted to
-  JSON files. ankiconnect-server loads from these; anki-addon has its own copy (build step
-  copies them).
+  JSON files. All three backends load from these at runtime (ankiconnect-server direct,
+  anki-addon via build copy, Android via Gradle asset copy).
 
 - **Docs site** (`docs/`): Astro Starlight site. Pages: home, getting-started, usage,
   tailscale, architecture, anki-addon. GitHub Actions workflow deployed
@@ -43,8 +43,7 @@ The project has three backends sharing one React frontend. All backends are func
 - **No automated tests for web stack** -- no vitest/jest, no test script in package.json.
   The anki-addon has pytest tests but client/ and ankiconnect-server/ have zero tests.
 - **GitHub Actions CI** -- docs deployment workflow exists but no test/lint CI pipeline yet.
-- **Prompt sharing incomplete** -- ankiconnect-server reads from `shared/prompts/*.json`
-  but anki-addon has its own copy. Android has prompts hardcoded in Kotlin.
+- ~~**Prompt sharing**~~ -- Done. All three backends now load from `shared/prompts/*.json`.
 - **Anki add-on not tested manually** -- code complete but needs manual testing inside
   Anki Desktop.
 
@@ -68,13 +67,12 @@ No plan doc yet. Key needs:
 
 See [anki-addon.md](anki-addon.md). Remaining:
 - Manual testing inside Anki Desktop
-- Prompt template sharing (read from shared/prompts/ at build time)
 - Potential AnkiWeb distribution
 
 ### 4. Android Future Work
 
 See [android/PLANNING/future-features.md](../android/PLANNING/future-features.md).
-Phases 1-5 complete. Phase 6 (shared prompts) and Phase 7 (quick-translate) are future.
+Phases 1-5 complete. Phase 6 (shared prompts) done. Phase 7 (quick-translate) is future.
 
 ## Plan Documents
 
