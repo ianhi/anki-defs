@@ -9,6 +9,9 @@ import type {
   WordAnalysis,
   SentenceAnalysis,
   SSEEvent,
+  SessionState,
+  SessionCard,
+  PendingCard,
 } from 'shared';
 
 const API_BASE = '/api';
@@ -132,4 +135,45 @@ export const chatApi = {
       }
     }
   },
+};
+
+// Session API
+export const sessionApi = {
+  getState: () => fetchJson<SessionState>('/session'),
+
+  addCard: (card: SessionCard) =>
+    fetchJson<{ success: boolean }>('/session/cards', {
+      method: 'POST',
+      body: JSON.stringify(card),
+    }),
+
+  removeCard: (id: string) =>
+    fetchJson<{ success: boolean }>(`/session/cards/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  addPending: (card: PendingCard) =>
+    fetchJson<{ success: boolean }>('/session/pending', {
+      method: 'POST',
+      body: JSON.stringify(card),
+    }),
+
+  removePending: (id: string) =>
+    fetchJson<{ success: boolean }>(`/session/pending/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }),
+
+  promotePending: (id: string, noteId: number) =>
+    fetchJson<{ success: boolean; card: SessionCard }>(
+      `/session/pending/${encodeURIComponent(id)}/promote`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ noteId }),
+      }
+    ),
+
+  clear: () =>
+    fetchJson<{ success: boolean }>('/session/clear', {
+      method: 'POST',
+    }),
 };

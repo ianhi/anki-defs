@@ -1,127 +1,139 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { CardContent } from 'shared';
+import type { CardContent, SessionCard, PendingCard } from 'shared';
 import { generateId } from '@/lib/utils';
-
-// A card that has been added to Anki this session
-export interface SessionCard extends CardContent {
-  id: string; // Internal tracking ID
-  createdAt: number;
-  noteId: number; // The Anki note ID
-  deckName: string; // The deck this card was added to
-  modelName: string;
-}
-
-// A card waiting to be synced to Anki (queued when Anki unavailable)
-export interface PendingCard extends CardContent {
-  id: string; // Internal tracking ID
-  createdAt: number;
-  deckName: string; // Target deck
-  modelName: string; // Target model
-}
+import { sessionApi } from '@/lib/api';
 
 interface SessionCardsState {
-  // Cards successfully created this session
   cards: SessionCard[];
-  // Cards waiting to be synced to Anki (when Anki unavailable)
   pendingQueue: PendingCard[];
+  loaded: boolean;
 
-  // Actions
+  // Load from server
+  fetchState: () => Promise<void>;
+
+  // Actions (optimistic local update + fire-and-forget server call)
   addCard: (card: CardContent, deckName: string, modelName: string, noteId: number) => void;
   removeCard: (id: string) => void;
   clearCards: () => void;
 
-  // Pending queue actions
-  addToPendingQueue: (card: CardContent, deckName: string, modelName: string) => string; // Returns the ID
+  addToPendingQueue: (card: CardContent, deckName: string, modelName: string) => string;
   removeFromPendingQueue: (id: string) => void;
   clearPendingQueue: () => void;
 
-  // Check if word exists in session
   hasWord: (word: string) => boolean;
   getWordsByLemma: () => Set<string>;
 }
 
-export const useSessionCards = create<SessionCardsState>()(
-  persist(
-    (set, get) => ({
-      cards: [],
-      pendingQueue: [],
+export const useSessionCards = create<SessionCardsState>()((set, get) => ({
+  cards: [],
+  pendingQueue: [],
+  loaded: false,
 
-      addCard: (card, deckName, modelName, noteId) =>
-        set((state) => ({
-          cards: [
-            ...state.cards,
-            {
-              word: card.word,
-              definition: card.definition,
-              exampleSentence: card.exampleSentence,
-              sentenceTranslation: card.sentenceTranslation,
-              id: generateId(),
-              createdAt: Date.now(),
-              noteId,
-              deckName,
-              modelName,
-            },
-          ],
-        })),
-
-      removeCard: (id) =>
-        set((state) => ({
-          cards: state.cards.filter((c) => c.id !== id),
-        })),
-
-      clearCards: () => set({ cards: [] }),
-
-      addToPendingQueue: (card, deckName, modelName) => {
-        const id = generateId();
-        set((state) => ({
-          pendingQueue: [
-            ...state.pendingQueue,
-            {
-              word: card.word,
-              definition: card.definition,
-              exampleSentence: card.exampleSentence,
-              sentenceTranslation: card.sentenceTranslation,
-              id,
-              createdAt: Date.now(),
-              deckName,
-              modelName,
-            },
-          ],
-        }));
-        return id;
-      },
-
-      removeFromPendingQueue: (id) =>
-        set((state) => ({
-          pendingQueue: state.pendingQueue.filter((c) => c.id !== id),
-        })),
-
-      clearPendingQueue: () => set({ pendingQueue: [] }),
-
-      hasWord: (word) => {
-        const state = get();
-        const normalizedWord = word.toLowerCase().trim();
-        return (
-          state.cards.some((c) => c.word.toLowerCase().trim() === normalizedWord) ||
-          state.pendingQueue.some((c) => c.word.toLowerCase().trim() === normalizedWord)
-        );
-      },
-
-      getWordsByLemma: () => {
-        const state = get();
-        const words = new Set<string>();
-        state.cards.forEach((c) => words.add(c.word.toLowerCase().trim()));
-        state.pendingQueue.forEach((c) => words.add(c.word.toLowerCase().trim()));
-        return words;
-      },
-    }),
-    {
-      name: 'bangla-session-cards',
-      partialize: (state) => ({
-        cards: state.cards,
-        pendingQueue: state.pendingQueue,
-      }),
+  fetchState: async () => {
+    try {
+      const state = await sessionApi.getState();
+      set({ cards: state.cards, pendingQueue: state.pendingQueue, loaded: true });
+    } catch (err) {
+      console.error('[Session] Failed to fetch state from server:', err);
+      set({ loaded: true });
     }
-  )
-);
+  },
+
+  addCard: (card, deckName, modelName, noteId) => {
+    const sessionCard: SessionCard = {
+      word: card.word,
+      definition: card.definition,
+      exampleSentence: card.exampleSentence,
+      sentenceTranslation: card.sentenceTranslation,
+      id: generateId(),
+      createdAt: Date.now(),
+      noteId,
+      deckName,
+      modelName,
+    };
+    set((state) => ({ cards: [...state.cards, sessionCard] }));
+    sessionApi.addCard(sessionCard).catch((err) => {
+      console.error('[Session] Failed to persist card to server:', err);
+    });
+  },
+
+  removeCard: (id) => {
+    set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
+    sessionApi.removeCard(id).catch((err) => {
+      console.error('[Session] Failed to remove card from server:', err);
+    });
+  },
+
+  clearCards: () => {
+    set({ cards: [], pendingQueue: [] });
+    sessionApi.clear().catch((err) => {
+      console.error('[Session] Failed to clear session on server:', err);
+    });
+  },
+
+  addToPendingQueue: (card, deckName, modelName) => {
+    const id = generateId();
+    const pendingCard: PendingCard = {
+      word: card.word,
+      definition: card.definition,
+      exampleSentence: card.exampleSentence,
+      sentenceTranslation: card.sentenceTranslation,
+      id,
+      createdAt: Date.now(),
+      deckName,
+      modelName,
+    };
+    set((state) => ({ pendingQueue: [...state.pendingQueue, pendingCard] }));
+    sessionApi.addPending(pendingCard).catch((err) => {
+      console.error('[Session] Failed to persist pending card to server:', err);
+    });
+    return id;
+  },
+
+  removeFromPendingQueue: (id) => {
+    set((state) => ({ pendingQueue: state.pendingQueue.filter((c) => c.id !== id) }));
+    sessionApi.removePending(id).catch((err) => {
+      console.error('[Session] Failed to remove pending card from server:', err);
+    });
+  },
+
+  clearPendingQueue: () => {
+    set({ pendingQueue: [] });
+    // No dedicated endpoint for clearing just pending — use clear all
+    // This is fine since clearPendingQueue is not used standalone
+  },
+
+  hasWord: (word) => {
+    const state = get();
+    const normalizedWord = word.toLowerCase().trim();
+    return (
+      state.cards.some((c) => c.word.toLowerCase().trim() === normalizedWord) ||
+      state.pendingQueue.some((c) => c.word.toLowerCase().trim() === normalizedWord)
+    );
+  },
+
+  getWordsByLemma: () => {
+    const state = get();
+    const words = new Set<string>();
+    state.cards.forEach((c) => words.add(c.word.toLowerCase().trim()));
+    state.pendingQueue.forEach((c) => words.add(c.word.toLowerCase().trim()));
+    return words;
+  },
+}));
+
+// Fetch server state on startup
+useSessionCards.getState().fetchState();
+
+// Refetch on window focus (instant sync when switching tabs/devices)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    useSessionCards.getState().fetchState();
+  }
+});
+
+// Light background poll as safety net (every 30s)
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    useSessionCards.getState().fetchState();
+  }
+}, 30_000);

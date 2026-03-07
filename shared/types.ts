@@ -62,6 +62,27 @@ export interface AnalyzedWord {
   noteId?: number;
 }
 
+// Session card types (synced between devices via server)
+export interface SessionCard extends CardContent {
+  id: string;
+  createdAt: number;
+  noteId: number;
+  deckName: string;
+  modelName: string;
+}
+
+export interface PendingCard extends CardContent {
+  id: string;
+  createdAt: number;
+  deckName: string;
+  modelName: string;
+}
+
+export interface SessionState {
+  cards: SessionCard[];
+  pendingQueue: PendingCard[];
+}
+
 // Anki types
 export interface AnkiNote {
   noteId: number;

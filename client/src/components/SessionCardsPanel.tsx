@@ -1,10 +1,12 @@
-import { useSessionCards, type PendingCard } from '@/hooks/useSessionCards';
+import { useSessionCards } from '@/hooks/useSessionCards';
+import type { PendingCard } from 'shared';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { boldWordInSentence } from '@/lib/utils';
+import { sessionApi } from '@/lib/api';
 import { useState } from 'react';
 
 function PendingCardItem({
@@ -62,8 +64,7 @@ function PendingCardItem({
 }
 
 export function SessionCardsPanel() {
-  const { cards, pendingQueue, removeCard, removeFromPendingQueue, clearCards, addCard } =
-    useSessionCards();
+  const { cards, pendingQueue, removeCard, removeFromPendingQueue, clearCards } = useSessionCards();
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
@@ -86,9 +87,10 @@ export function SessionCardsPanel() {
         tags: ['auto-generated'],
       });
 
-      // Move from pending to synced
-      removeFromPendingQueue(card.id);
-      addCard(card, card.deckName, card.modelName, noteId);
+      // Promote on server (atomic move from pending → cards)
+      await sessionApi.promotePending(card.id, noteId);
+      // Refresh local state from server to stay in sync
+      await useSessionCards.getState().fetchState();
     } catch (error) {
       console.error('Failed to sync card:', error);
     } finally {

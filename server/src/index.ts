@@ -26,6 +26,7 @@ import cors from 'cors';
 import { ankiRouter } from './routes/anki.js';
 import { chatRouter } from './routes/chat.js';
 import { settingsRouter } from './routes/settings.js';
+import { sessionRouter } from './routes/session.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +38,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/api/anki', ankiRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/session', sessionRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
