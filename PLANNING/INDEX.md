@@ -3,7 +3,12 @@
 ## Start Here
 
 The project has three backends sharing one React frontend. All backends are functional.
-Current priorities are testing, polish, and documentation.
+
+**Top priorities (in order):**
+1. Add automated tests to the web stack -- no vitest/jest exists yet, zero test coverage
+   on client/ and ankiconnect-server/
+2. Set up CI pipeline (GitHub Actions) -- lint + typecheck + test on every push
+3. Manually test the anki-addon inside Anki Desktop -- code complete but never run in Anki
 
 ## Current Status
 
@@ -26,8 +31,8 @@ Current priorities are testing, polish, and documentation.
   copies them).
 
 - **Docs site** (`docs/`): Astro Starlight site. Pages: home, getting-started, usage,
-  tailscale, architecture, anki-addon. GitHub Actions workflow on disk (`.github/workflows/docs.yml`)
-  but not committed -- needs a token with `workflow` scope to push.
+  tailscale, architecture, anki-addon. GitHub Actions workflow deployed
+  (`.github/workflows/docs.yml`).
 
 - **Security**: Full audit completed. Bearer token auth on Express and add-on, CORS
   restrictions, Android localhost binding, deletion ownership checks, backslash escaping
@@ -37,8 +42,7 @@ Current priorities are testing, polish, and documentation.
 
 - **No automated tests for web stack** -- no vitest/jest, no test script in package.json.
   The anki-addon has pytest tests but client/ and ankiconnect-server/ have zero tests.
-- **GitHub Actions CI** -- workflow file exists on disk but can't be pushed without
-  `workflow`-scoped token. No test/lint CI pipeline yet.
+- **GitHub Actions CI** -- docs deployment workflow exists but no test/lint CI pipeline yet.
 - **Prompt sharing incomplete** -- ankiconnect-server reads from `shared/prompts/*.json`
   but anki-addon has its own copy. Android has prompts hardcoded in Kotlin.
 - **Anki add-on not tested manually** -- code complete but needs manual testing inside
