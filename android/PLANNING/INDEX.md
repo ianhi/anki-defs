@@ -2,15 +2,22 @@
 
 Plans and requirements specific to the Android app.
 
-## Plans
+## WebView Migration (from root plan)
 
-_No android-specific plans yet. Cross-cutting plans are in root [PLANNING/](../../PLANNING/INDEX.md)._
+The Android app is being migrated from native Compose UI to a WebView that loads
+the shared React frontend. See root [PLANNING/overview.md](../../PLANNING/overview.md)
+for the phase plan. Relevant root planning docs:
 
-Relevant root plans:
-- [android-backend.md](../../PLANNING/android-backend.md) -- NanoHTTPd server + API handlers
-- [webview-bridge.md](../../PLANNING/webview-bridge.md) -- WebView setup, native bridges
+- [android-backend.md](../../PLANNING/android-backend.md) -- NanoHTTPd server + API handlers **(Phase 2 -- next)**
+- [webview-bridge.md](../../PLANNING/webview-bridge.md) -- WebView setup, native bridges **(Phase 4-5)**
 - [settings-design.md](../../PLANNING/settings-design.md) -- Android settings design
-- [quick-translate.md](../../PLANNING/quick-translate.md) -- Native popup for text selection
+- [quick-translate.md](../../PLANNING/quick-translate.md) -- Native popup for text selection **(Phase 7)**
+
+## Android-Specific Plans
+
+| Doc                                          | Summary                                              |
+| -------------------------------------------- | ---------------------------------------------------- |
+| [future-features.md](future-features.md)     | Post-migration features (highlighting, on-device AI) |
 
 ## How to Use
 

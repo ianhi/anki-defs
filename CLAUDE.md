@@ -36,17 +36,24 @@ All web code must pass TypeScript strict mode, ESLint, and Prettier (`npm run ch
 - API contract changes must be coordinated across ALL backends.
 - Prompt templates are shared data -- not duplicated per-backend.
 - Platform-specific UI uses a platform detection hook, not separate components.
-- Document as you go -- update docs in the same commit as code changes.
 - This is an application, not a library. No backwards-compatibility shims.
 
-## Documentation Structure
+## Documentation Workflow
 
-Each subproject has two doc directories:
+**Read first**: Before starting work, read `PLANNING/INDEX.md` for current status and
+priorities. Read the relevant plan doc for your task.
 
-- `PLANNING/` -- Future plans, requirements, design proposals. Agents create and update
-  planning docs as they define requirements or implement features. Each PLANNING/ dir has
-  an INDEX.md table of contents.
-- `DOCS/` -- Implementation reference (API details, file maps, patterns). Agents update
-  these as the code evolves.
+**Update as you go** -- in the same commit as code changes:
 
-Root-level PLANNING/ and DOCS/ cover cross-cutting concerns.
+- `PLANNING/` -- Plans, requirements, design proposals.
+  - When you **finish implementing** a plan: update its status in the plan doc and in
+    `PLANNING/INDEX.md`. If the plan is fully implemented, delete the file and remove
+    it from INDEX.md (don't accumulate stale plans).
+  - When you **discover new requirements**: create a new `.md` and add it to INDEX.md.
+  - When a plan becomes **partially done**: update the doc to show what's done vs remaining.
+- `DOCS/` -- Implementation reference (API details, file maps, patterns).
+  - When you **add/remove/rename files**: update the relevant `DOCS/file-map.md`.
+  - When you **change the API**: update `DOCS/api-contract.md` and `shared/DOCS/types-reference.md`.
+
+Each subproject has its own `PLANNING/` and `DOCS/` directories. Root-level ones cover
+cross-cutting concerns.

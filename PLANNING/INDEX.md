@@ -1,44 +1,62 @@
-# Planning Index (Root)
+# Planning Index
 
-Cross-cutting plans and architecture decisions that span multiple subprojects.
+## Start Here
 
-## Active Plans
+The project has two active work tracks:
 
-| Doc                                    | Status | Summary                                       |
-| -------------------------------------- | ------ | --------------------------------------------- |
-| [overview.md](overview.md)             | Active | Hybrid WebView architecture vision and phases |
-| [migration.md](migration.md)           | Done   | Steps to merge word2anki into monorepo        |
-| [repo-structure.md](repo-structure.md) | Done   | Monorepo layout and build system design       |
+1. **Android WebView migration** (Phase 2 is next) -- see [overview.md](overview.md)
+   for the full phase plan. Phase 1 (monorepo merge) is done. Next: build the NanoHTTPd
+   local server in android/ that implements the same API contract as server/.
 
-## Architecture
+2. **Web app improvements** -- see [next-steps.md](next-steps.md) for prioritized TODOs
+   (prompt testing, card field mapping, disambiguation, unmarked sentence mode).
+
+## Phase Plan (Android WebView Migration)
+
+| Phase | Task                                  | Status   | Plan Doc                                   |
+| ----- | ------------------------------------- | -------- | ------------------------------------------ |
+| 1     | Monorepo restructure                  | **Done** | [migration.md](migration.md)               |
+| 2     | Android backend (NanoHTTPd + API)     | **Next** | [android-backend.md](android-backend.md)   |
+| 3     | Frontend platform awareness           | Planned  | [frontend-changes.md](frontend-changes.md) |
+| 4     | WebView Activity + asset bundling     | Planned  | [webview-bridge.md](webview-bridge.md)     |
+| 5     | Native bridges (intents, permissions) | Planned  | [webview-bridge.md](webview-bridge.md)     |
+| 6     | Port prompts to shared backend        | Planned  | [prompt-design.md](prompt-design.md)       |
+| 7     | Quick-translate native popup          | Future   | [quick-translate.md](quick-translate.md)   |
+
+## Web App TODOs
+
+See [next-steps.md](next-steps.md) for the prioritized list. Key items:
+
+- Prompt testing end-to-end (lemmatization, mismatch badges)
+- Card field mapping (configurable note type fields)
+- Unmarked sentence mode (auto-detect unknown words)
+- Disambiguation support
+
+## Architecture & Reference
 
 | Doc                                            | Summary                                  |
 | ---------------------------------------------- | ---------------------------------------- |
+| [overview.md](overview.md)                     | WebView architecture vision + phase plan |
 | [architecture.md](architecture.md)             | Data flow diagram and AI call pattern    |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy for multi-agent work |
+| [repo-structure.md](repo-structure.md)         | Monorepo layout and build system         |
+| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design               |
+| [settings-design.md](settings-design.md)       | Android settings design                  |
+| [anki-addon.md](anki-addon.md)                 | Future: Python backend in Anki Desktop   |
 
-## Feature Plans
+## Completed
 
-| Doc                                        | Status  | Summary                                           |
-| ------------------------------------------ | ------- | ------------------------------------------------- |
-| [android-backend.md](android-backend.md)   | Planned | NanoHTTPd local server + API handlers for Android |
-| [frontend-changes.md](frontend-changes.md) | Planned | Platform awareness for client/                    |
-| [webview-bridge.md](webview-bridge.md)     | Planned | WebView setup, native bridges, share intents      |
-| [prompt-design.md](prompt-design.md)       | Planned | Bangla-specific prompt rules and template design  |
-| [settings-design.md](settings-design.md)   | Planned | Settings UI and storage design for Android        |
-| [quick-translate.md](quick-translate.md)   | Planned | Native popup for ACTION_PROCESS_TEXT              |
-| [anki-addon.md](anki-addon.md)             | Future  | Python backend inside Anki Desktop                |
+| Doc                          | Summary                          |
+| ---------------------------- | -------------------------------- |
+| [migration.md](migration.md) | Monorepo merge (Phase 1) -- done |
 
-## Tracking
+## Progress Tracking
 
-| Doc                            | Summary                       |
-| ------------------------------ | ----------------------------- |
-| [progress.md](progress.md)     | Web app completed features    |
-| [next-steps.md](next-steps.md) | Prioritized web app TODO list |
+- [progress.md](progress.md) -- What's been built (web + Android)
 
 ## How to Use This Directory
 
-- Create a new `.md` file for each plan, requirement, or design proposal.
-- Update this INDEX.md when adding or completing plans.
-- Move completed plans to a "Done" status rather than deleting them.
+- **Before starting work**: Read this INDEX and the relevant plan doc.
+- **When you finish a task**: Update the plan doc's status and this INDEX.
+- **When you discover new requirements**: Create a new `.md` file and add it here.
+- **When you implement something**: Update DOCS/ files to reflect code changes.
 - Keep plans focused -- one concern per document.

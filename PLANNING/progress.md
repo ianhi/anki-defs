@@ -1,59 +1,40 @@
 # Progress
 
-## Completed
+## Web App (client/ + server/ + shared/)
 
-### Core Architecture
+### Done
 
 - Express server + React/Vite client monorepo with shared types
-- SSE streaming for AI responses
-- Three AI providers: Claude, Gemini, OpenRouter (all with streaming + token usage)
+- SSE streaming for AI responses with three providers (Claude, Gemini, OpenRouter)
 - AnkiConnect integration via `yanki-connect` (remote-capable over Tailscale)
+- System prompts for: single word, sentence, focused words, card extraction, define, analyze
+- Bangla-specific prompt rules (lemmatization, example quality, translation formatting)
+- Card extraction pipeline: AI streams analysis -> Gemini extracts structured cards -> Anki duplicate check -> lemma mismatch detection
+- Card preview UI with inline editing, add/skip/queue, undo, duplicate badges
+- Zustand stores with persistence for chat, token usage, session cards, settings
+- AI provider selection with model dropdowns, API key management
+- Server-side session sync with SQLite
+- Mobile-friendly responsive UI
 
-### AI & Prompts
+## Android App (android/)
 
-- System prompts for: single word, sentence, focused (highlighted) words, card extraction, define, analyze
-- Detailed Bangla-specific prompt rules ported from original Claude skill:
-  - Explicit lemmatization rules (nouns: drop case endings, verbs: convert to verbal noun)
-  - Example sentence quality requirements (must be real sentences, not definitions)
-  - Clean translation formatting (no grammar labels, no he/she slashes)
-  - Spelling tolerance for common Bangla character confusions
-  - Root word awareness
-- Transliteration toggle in settings (off by default)
+### Done
 
-### Card Generation Pipeline
+- Native Compose UI with chat and settings screens (will be replaced by WebView)
+- Gemini API integration with multi-turn conversation context
+- AnkiDroid ContentProvider integration (decks, notes, duplicate detection)
+- Custom "word2anki" 4-field note model with Basic fallback
+- Share intent support (ACTION_SEND)
+- 95 unit tests across 7 test classes, all passing
+- Code quality: atomic state updates, Channel for one-shot events, clean layer boundaries
 
-- Main AI streams word-by-word analysis, ends with lemmatized vocabulary list
-- Gemini extracts structured card data (word, definition, example, translation) per word
-- Lemma mismatch detection when the two AI calls disagree on dictionary form
-- Anki duplicate checking: field-specific queries, checks both inflected and lemmatized forms
+## Monorepo Migration (Phase 1)
 
-### Card Preview UI
+### Done
 
-- Card preview cards with word, definition, highlighted example sentence, translation
-- Editable word and definition fields (inline editing with pencil icon)
-- Lemma mismatch badge (blue) shows when AIs disagree, clickable to edit
-- Re-lemmatize button (refresh icon) asks AI to re-check dictionary form with sentence context
-- Duplicate warning badges: "In deck" (from Anki) and "In session" (from current session)
-- Add to Anki / Queue for Anki (when Anki offline) with undo support
-- Dismiss (skip) individual cards
-
-### State Management
-
-- Zustand stores with persistence for: chat messages, token usage, session cards, settings
-- Chat history survives page refresh
-- Token/cost tracking per response and cumulative in header
-
-### Settings
-
-- AI provider selection (Claude/Gemini/OpenRouter) with model dropdowns
-- API key management per provider
-- Default deck and note type selection (from Anki)
-- AnkiConnect status indicator
-- Transliteration toggle
-
-### Infrastructure
-
-- Vite dev server accessible over network (`host: true`) for Tailscale access
-- Remote AnkiConnect support (laptop Anki at 100.80.156.30:8765)
-- Request body size limit
-- All code passes TypeScript strict mode, ESLint, Prettier
+- word2anki merged into android/ via git subtree (full history preserved)
+- CLAUDE.md hierarchy: root + client/ + server/ + shared/ + android/
+- DOCS/ directories with file maps and API contract reference
+- PLANNING/ directories with INDEX.md at each level
+- .gitignore covers both Node.js and Android/Gradle
+- Both projects build: `npm run check` passes, `./gradlew assembleDebug` succeeds
