@@ -104,6 +104,9 @@ export interface CreateCardParams {
 // Settings types
 export type AIProvider = 'claude' | 'gemini' | 'openrouter';
 
+// Maps card data fields (Word, Definition, Example, Translation) to note type field names
+export type FieldMapping = Record<string, string>;
+
 export interface Settings {
   aiProvider: AIProvider;
   claudeApiKey: string;
@@ -115,7 +118,11 @@ export interface Settings {
   defaultDeck: string;
   defaultModel: string;
   ankiConnectUrl: string;
+  fieldMapping: FieldMapping;
 }
+
+export const CARD_DATA_FIELDS = ['Word', 'Definition', 'Example', 'Translation'] as const;
+export type CardDataField = (typeof CARD_DATA_FIELDS)[number];
 
 export const DEFAULT_SETTINGS: Settings = {
   aiProvider: 'claude',
@@ -128,6 +135,12 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultDeck: 'Bangla',
   defaultModel: 'Bangla (and reversed)',
   ankiConnectUrl: 'http://localhost:8765',
+  fieldMapping: {
+    Word: 'Bangla',
+    Definition: 'Eng_trans',
+    Example: 'example sentence',
+    Translation: 'sentence-trans',
+  },
 };
 
 // Pricing per million tokens (input/output) in USD

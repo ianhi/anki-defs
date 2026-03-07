@@ -2,13 +2,14 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useAnkiStatus, useDecks, useModels } from '@/hooks/useAnki';
+import { useAnkiStatus, useDecks, useModels, useModelFields } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import type { AIProvider, Settings as SettingsType } from 'shared';
+import { CARD_DATA_FIELDS } from 'shared';
 import { Check, X, Loader2 } from 'lucide-react';
 
 export function Settings() {
@@ -35,6 +36,7 @@ export function Settings() {
   const { data: ankiConnected } = useAnkiStatus();
   const { data: decks } = useDecks();
   const { data: models } = useModels();
+  const { data: modelFields } = useModelFields(localSettings.defaultModel);
 
   useEffect(() => {
     if (serverSettings) {
@@ -43,7 +45,10 @@ export function Settings() {
     }
   }, [serverSettings, loadSettings]);
 
-  const handleChange = (key: keyof SettingsType, value: string | boolean) => {
+  const handleChange = (
+    key: keyof SettingsType,
+    value: string | boolean | Record<string, string>
+  ) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -247,6 +252,40 @@ export function Settings() {
           )) ?? <option>No models available</option>}
         </Select>
       </div>
+
+      {/* Field Mapping */}
+      {modelFields && modelFields.length > 0 && (
+        <div className="space-y-2">
+          <Label>Field Mapping</Label>
+          <p className="text-xs text-muted-foreground">Map card data to note type fields</p>
+          <div className="space-y-1.5">
+            {CARD_DATA_FIELDS.map((cardField) => (
+              <div key={cardField} className="flex items-center gap-2">
+                <span className="text-sm w-24 flex-shrink-0">{cardField}</span>
+                <span className="text-muted-foreground text-sm">&rarr;</span>
+                <Select
+                  value={localSettings.fieldMapping?.[cardField] || ''}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                    const newMapping = {
+                      ...localSettings.fieldMapping,
+                      [cardField]: e.target.value,
+                    };
+                    handleChange('fieldMapping', newMapping);
+                  }}
+                  className="flex-1"
+                >
+                  <option value="">-- not mapped --</option>
+                  {modelFields.map((field) => (
+                    <option key={field} value={field}>
+                      {field}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Save/Reset Buttons */}
       {hasChanges && (

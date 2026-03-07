@@ -6,6 +6,7 @@ import {
   extractCards,
   extractVocabularyList,
   extractSentenceTranslation,
+  extractInflectedForms,
 } from '../services/cardExtraction.js';
 import type {
   ChatStreamRequest,
@@ -122,6 +123,12 @@ chatRouter.post('/stream', async (req, res) => {
             ? extractSentenceTranslation(fullResponse)
             : '';
 
+          // Extract inflected→lemma mappings for sentence highlighting
+          const inflectedForms =
+            isSentenceMode && !hasHighlightedWords
+              ? extractInflectedForms(fullResponse)
+              : undefined;
+
           const { cardPreviews, errors } = await extractCards({
             wordsForCards,
             fullResponse,
@@ -130,6 +137,7 @@ chatRouter.post('/stream', async (req, res) => {
             isSentenceMode,
             targetDeck,
             ankiResults,
+            inflectedForms,
           });
 
           for (const preview of cardPreviews) {

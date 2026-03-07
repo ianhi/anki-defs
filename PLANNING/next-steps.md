@@ -8,16 +8,18 @@
 - Specifically test: verb forms (কাঁদতে, যাচ্ছে, গেছে), noun case endings (বাজারে, বাজারের), adjectives
 - Verify the lemma mismatch badge appears when it should and not when it shouldn't
 
-### Card field mapping
+### ~~Card field mapping~~ (Done)
 
-- Current code sends `{Word, Definition, Example, Translation}` to Anki
-- The original skill uses `{Bangla, Eng_trans, example sentence, sentence-trans}` for the "Bangla (and reversed)" note type
-- Need to verify which field names the user's actual Anki note type expects, or make field mapping configurable
+- Field mapping is now configurable in Settings UI
+- Maps card data fields (Word, Definition, Example, Translation) to note type fields
+- Default mapping targets "Bangla (and reversed)" note type fields
+- Stored in settings.json and persisted across sessions
 
-### Sentence mode: use original sentence as example
+### ~~Sentence mode highlighting~~ (Done)
 
-- When a word comes from a sentence the user typed, we use that sentence as the example — but the card should highlight (bold) the word as it appeared in the sentence, not the lemmatized form
-- Verify `inflectedForm` is being set correctly in all cases (sentence mode, focused words mode, single word mode)
+- Sentence mode now extracts inflected→lemma mappings from the AI's word-by-word analysis
+- `inflectedForm` is set correctly for sentence mode (via word-by-word parsing), focused words mode (via lemma comparison), and single word mode (via extraction lemma comparison)
+- Card preview and Anki card both highlight the inflected form in the example sentence
 
 ## Medium Priority
 

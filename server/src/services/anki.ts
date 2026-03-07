@@ -57,10 +57,13 @@ export async function searchWord(word: string, deckName: string): Promise<AnkiNo
   const escapedDeck = deckName.replace(/"/g, '\\"');
   const escapedWord = word.replace(/"/g, '\\"');
 
-  // Search word/front fields specifically to avoid matching example sentences.
-  // Uses exact field match syntax: FieldName:"value"
-  const wordFields = ['Bangla', 'Front', 'Word'];
-  const fieldQueries = wordFields.map((f) => `${f}:"${escapedWord}"`).join(' OR ');
+  // Search the word field from settings mapping, plus common fallbacks
+  const settings = await getSettings();
+  const wordField = settings.fieldMapping?.Word;
+  const wordFields = new Set(['Front', 'Word']);
+  if (wordField) wordFields.add(wordField);
+
+  const fieldQueries = [...wordFields].map((f) => `${f}:"${escapedWord}"`).join(' OR ');
   const query = `deck:"${escapedDeck}" (${fieldQueries})`;
   const notes = await searchNotes(query);
   return notes[0] ?? null;
@@ -102,27 +105,12 @@ export async function getNoteById(noteId: number): Promise<AnkiNote | null> {
   };
 }
 
-// Field mapping for different Anki models
-const FIELD_MAPPINGS: Record<string, Record<string, string>> = {
-  'Bangla (and reversed)': {
-    Word: 'Bangla',
-    Definition: 'Eng_trans',
-    Example: 'example sentence',
-    Translation: 'sentence-trans',
-  },
-  Basic: {
-    Word: 'Front',
-    Definition: 'Back',
-    Example: 'Front', // Basic only has Front/Back
-    Translation: 'Back',
-  },
-};
-
 export async function createCard(params: CreateCardParams): Promise<number> {
   const ankiClient = await getClient();
+  const settings = await getSettings();
 
-  // Get field mapping for this model, or use default names
-  const mapping = FIELD_MAPPINGS[params.model] || {};
+  // Use field mapping from settings, falling back to identity mapping
+  const mapping = settings.fieldMapping || {};
 
   // Map standard field names to model-specific field names
   const fields: Record<string, string> = {};

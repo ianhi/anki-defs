@@ -13,6 +13,8 @@ interface ExtractionInput {
   targetDeck: string;
   /** Pre-populated Anki results from earlier checks */
   ankiResults: Map<string, boolean>;
+  /** Map of lemma → inflected form from the AI response (for sentence highlighting) */
+  inflectedForms?: Map<string, string>;
 }
 
 export interface ExtractionResult {
@@ -47,6 +49,7 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
     isSentenceMode,
     targetDeck,
     ankiResults,
+    inflectedForms,
   } = input;
   const errors: string[] = [];
 
@@ -93,9 +96,14 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
     if (result.status === 'fulfilled') {
       const { word, cardData } = result.value;
       const lemmaDiffers = cardData.word !== word;
+      // For sentence mode: if wordsForCards are already lemmas (from Vocabulary line),
+      // look up the inflected form from the word-by-word analysis
+      const inflected = lemmaDiffers
+        ? word
+        : inflectedForms?.get(word) || inflectedForms?.get(cardData.word) || undefined;
       cardPreviews.push({
         ...cardData,
-        inflectedForm: lemmaDiffers ? word : undefined,
+        inflectedForm: inflected,
         alreadyExists: ankiResults.get(cardData.word) || ankiResults.get(word) || false,
         lemmaMismatch: lemmaDiffers,
         originalLemma: lemmaDiffers ? word : undefined,
@@ -111,14 +119,14 @@ export async function extractCards(input: ExtractionInput): Promise<ExtractionRe
 }
 
 // Re-export extraction helpers for use in routes
-export { extractVocabularyList, extractSentenceTranslation };
+export { extractVocabularyList, extractSentenceTranslation, extractInflectedForms };
 
 /** Extract vocabulary list from AI response (for sentence mode) */
 function extractVocabularyList(response: string): string[] {
-  const match = response.match(/\*\*Vocabulary:\*\*\s*([^\n]+)/i);
-  if (!match || !match[1]) return [];
+  const vocabMatch = response.match(/\*\*Vocabulary:\*\*\s*([^\n]+)/i);
+  if (!vocabMatch || !vocabMatch[1]) return [];
 
-  return match[1]
+  return vocabMatch[1]
     .split(',')
     .map((w) => w.trim())
     .filter((w) => w.length > 0 && !w.includes('*'));
@@ -126,6 +134,26 @@ function extractVocabularyList(response: string): string[] {
 
 /** Extract sentence translation from AI response */
 function extractSentenceTranslation(response: string): string {
-  const match = response.match(/\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)/i);
-  return match?.[1]?.trim() || '';
+  const transMatch = response.match(/\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)/i);
+  return transMatch?.[1]?.trim() || '';
+}
+
+/**
+ * Extract inflected-to-lemma mappings from the Word-by-word section.
+ * Pattern: - **[inflected word]** — ... From **[lemma]**
+ * Returns a map of lemma to inflected form (for highlighting the original sentence).
+ */
+function extractInflectedForms(response: string): Map<string, string> {
+  const result = new Map<string, string>();
+  const pattern = /- \*\*([^*]+)\*\*[^]*?From \*\*([^*]+)\*\*/g;
+  let found = pattern.exec(response);
+  while (found !== null) {
+    const inflected = found[1]?.trim();
+    const lemma = found[2]?.trim();
+    if (inflected && lemma && inflected !== lemma) {
+      result.set(lemma, inflected);
+    }
+    found = pattern.exec(response);
+  }
+  return result;
 }
