@@ -44,6 +44,7 @@ __pycache__/
 # Anki add-on
 anki-addon/user_files/session.db
 anki-addon/_shared/
+anki-addon/web/assets/
 *.ankiaddon
 
 # Misc
