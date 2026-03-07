@@ -161,14 +161,34 @@ chatRouter.post('/stream', async (req, res) => {
             })
           );
 
+          // Check Anki for lemmatized words too (card extraction may return different lemma)
+          await Promise.all(
+            results.map(async (result) => {
+              if (result.status !== 'fulfilled') return;
+              const lemma = result.value.cardData.word;
+              if (lemma !== result.value.word && !ankiResults.has(lemma)) {
+                try {
+                  const existingNote = await ankiService.searchWord(lemma, targetDeck);
+                  ankiResults.set(lemma, !!existingNote);
+                } catch (error) {
+                  console.warn('[Chat] Anki lemma search failed:', error);
+                }
+              }
+            })
+          );
+
           for (const result of results) {
             if (result.status === 'fulfilled') {
               const { word, cardData } = result.value;
+              const inflectedForm = cardData.word !== word ? word : undefined;
+              const exists =
+                ankiResults.get(cardData.word) || ankiResults.get(word) || false;
               sendSSE(res, {
                 type: 'card_preview',
                 data: {
                   ...cardData,
-                  alreadyExists: ankiResults.get(word) || false,
+                  inflectedForm,
+                  alreadyExists: exists,
                 },
               });
             } else {

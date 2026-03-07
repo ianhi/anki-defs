@@ -21,6 +21,7 @@ export interface CardContent {
 
 // Card preview from AI response (includes Anki check results)
 export interface CardPreview extends CardContent {
+  inflectedForm?: string; // Original inflected form from the sentence (if different from lemma)
   alreadyExists: boolean; // Whether word already exists in Anki deck
   existingNoteId?: number; // If exists, the note ID in Anki
 }

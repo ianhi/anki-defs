@@ -92,7 +92,10 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
         fields: {
           Word: preview.word,
           Definition: preview.definition,
-          Example: boldWordInSentence(preview.exampleSentence, preview.word),
+          Example: boldWordInSentence(
+            preview.exampleSentence,
+            preview.inflectedForm || preview.word
+          ),
           Translation: preview.sentenceTranslation,
         },
         tags: ['auto-generated'],
@@ -182,7 +185,12 @@ export function CardPreview({ preview, onDismiss }: CardPreviewProps) {
       </CardHeader>
       {preview.exampleSentence && (
         <CardContent className="pb-2 pt-0">
-          <p className="text-sm">{highlightWord(preview.exampleSentence, preview.word)}</p>
+          <p className="text-sm">
+            {highlightWord(
+              preview.exampleSentence,
+              preview.inflectedForm || preview.word
+            )}
+          </p>
           {preview.sentenceTranslation && (
             <p className="text-sm text-muted-foreground">{preview.sentenceTranslation}</p>
           )}
