@@ -1,0 +1,67 @@
+---
+title: Tailscale Setup
+description: Access anki-defs from your phone while Anki runs on your desktop.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## Why Tailscale?
+
+Anki runs on your desktop. But you might want to look up words from your phone -- while reading, while on the bus, while away from your desk. With Tailscale, your phone can reach the anki-defs server running on your desktop over a private network. Cards get added to your desktop Anki, then you hit sync to push them to AnkiWeb.
+
+## How it works
+
+The anki-defs dev server is configured to accept connections from any network interface (not just localhost). When both your phone and desktop are on the same Tailscale network, your phone can access the app directly.
+
+```
+Phone (browser)  ──Tailscale──>  Desktop:5173 (Vite)  ──proxy──>  localhost:3001 (Express)  ──>  Anki
+```
+
+- **Vite** (port 5173) serves the React frontend and proxies `/api/*` requests to Express
+- **Express** (port 3001) handles AI calls and talks to AnkiConnect on localhost
+- **AnkiConnect** (port 8765) only needs to be accessible from localhost -- Express handles the proxying
+
+## Setup
+
+<Steps>
+
+1. **Install Tailscale** on both your desktop and phone from [tailscale.com](https://tailscale.com/). Sign in with the same account on both devices.
+
+2. **Find your desktop's Tailscale hostname.** Run `tailscale status` or check the Tailscale app. It will be something like `my-desktop`.
+
+3. **Start anki-defs** on your desktop:
+
+   ```bash
+   npm run dev
+   ```
+
+4. **Open it from your phone.** In your phone's browser, go to:
+
+   ```
+   http://<your-desktop-hostname>:5173
+   ```
+
+   Replace `<your-desktop-hostname>` with your actual Tailscale hostname.
+
+</Steps>
+
+<Aside type="tip">
+Bookmark the URL on your phone's home screen for quick access.
+</Aside>
+
+## Security
+
+The setup is designed so that sensitive services stay on localhost:
+
+- **Express** binds to all interfaces but requires a **bearer token** for non-localhost requests. The token is auto-generated on first run and stored in `~/.config/bangla-anki/settings.json`. The Vite proxy passes it automatically.
+- **CORS** is restricted to specific localhost origins -- browsers on other machines cannot make direct API calls to Express.
+- **AnkiConnect** only accepts connections from localhost. Express proxies Anki operations, so AnkiConnect is never exposed to the network.
+- **Vite** binds to all interfaces (`host: true` in the config) with an `allowedHosts` check to prevent DNS rebinding attacks.
+
+<Aside type="caution">
+Only devices on your Tailscale network can reach port 5173. Tailscale uses WireGuard encryption, so traffic between your phone and desktop is encrypted in transit. However, the Vite dev server itself serves over HTTP (not HTTPS), so do not use this over untrusted networks without Tailscale.
+</Aside>
+
+## Syncing cards to AnkiWeb
+
+After adding cards from your phone, click the **sync icon** in the anki-defs header. This triggers an AnkiConnect sync on your desktop, pushing the new cards to AnkiWeb. Open Anki on your phone and sync there too -- the cards will appear.

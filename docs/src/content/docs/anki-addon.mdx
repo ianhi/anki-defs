@@ -1,0 +1,71 @@
+---
+title: Anki Add-on
+description: Run anki-defs directly inside Anki Desktop -- no AnkiConnect needed.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+<Aside type="caution">
+The Anki add-on is in beta. It works, but may have rough edges compared to the web version.
+</Aside>
+
+## What it is
+
+The Anki add-on runs a small HTTP server inside Anki Desktop's own process. It serves the same React frontend you use in the browser, but instead of talking to AnkiConnect over the network, it accesses your Anki collection directly through Python.
+
+This means you do not need AnkiConnect installed -- the add-on talks to Anki's database without any intermediary.
+
+## Install
+
+<Steps>
+
+1. **Download the add-on folder.** Copy the `anki-addon/` directory from the repository into your Anki add-ons folder:
+
+   ```
+   ~/.local/share/Anki2/addons21/anki_defs/
+   ```
+
+   On macOS: `~/Library/Application Support/Anki2/addons21/anki_defs/`
+
+   On Windows: `%APPDATA%\Anki2\addons21\anki_defs\`
+
+2. **Restart Anki.** The add-on starts automatically and opens a local HTTP server on port 28735.
+
+3. **Open the UI.** Go to [http://localhost:28735](http://localhost:28735) in your browser, or use the menu item the add-on adds to Anki's Tools menu.
+
+</Steps>
+
+### Dev install
+
+For development, symlink the add-on directory into your Anki add-ons folder instead of copying:
+
+```bash
+ln -s /path/to/anki-defs/anki-addon ~/.local/share/Anki2/addons21/anki_defs
+```
+
+Changes to the Python code take effect after restarting Anki. Changes to the frontend require rebuilding the client (`npm run build` in the repo root) and copying the output to `anki-addon/web/`.
+
+## How it differs from the web version
+
+| Feature | Web version | Add-on |
+|---------|------------|--------|
+| Anki connection | AnkiConnect (network) | Direct database access |
+| Requires AnkiConnect | Yes | No |
+| AI providers | Claude, Gemini, OpenRouter | Claude, Gemini, OpenRouter |
+| Runs on | Any browser | Inside Anki Desktop |
+| Server | Express (Node.js) | Python stdlib HTTP server |
+| Configuration | Settings UI + `settings.json` | Same Settings UI, config stored via Anki's add-on config |
+
+## Configuration
+
+The add-on has one setting in Anki's add-on config (Tools > Add-ons > Config):
+
+- **port** -- HTTP server port (default: `28735`)
+
+All other settings (AI provider, API keys, deck selection, field mapping) are configured through the web UI at `http://localhost:28735` after the add-on starts.
+
+## Known limitations
+
+- The add-on uses Python's standard library only (no pip dependencies), so some features may behave slightly differently than the Node.js backend.
+- The HTTP server is single-threaded. It handles requests one at a time, which is fine for single-user use but means long AI streaming responses block other requests.
+- The bundled frontend assets (`anki-addon/web/`) must be rebuilt manually from the client source when the frontend changes.

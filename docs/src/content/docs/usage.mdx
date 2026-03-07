@@ -1,0 +1,68 @@
+---
+title: Usage Guide
+description: How to use anki-defs for single words, sentences, and card management.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+## Single word lookup
+
+Type any Bangla word and press Enter. The AI returns a definition, an example sentence with the word used in context, and an English translation.
+
+The card preview shows the extracted data. If the AI picked the wrong dictionary form (lemma), a blue **mismatch badge** appears so you can catch it before adding the card.
+
+## Sentence analysis
+
+Paste a full Bangla sentence. The AI breaks it down word by word, explaining vocabulary and grammar. Each word gets its own card preview.
+
+### Highlighting specific words
+
+If you only want cards for certain words in a sentence, wrap them in `**double asterisks**` before sending. Only those words get card previews.
+
+You can also select text in the input box and press **Ctrl+B** to toggle bold highlighting.
+
+<Aside type="tip">
+Highlighting is useful when you mostly understand a sentence but want to learn two or three new words from it.
+</Aside>
+
+## Editing card previews
+
+Before adding a card, click the **pencil icon** to edit the word or definition inline.
+
+If the AI picked the wrong dictionary form, click the **refresh icon** to re-lemmatize -- the AI suggests the correct base form.
+
+## Adding and skipping cards
+
+Each card preview has two actions:
+
+- **Add to Anki** -- creates the card in your selected deck immediately. If Anki is not running, the card goes into an offline queue instead.
+- **Skip** -- dismisses the card preview without creating a card.
+
+### Duplicate detection
+
+Before adding, anki-defs checks your Anki deck for existing cards with the same word. If a duplicate is found, a warning badge appears on the card preview. You can still add the card if you want.
+
+### Offline queue
+
+If Anki is not running when you add a card, it goes into a pending queue. The cards are saved and can be synced to Anki later when it's available.
+
+## Session cards panel
+
+Click the **cards icon** in the header to open the session sidebar. It shows every card you have added (or queued) during this session.
+
+- **Undo** an added card to remove it from Anki
+- **Remove** a queued card to discard it before syncing
+
+## Sync button
+
+When Anki is connected, a **sync icon** appears in the header. Click it to trigger an AnkiConnect sync so cards you just added on your laptop appear on your phone via AnkiWeb.
+
+This is especially useful when [accessing anki-defs from your phone over Tailscale](/anki-defs/tailscale/) -- add cards from your phone, then sync to AnkiWeb so they're available everywhere.
+
+## Left-handed mode
+
+Toggle in Settings. Moves the Add/Skip buttons to the left side of card previews for easier one-handed use on mobile.
+
+## Chat persistence
+
+Your conversation history survives page refreshes. The input box, AI responses, and card previews are all restored when you reload the page.

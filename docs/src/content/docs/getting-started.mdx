@@ -1,0 +1,71 @@
+---
+title: Getting Started
+description: Install anki-defs and create your first flashcard.
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+
+## Prerequisites
+
+You need three things on your machine:
+
+- **Node.js 18+** -- [download here](https://nodejs.org/)
+- **Anki** -- [download here](https://apps.ankiweb.net/)
+- **AnkiConnect add-on** -- installed inside Anki (see below)
+- **An AI API key** -- from [Google AI Studio](https://aistudio.google.com/apikey) (Gemini, cheapest), [Anthropic](https://console.anthropic.com/) (Claude), or [OpenRouter](https://openrouter.ai/)
+
+## Install and run
+
+<Steps>
+
+1. **Clone the repo and install dependencies:**
+
+   ```bash
+   git clone https://github.com/ianhuntisaak/anki-defs.git
+   cd anki-defs
+   npm install
+   ```
+
+2. **Install AnkiConnect in Anki:**
+
+   Open Anki, go to **Tools > Add-ons > Get Add-ons**, enter code `2055492159`, and restart Anki. Leave Anki running -- anki-defs talks to it through AnkiConnect on `localhost:8765`.
+
+3. **Start the dev server:**
+
+   ```bash
+   npm run dev
+   ```
+
+   This starts both the Express backend (port 3001) and the Vite frontend (port 5173).
+
+4. **Open the app:**
+
+   Go to [http://localhost:5173](http://localhost:5173) in your browser.
+
+</Steps>
+
+## First-time setup
+
+<Steps>
+
+1. **Add your API key.** Click the gear icon in the header to open Settings. Select your AI provider and paste your API key.
+
+2. **Select your deck.** Use the deck dropdown in the header to choose which Anki deck receives new cards. If you don't have a deck yet, create one in Anki first.
+
+3. **Configure your note type** (optional). The default field mapping targets the "Bangla (and reversed)" note type. If you use a different note type, go to Settings and map the Word, Definition, Example, and Translation fields to your note type's fields.
+
+</Steps>
+
+## Try your first word
+
+Type a Bangla word like `ভালোবাসা` in the input box and press Enter. The AI streams back:
+
+- A **definition** in Bangla
+- An **example sentence** using the word in context
+- An **English translation**
+
+Click **Add to Anki** on the card preview to add it to your deck. The target word is automatically highlighted in the example sentence.
+
+<Aside type="tip">
+Gemini is the cheapest provider and works well for vocabulary lookups. Claude tends to produce higher-quality example sentences. Try both and see which you prefer.
+</Aside>

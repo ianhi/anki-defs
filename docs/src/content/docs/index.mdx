@@ -1,0 +1,50 @@
+---
+title: anki-defs
+description: AI-powered Bangla vocabulary flashcard creator for Anki.
+template: splash
+hero:
+  tagline: Turn any Bangla word or sentence into an Anki flashcard -- type it in and let AI do the rest.
+  actions:
+    - text: Get Started
+      link: /anki-defs/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/ianhuntisaak/anki-defs
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why anki-defs?
+
+Building Anki cards by hand is slow. Looking up a word, writing a definition, finding an example sentence, translating it -- that's minutes per card. anki-defs does it in seconds.
+
+<CardGrid>
+	<Card title="Instant definitions" icon="pencil">
+		Paste a Bangla word or sentence. Get a definition, example sentence, and English translation back instantly.
+	</Card>
+	<Card title="One-tap card creation" icon="add-document">
+		Preview the card, edit if needed, and add it to your Anki deck with one click. Duplicates are caught automatically.
+	</Card>
+	<Card title="Use from your phone" icon="laptop">
+		Run the server on your desktop, access it from your phone over Tailscale. Hit sync to push cards to AnkiWeb.
+	</Card>
+	<Card title="Multiple AI providers" icon="setting">
+		Choose between Claude, Gemini, or OpenRouter. Bring your own API key.
+	</Card>
+</CardGrid>
+
+## Quick start
+
+```bash
+git clone https://github.com/ianhuntisaak/anki-defs.git
+cd anki-defs
+npm install
+npm run dev
+```
+
+Open http://localhost:5173, add your API key in Settings, and look up your first word.
+
+You'll need [Node.js](https://nodejs.org/) 18+, [Anki](https://apps.ankiweb.net/) running with [AnkiConnect](https://ankiweb.net/shared/info/2055492159) installed. See [Getting Started](/anki-defs/getting-started/) for the full setup.

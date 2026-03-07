@@ -1,0 +1,73 @@
+---
+title: Architecture
+description: How anki-defs is structured -- one frontend, three backends.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+<Aside>
+This page is for contributors and people curious about the internals. If you just want to use anki-defs, see the [Usage Guide](/anki-defs/usage/).
+</Aside>
+
+## One frontend, three backends
+
+anki-defs has a single React frontend shared across all platforms. Each platform provides its own backend that serves the frontend and implements the same HTTP API.
+
+```
++---------------------------------------------------------+
+|              client/ -- React Frontend                  |
+|         (shared by ALL platforms via /api/*)             |
+|                                                         |
+|   shared/ -- TypeScript types (API contract)            |
++----------------------------+----------------------------+
+                             |
+               +-------------+-------------+
+               |             |             |
++--------------+--+ +--------+-------+ +---+--------------+
+|   server/       | |  android/      | |  anki-addon/     |
+|                 | |                | |                  |
+|  Express.js     | |  NanoHTTPd     | |  Python HTTP     |
+|  AnkiConnect    | | ContentProv.   | |  Direct Anki     |
+|  Multi-AI       | |  Gemini API    | |  DB access       |
+|                 | |                | |                  |
+|  Desktop/Web    | |   Android      | |  Anki Desktop    |
++-----------------+ +----------------+ +------------------+
+```
+
+### Desktop/Web (`server/`)
+
+An Express server that proxies AI API calls (Claude, Gemini, OpenRouter) and talks to Anki via AnkiConnect. This is the primary backend for desktop use. The Vite dev server serves the React frontend and proxies `/api/*` requests to Express.
+
+### Android (`android/`)
+
+A Kotlin app with an in-process NanoHTTPd server. A WebView loads the same React frontend from local assets. The backend talks to AnkiDroid via Android's ContentProvider API and calls the Gemini API directly.
+
+### Anki Add-on (`anki-addon/`)
+
+A Python backend that runs inside Anki Desktop's process. It has direct access to the Anki collection database -- no AnkiConnect needed. See the [Anki Add-on page](/anki-defs/anki-addon/) for details.
+
+## Data flow
+
+When you type a word and press Enter, here is what happens:
+
+1. **User input** -- the React frontend sends a `POST /api/chat/stream` request with the word and conversation history.
+2. **AI generation** -- the backend calls the selected AI provider's API with a Bangla-specific system prompt. The response streams back to the frontend via Server-Sent Events (SSE).
+3. **Card extraction** -- once the AI response is complete, the frontend sends it to `POST /api/extract` to extract structured card data (word, definition, example sentence, translation) using a second AI call.
+4. **Duplicate check** -- the frontend calls `POST /api/anki/search` to check if the word already exists in the selected Anki deck.
+5. **Card creation** -- when the user clicks "Add to Anki", the frontend calls `POST /api/anki/notes` to create the note in Anki.
+
+## Shared types and prompts
+
+The API contract lives in `shared/types.ts`. All backends implement the same endpoints with the same request/response shapes. TypeScript types are the source of truth -- the Android (Kotlin) and add-on (Python) backends implement them manually.
+
+Prompt templates are shared data defined on the server side. They include Bangla-specific rules for lemmatization, example sentence quality, and translation formatting.
+
+## Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite, Tailwind CSS v4, TanStack Query, Zustand |
+| Desktop backend | Express 5, TypeScript, SSE streaming, SQLite |
+| Android | Kotlin, Jetpack Compose, Gemini API, NanoHTTPd |
+| Anki Add-on | Python (stdlib only), non-blocking socket server |
+| AI providers | Claude, Gemini, OpenRouter (unified streaming interface) |
