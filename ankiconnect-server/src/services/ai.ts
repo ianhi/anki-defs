@@ -78,6 +78,7 @@ const promptsDir = resolve(__dirname, '../../../shared/prompts');
 
 function loadPrompt(name: string): {
   system: string;
+  system_focused?: string;
   user_template?: string;
   user_template_focused?: string;
 } {
@@ -134,6 +135,10 @@ export function getSystemPrompts(transliteration: boolean) {
     word: renderPrompt(promptTemplates.word.system, transliteration),
     focusedWords: renderPrompt(promptTemplates.focusedWords.system, transliteration),
     englishToBangla: renderPrompt(promptTemplates.englishToBangla.system, transliteration),
+    englishToBanglaFocused: renderPrompt(
+      promptTemplates.englishToBangla.system_focused || promptTemplates.englishToBangla.system,
+      transliteration
+    ),
   };
 }
 

@@ -70,7 +70,7 @@ chatRouter.post('/stream', async (req, res) => {
 
   if (isEnglishToBangla && hasHighlightedWords) {
     // English sentence with highlighted words → disambiguated EN→BN lookup
-    systemPrompt = prompts.englishToBangla;
+    systemPrompt = prompts.englishToBanglaFocused;
     const rendered = aiService.renderUserTemplate(
       'englishToBangla',
       {

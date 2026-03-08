@@ -80,32 +80,40 @@ const TEST_CASES: TestCase[] = [
   },
   {
     label: 'EN→BN: disambig',
-    value: 'they tried to **frame** him',
+    value: 'he **framed** me for the **crime**',
     description:
-      'English sentence with highlight — should pick "to frame someone" meaning, not picture frame',
+      'English sentence with 2 highlights — same Bangla sentence for both cards, correct disambiguation',
     mode: 'english-to-bangla',
     checks: (cards) => {
-      const card = cards[0];
       return [
-        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        { label: 'Returns 2 cards', pass: cards.length === 2 },
         {
-          label: 'Word is Bangla',
-          pass: !!card && /[\u0980-\u09FF]/.test(card.word),
-          detail: card?.word,
+          label: 'Both words are Bangla',
+          pass: cards.every((c) => /[\u0980-\u09FF]/.test(c.word)),
+          detail: cards.map((c) => c.word).join(', '),
         },
         {
-          label: 'Definition relates to framing/accusing (not picture frame)',
+          label: 'All cards have definitions',
+          pass: cards.every((c) => c.definition.length > 0),
+          detail: cards.map((c) => `${c.word}: ${c.definition}`).join(' | '),
+        },
+        {
+          label: 'Same example sentence for all cards',
           pass:
-            !!card &&
-            /frame|accus|blame|falsely|set.?up|ফাঁস/i.test(
-              card.definition + ' ' + (card.banglaDefinition || '')
-            ),
-          detail: card ? `${card.word} — ${card.definition}` : undefined,
+            cards.length === 2 &&
+            cards[0]!.exampleSentence.replace(/\*\*/g, '') ===
+              cards[1]!.exampleSentence.replace(/\*\*/g, ''),
         },
         {
-          label: 'Has example sentence with bold',
-          pass: !!card && /\*\*[^*]+\*\*/.test(card.exampleSentence),
-          detail: card?.exampleSentence,
+          label: 'Same sentenceTranslation for all cards',
+          pass:
+            cards.length === 2 && cards[0]!.sentenceTranslation === cards[1]!.sentenceTranslation,
+          detail: cards[0]?.sentenceTranslation,
+        },
+        {
+          label: 'Each card bolds its own word',
+          pass: cards.every((c) => /\*\*[^*]+\*\*/.test(c.exampleSentence)),
+          detail: cards.map((c) => c.exampleSentence).join(' | '),
         },
       ];
     },
