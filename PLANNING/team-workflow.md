@@ -58,15 +58,16 @@ Include these in every agent prompt:
 ```
 You are working on [TASK DESCRIPTION].
 
+**First**: Read the root CLAUDE.md and the CLAUDE.md in each directory you own.
+Follow all rules there -- they are not optional.
+
 **Scope**: You own [DIRECTORIES]. Do not modify files outside these directories.
 If you need changes in other directories (e.g., shared/types.ts), describe the
 needed change in your commit message or output -- the coordinator will handle it.
 
-**Doc updates**: Every commit that changes code MUST also update the relevant
-PLANNING/ or DOCS/ file in your scope. If no doc update is needed, state why
-in the commit message.
-
-**Commits**: Commit early and often with descriptive messages.
+**Commits**: Commit your work with descriptive messages. Every commit that changes
+code MUST also update the relevant PLANNING/ or DOCS/ file in your scope. Run
+`npm run check` (or the equivalent for your scope) before committing.
 
 **Current state**: [BRIEF CONTEXT -- recent relevant commits, any dependencies]
 ```
@@ -75,6 +76,9 @@ in the commit message.
 
 - Agents on main branch without worktrees cause overlapping changes and merge conflicts.
 - Agents tend to skip PLANNING/DOCS updates unless explicitly told to in their prompt.
+- Agents don't read CLAUDE.md unless prompted to -- always include "Read CLAUDE.md first"
+  in the agent prompt so they pick up commit discipline, doc update rules, and code quality
+  requirements on their own.
 - Multiple agents touching the same files (e.g., eslint.config.js, package.json) leads
   to conflicts -- scope agents tightly and handle shared files from the coordinator.
 - Long-running agents may fall behind main -- check if rebase is needed before merging.
