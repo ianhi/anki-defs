@@ -109,7 +109,7 @@ export function CardPreview({
   const [isRelemmatizing, setIsRelemmatizing] = useState(false);
   const [showRetryInput, setShowRetryInput] = useState(false);
   const [retryContext, setRetryContext] = useState('');
-  const [showExisting, setShowExisting] = useState(false);
+  const [showExisting, setShowExisting] = useState(true);
 
   const { settings } = useSettingsStore();
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } = sessionCards;
@@ -417,9 +417,6 @@ export function CardPreview({
                   {ankiConnected ? 'Add to Anki' : 'Queue for Anki'}
                 </>
               )}
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDismiss}>
-              Skip
             </Button>
           </>
         )}
