@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { chatApi } from '@/lib/api';
 import { generateId } from '@/lib/utils';
+import { parseHighlightedWords, getCleanText } from '@/lib/focus';
 import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
 
@@ -46,7 +47,7 @@ export function useChat() {
   const currentRequestRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(
-    async (content: string, deck?: string, highlightedWords?: string[], userContext?: string) => {
+    async (content: string, deck?: string, userContext?: string) => {
       const requestId = generateId();
 
       if (currentRequestRef.current !== null) {
@@ -57,15 +58,18 @@ export function useChat() {
 
       setError(null);
 
+      // content has ** markers — extract highlighted words for API, keep raw for display
+      const highlightedWords = parseHighlightedWords(content);
+      const cleanText = getCleanText(content);
+
       const userMsgId = generateId();
       const assistantMsgId = generateId();
 
       const userMessage: Message = {
         id: userMsgId,
         role: 'user',
-        content,
+        content, // Raw text with ** markers — source of truth for display
         timestamp: Date.now(),
-        highlightedWords,
       };
 
       const assistantMessage: Message = {
@@ -73,14 +77,21 @@ export function useChat() {
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
-        originalQuery: content,
+        originalQuery: cleanText,
       };
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
       setIsStreaming(true);
 
       try {
-        for await (const event of chatApi.stream(content, deck, highlightedWords, userContext)) {
+        // Send clean text + extracted words to API
+        const apiHighlightedWords = highlightedWords.length > 0 ? highlightedWords : undefined;
+        for await (const event of chatApi.stream(
+          cleanText,
+          deck,
+          apiHighlightedWords,
+          userContext
+        )) {
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Request cancelled, stopping stream');
             return;
@@ -159,16 +170,17 @@ export function useChat() {
       const assistantMsg = msgs.find((m) => m.id === assistantMsgId);
       if (!assistantMsg) return;
 
-      // Find preceding user message to get original query
+      // Find preceding user message to get original query and highlighted words
       let originalQuery = assistantMsg.originalQuery;
-      if (!originalQuery) {
-        const assistantIdx = msgs.indexOf(assistantMsg);
-        for (let i = assistantIdx - 1; i >= 0; i--) {
-          const m = msgs[i];
-          if (m && m.role === 'user') {
-            originalQuery = m.content;
-            break;
-          }
+      let retryHighlightedWords: string[] | undefined;
+      const assistantIdx = msgs.indexOf(assistantMsg);
+      for (let i = assistantIdx - 1; i >= 0; i--) {
+        const m = msgs[i];
+        if (m && m.role === 'user') {
+          if (!originalQuery) originalQuery = getCleanText(m.content);
+          const hw = parseHighlightedWords(m.content);
+          if (hw.length > 0) retryHighlightedWords = hw;
+          break;
         }
       }
       if (!originalQuery) return;
@@ -203,7 +215,7 @@ export function useChat() {
         for await (const event of chatApi.stream(
           originalQuery,
           settings.defaultDeck,
-          undefined,
+          retryHighlightedWords,
           userContext
         )) {
           if (currentRequestRef.current !== requestId) {

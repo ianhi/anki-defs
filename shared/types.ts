@@ -2,9 +2,8 @@
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: string; // User messages may contain **word** markers for focused words
   timestamp: number;
-  highlightedWords?: string[];
   cardPreviews?: CardPreview[];
   tokenUsage?: TokenUsage;
   refinements?: string[];

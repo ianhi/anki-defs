@@ -3,7 +3,7 @@ import { Button } from './ui/Button';
 import { Bug, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DebugMenuProps {
-  onSelectExample: (text: string, highlightedWords?: string[]) => void;
+  onSelectExample: (text: string) => void;
   disabled?: boolean;
 }
 
@@ -23,18 +23,15 @@ const EXAMPLES = {
   highlighted: [
     {
       label: 'Highlight: খেয়েছি',
-      value: 'আমি জল খেয়েছি',
-      highlighted: ['খেয়েছি'],
+      value: 'আমি জল **খেয়েছি**',
     },
     {
       label: 'Highlight: যাচ্ছে',
-      value: 'সে বাড়ি যাচ্ছে',
-      highlighted: ['যাচ্ছে'],
+      value: 'সে বাড়ি **যাচ্ছে**',
     },
     {
       label: 'Highlight: multiple',
-      value: 'আমি বই পড়তে ভালোবাসি',
-      highlighted: ['বই', 'ভালোবাসি'],
+      value: 'আমি **বই** পড়তে **ভালোবাসি**',
     },
   ],
 };
@@ -102,7 +99,7 @@ export function DebugMenu({ onSelectExample, disabled }: DebugMenuProps) {
                   variant="outline"
                   size="sm"
                   className="text-xs h-7 border-yellow-500"
-                  onClick={() => onSelectExample(ex.value, ex.highlighted)}
+                  onClick={() => onSelectExample(ex.value)}
                   disabled={disabled}
                 >
                   {ex.label}

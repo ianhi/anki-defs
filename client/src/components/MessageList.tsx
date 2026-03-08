@@ -6,26 +6,25 @@ import { CardPreview } from './CardPreview';
 import { cn } from '@/lib/utils';
 import { User, Bot, Eye, MessageSquare } from 'lucide-react';
 
-function HighlightedText({ text, words }: { text: string; words: string[] }) {
-  // Build a regex that matches any of the highlighted words
-  const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  const regex = new RegExp(`(${escaped.join('|')})`, 'g');
-  const parts = text.split(regex);
+function MarkedText({ text }: { text: string }) {
+  // Render **word** markers as highlighted spans, preserving exact occurrences
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
 
   return (
     <>
-      {parts.map((part, i) =>
-        words.includes(part) ? (
+      {parts.map((part, i) => {
+        const match = part.match(/^\*\*([^*]+)\*\*$/);
+        return match ? (
           <span
             key={i}
             className="bg-yellow-300/40 text-inherit rounded px-0.5 font-semibold underline underline-offset-2 decoration-yellow-400"
           >
-            {part}
+            {match[1]}
           </span>
         ) : (
           <span key={i}>{part}</span>
-        )
-      )}
+        );
+      })}
     </>
   );
 }
@@ -163,8 +162,8 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
             >
               {message.role === 'user' ? (
                 <div className="whitespace-pre-wrap">
-                  {message.highlightedWords && message.highlightedWords.length > 0 ? (
-                    <HighlightedText text={message.content} words={message.highlightedWords} />
+                  {message.content.includes('**') ? (
+                    <MarkedText text={message.content} />
                   ) : (
                     message.content
                   )}

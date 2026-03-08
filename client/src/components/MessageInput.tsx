@@ -1,17 +1,10 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
 import { Crosshair, Send } from 'lucide-react';
-import {
-  type WordToken,
-  parseHighlightedWords,
-  getCleanText,
-  parseWordTokens,
-  toggleTokenInText,
-  getTokenAtCursor,
-} from '../lib/focus';
+import { type WordToken, parseWordTokens, toggleTokenInText, getTokenAtCursor } from '../lib/focus';
 
 interface MessageInputProps {
-  onSend: (message: string, highlightedWords?: string[]) => void;
+  onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -29,9 +22,8 @@ export function MessageInput({
   const handleSubmit = () => {
     const trimmed = value.trim();
     if (trimmed && !disabled) {
-      const highlightedWords = parseHighlightedWords(trimmed);
-      const cleanText = getCleanText(trimmed);
-      onSend(cleanText, highlightedWords.length > 0 ? highlightedWords : undefined);
+      // Send raw text with ** markers — they are the source of truth for focus
+      onSend(trimmed);
       setValue('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';

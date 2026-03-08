@@ -25,8 +25,8 @@ export function Chat() {
     }
   }, [sharedText, isStreaming, sendMessage, settings.defaultDeck]);
 
-  const handleSend = (content: string, highlightedWords?: string[]) => {
-    sendMessage(content, settings.defaultDeck, highlightedWords);
+  const handleSend = (content: string) => {
+    sendMessage(content, settings.defaultDeck);
   };
 
   return (
