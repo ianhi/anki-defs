@@ -11,7 +11,7 @@
 
 - `Chat.tsx` -- Primary chat interface
 - `MessageList.tsx` -- Message rendering with markdown
-- `MessageInput.tsx` -- Text input with send button
+- `MessageInput.tsx` -- Text input with word focus UI (preview chip, badges, Ctrl+B)
 - `CardPreview.tsx` -- Flashcard preview with editing, add/skip/queue actions
 - `Settings.tsx` -- Settings panel (AI provider, API keys, deck selection)
 - `SessionCardsPanel.tsx` -- Session card history sidebar
@@ -30,6 +30,7 @@
 ## Lib (`src/lib/`)
 
 - `api.ts` -- API client functions (REST fetch wrappers + SSE connection)
+- `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, cursor lookup)
 - `utils.ts` -- Utility functions (`cn` for classnames, `generateId`, `boldWordInSentence`)
 
 ## Adding a New API Endpoint (Client Side)
