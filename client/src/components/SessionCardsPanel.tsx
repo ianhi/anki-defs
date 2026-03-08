@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
-import { boldWordInSentence } from '@/lib/utils';
+import { markdownBoldToHtml } from '@/lib/utils';
 import { sessionApi } from '@/lib/api';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -131,7 +131,7 @@ export function SessionCardsPanel() {
         fields: {
           Word: card.word,
           Definition: card.definition,
-          Example: boldWordInSentence(card.exampleSentence, card.word),
+          Example: markdownBoldToHtml(card.exampleSentence),
           Translation: card.sentenceTranslation,
         },
         tags: ['auto-generated'],

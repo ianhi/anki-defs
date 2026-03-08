@@ -98,13 +98,6 @@ export function useChat() {
           }
 
           switch (event.type) {
-            case 'text':
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
-                )
-              );
-              break;
             case 'card_preview':
               setMessages((prev) =>
                 prev.map((msg) =>
@@ -224,13 +217,6 @@ export function useChat() {
           }
 
           switch (event.type) {
-            case 'text':
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
-                )
-              );
-              break;
             case 'card_preview':
               setMessages((prev) =>
                 prev.map((msg) =>

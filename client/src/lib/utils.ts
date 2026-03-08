@@ -17,19 +17,13 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// Wrap the target word in <b> tags for Anki HTML rendering
-export function boldWordInSentence(sentence: string, word: string): string {
-  if (!sentence || !word) return sentence;
-
-  const lowerSentence = sentence.toLowerCase();
-  const lowerWord = word.toLowerCase();
-  const index = lowerSentence.indexOf(lowerWord);
-
-  if (index === -1) return escapeHtml(sentence);
-
-  const before = escapeHtml(sentence.slice(0, index));
-  const match = escapeHtml(sentence.slice(index, index + word.length));
-  const after = escapeHtml(sentence.slice(index + word.length));
-
-  return `${before}<b>${match}</b>${after}`;
+// Convert **word** markdown bold markers to <b>word</b> HTML for Anki
+export function markdownBoldToHtml(text: string): string {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts
+    .map((part) => {
+      const match = part.match(/^\*\*([^*]+)\*\*$/);
+      return match?.[1] ? `<b>${escapeHtml(match[1])}</b>` : escapeHtml(part);
+    })
+    .join('');
 }

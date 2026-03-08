@@ -7,7 +7,7 @@ import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { boldWordInSentence } from '@/lib/utils';
+import { markdownBoldToHtml } from '@/lib/utils';
 import { chatApi } from '@/lib/api';
 import {
   Check,
@@ -30,28 +30,24 @@ interface CardPreviewProps {
   onRetryWithContext?: (assistantMsgId: string, context: string) => void;
 }
 
-// Highlight the word in the example sentence
-function highlightWord(sentence: string, word: string): React.ReactNode {
-  if (!sentence || !word) return sentence;
+// Highlight **word** markers in the example sentence
+function highlightBoldMarkers(sentence: string): React.ReactNode {
+  if (!sentence) return sentence;
 
-  // Try to find the word (case-insensitive, handles Bangla)
-  const lowerSentence = sentence.toLowerCase();
-  const lowerWord = word.toLowerCase();
-  const index = lowerSentence.indexOf(lowerWord);
-
-  if (index === -1) {
-    return sentence;
-  }
-
-  const before = sentence.slice(0, index);
-  const match = sentence.slice(index, index + word.length);
-  const after = sentence.slice(index + word.length);
+  const parts = sentence.split(/(\*\*[^*]+\*\*)/g);
 
   return (
     <>
-      {before}
-      <mark className="bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">{match}</mark>
-      {after}
+      {parts.map((part, i) => {
+        const match = part.match(/^\*\*([^*]+)\*\*$/);
+        return match ? (
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">
+            {match[1]}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        );
+      })}
     </>
   );
 }
@@ -131,10 +127,7 @@ export function CardPreview({
         fields: {
           Word: currentWord,
           Definition: currentDefinition,
-          Example: boldWordInSentence(
-            preview.exampleSentence,
-            preview.inflectedForm || currentWord
-          ),
+          Example: markdownBoldToHtml(preview.exampleSentence),
           Translation: preview.sentenceTranslation,
         },
         tags: ['auto-generated'],
@@ -184,7 +177,7 @@ export function CardPreview({
     setIsRelemmatizing(true);
     try {
       const result = await chatApi.relemmatize({
-        word: preview.inflectedForm || currentWord,
+        word: currentWord,
         sentence: preview.exampleSentence || undefined,
       });
       setEditedWord(result.lemma);
@@ -267,14 +260,9 @@ export function CardPreview({
                 )}
               </>
             )}
-            {preview.lemmaMismatch && !editedWord && (
-              <Badge
-                variant="outline"
-                className="border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer"
-                onClick={() => setIsEditing(true)}
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {preview.originalLemma} → {preview.word}
+            {preview.spellingCorrection && (
+              <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">
+                {preview.spellingCorrection}
               </Badge>
             )}
             {alreadyExists && (
@@ -301,9 +289,10 @@ export function CardPreview({
       </CardHeader>
       {preview.exampleSentence && (
         <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
-          <p className="text-xs sm:text-sm">
-            {highlightWord(preview.exampleSentence, preview.inflectedForm || preview.word)}
-          </p>
+          <p className="text-xs sm:text-sm">{highlightBoldMarkers(preview.exampleSentence)}</p>
+          {preview.rootWord && (
+            <p className="text-xs text-muted-foreground mt-0.5">Root: {preview.rootWord}</p>
+          )}
           {preview.sentenceTranslation && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {preview.sentenceTranslation}

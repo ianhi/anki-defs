@@ -1,7 +1,14 @@
 import { useState, useRef, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
 import { Crosshair, Send } from 'lucide-react';
-import { type WordToken, parseWordTokens, toggleTokenInText, getTokenAtCursor } from '../lib/focus';
+import {
+  type WordToken,
+  parseWordTokens,
+  toggleTokenInText,
+  getTokenAtCursor,
+  parseHighlightedWords,
+  getCleanText,
+} from '../lib/focus';
 
 interface MessageInputProps {
   onSend: (message: string) => void;
@@ -21,7 +28,9 @@ export function MessageInput({
 
   const handleSubmit = () => {
     const trimmed = value.trim();
-    if (trimmed && !disabled) {
+    const clean = getCleanText(trimmed);
+    const blocked = clean.includes(' ') && parseHighlightedWords(trimmed).length === 0;
+    if (trimmed && !disabled && !blocked) {
       // Send raw text with ** markers — they are the source of truth for focus
       onSend(trimmed);
       setValue('');
@@ -126,6 +135,12 @@ export function MessageInput({
   const previewToken = cursorToken && !cursorToken.highlighted ? cursorToken : null;
   const showFocusBar = value.trim().length > 0;
 
+  // Block submission when input has spaces (multi-word) but no highlighted words
+  const cleanText = getCleanText(value).trim();
+  const hasSpaces = cleanText.includes(' ');
+  const highlightedWords = parseHighlightedWords(value);
+  const needsHighlight = hasSpaces && highlightedWords.length === 0;
+
   const handlePreviewTap = () => {
     if (previewToken) {
       handleToggleAndRestoreCursor(previewToken);
@@ -209,10 +224,19 @@ export function MessageInput({
           >
             <Crosshair className="h-4 w-4" />
           </Button>
-          <Button onClick={handleSubmit} disabled={disabled || !value.trim()} size="icon">
+          <Button
+            onClick={handleSubmit}
+            disabled={disabled || !value.trim() || needsHighlight}
+            size="icon"
+          >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        {needsHighlight && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Mark unknown words with Ctrl+B or tap them above
+          </p>
+        )}
       </div>
     </div>
   );

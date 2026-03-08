@@ -1,7 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
 import { MODEL_PRICING } from 'shared';
-import ReactMarkdown from 'react-markdown';
 import { CardPreview } from './CardPreview';
 import { cn } from '@/lib/utils';
 import { User, Bot, Eye, MessageSquare } from 'lucide-react';
@@ -42,21 +41,6 @@ interface MessageListProps {
   messages: Message[];
   isStreaming: boolean;
   retryWithContext?: (assistantMsgId: string, context: string) => void;
-}
-
-// Render assistant message - use markdown only when not streaming
-function AssistantMessage({ content, isStreaming }: { content: string; isStreaming: boolean }) {
-  // During streaming, show plain text to avoid broken markdown rendering
-  if (isStreaming) {
-    return <div className="whitespace-pre-wrap text-base leading-relaxed">{content}</div>;
-  }
-
-  // After streaming completes, render with markdown
-  return (
-    <div className="prose prose-base dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3">
-      <ReactMarkdown>{content}</ReactMarkdown>
-    </div>
-  );
 }
 
 function CardPreviewList({
@@ -183,11 +167,7 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
                       ))}
                     </div>
                   )}
-                  <AssistantMessage
-                    content={message.content}
-                    isStreaming={showStreamingIndicator}
-                  />
-                  {showStreamingIndicator && !message.content && (
+                  {showStreamingIndicator && !message.cardPreviews?.length && (
                     <div className="flex gap-1 py-2">
                       <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                       <span
