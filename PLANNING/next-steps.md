@@ -52,6 +52,12 @@
 - Failed items stay in the pending queue for retry
 - Summary auto-dismisses after 5 seconds
 
+### Cache prompt files in production
+
+- `reloadPrompts()` is called on every `/api/prompts/preview` request for live editing
+- For normal usage, prompts should be loaded once at startup (no disk reads per request)
+- Either use an env check (`NODE_ENV`) or only reload in the preview endpoint
+
 ## Lower Priority
 
 ### Cloze card support

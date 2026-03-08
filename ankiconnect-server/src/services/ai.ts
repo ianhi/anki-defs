@@ -75,17 +75,28 @@ interface Variables {
   };
 }
 
-const variables: Variables = JSON.parse(
-  readFileSync(resolve(promptsDir, 'variables.json'), 'utf-8')
-);
+function loadVariables(): Variables {
+  return JSON.parse(readFileSync(resolve(promptsDir, 'variables.json'), 'utf-8'));
+}
 
-const promptTemplates = {
-  word: loadPrompt('single-word'),
-  sentence: loadPrompt('sentence'),
-  focusedWords: loadPrompt('focused-words'),
-  extractCard: loadPrompt('card-extraction'),
-  relemmatize: loadPrompt('relemmatize'),
-};
+function loadAllPrompts() {
+  return {
+    word: loadPrompt('single-word'),
+    sentence: loadPrompt('sentence'),
+    focusedWords: loadPrompt('focused-words'),
+    extractCard: loadPrompt('card-extraction'),
+    relemmatize: loadPrompt('relemmatize'),
+  };
+}
+
+// Cached at startup; reloadPrompts() refreshes from disk
+let variables: Variables = loadVariables();
+let promptTemplates = loadAllPrompts();
+
+export function reloadPrompts(): void {
+  variables = loadVariables();
+  promptTemplates = loadAllPrompts();
+}
 
 function renderPrompt(template: string, transliteration: boolean): string {
   const key = transliteration ? 'true' : 'false';
