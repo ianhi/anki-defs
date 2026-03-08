@@ -48,7 +48,13 @@ export async function streamCompletion(
       },
     });
 
-    let usageMeta: { promptTokenCount?: number; candidatesTokenCount?: number } | undefined;
+    let usageMeta:
+      | {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+          cachedContentTokenCount?: number;
+        }
+      | undefined;
     for await (const chunk of response) {
       if (chunk.usageMetadata) {
         usageMeta = chunk.usageMetadata;
@@ -61,7 +67,7 @@ export async function streamCompletion(
 
     if (usageMeta) {
       callbacks.onUsage({
-        inputTokens: usageMeta.promptTokenCount ?? 0,
+        inputTokens: (usageMeta.promptTokenCount ?? 0) + (usageMeta.cachedContentTokenCount ?? 0),
         outputTokens: usageMeta.candidatesTokenCount ?? 0,
         provider: 'gemini',
         model,
@@ -115,10 +121,11 @@ export async function getJsonCompletion(
       },
     });
 
-    const usage: TokenUsage | undefined = response.usageMetadata
+    const meta = response.usageMetadata;
+    const usage: TokenUsage | undefined = meta
       ? {
-          inputTokens: response.usageMetadata.promptTokenCount ?? 0,
-          outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
+          inputTokens: (meta.promptTokenCount ?? 0) + (meta.cachedContentTokenCount ?? 0),
+          outputTokens: meta.candidatesTokenCount ?? 0,
           provider: 'gemini',
           model,
         }
