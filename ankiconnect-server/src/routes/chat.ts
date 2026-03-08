@@ -122,10 +122,9 @@ chatRouter.post('/stream', async (req, res) => {
             : '';
 
           // Extract inflected→lemma mappings for sentence highlighting
-          const inflectedForms =
-            isSentenceMode && !hasHighlightedWords
-              ? extractInflectedForms(fullResponse)
-              : undefined;
+          // Needed for both sentence and focused-words modes — user may
+          // highlight a lemma form that differs from the inflected form in the sentence
+          const inflectedForms = isSentenceMode ? extractInflectedForms(fullResponse) : undefined;
 
           const settings2 = await getSettings();
           const { cardPreviews, errors, totalUsage } = await extractCards({
