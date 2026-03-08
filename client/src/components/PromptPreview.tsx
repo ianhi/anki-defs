@@ -3,7 +3,8 @@ import { Button } from './ui/Button';
 import { CardPreview as CardPreviewComponent } from './CardPreview';
 import { parseHighlightedWords, getCleanText } from '../lib/focus';
 import { chatApi } from '../lib/api';
-import type { CardPreview, TokenUsage } from 'shared';
+import { useSettingsStore } from '../hooks/useSettings';
+import type { CardPreview, TokenUsage, AIProvider } from 'shared';
 import { Loader2, Play, Check, X } from 'lucide-react';
 
 interface PromptResult {
@@ -288,6 +289,21 @@ async function fetchPreview(text: string): Promise<PromptResult> {
   return res.json();
 }
 
+const GEMINI_MODELS = [
+  { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
+];
+
+const OPENROUTER_MODELS = [
+  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'openai/gpt-4.1-nano', label: 'GPT-4.1 Nano' },
+  { value: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+];
+
 export function PromptPreview() {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<PromptResult | null>(null);
@@ -296,6 +312,7 @@ export function PromptPreview() {
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set());
   const [runningAll, setRunningAll] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const { settings, updateSettings } = useSettingsStore();
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -336,15 +353,38 @@ export function PromptPreview() {
 
   const runAll = async () => {
     setRunningAll(true);
-    for (const tc of TEST_CASES) {
-      await runOne(tc);
-    }
+    await Promise.all(TEST_CASES.map((tc) => runOne(tc)));
     setRunningAll(false);
   };
 
   const totalChecks = [...testResults.values()].flatMap((r) => r.checks);
   const passCount = totalChecks.filter((c) => c.pass).length;
   const failCount = totalChecks.filter((c) => !c.pass).length;
+  const avgDuration =
+    testResults.size > 0
+      ? [...testResults.values()].reduce((sum, r) => sum + r.durationMs, 0) / testResults.size
+      : 0;
+
+  const currentModel =
+    settings.aiProvider === 'gemini'
+      ? settings.geminiModel
+      : settings.aiProvider === 'openrouter'
+        ? settings.openRouterModel
+        : 'claude';
+  const modelOptions =
+    settings.aiProvider === 'gemini'
+      ? GEMINI_MODELS
+      : settings.aiProvider === 'openrouter'
+        ? OPENROUTER_MODELS
+        : [];
+
+  const handleModelChange = (value: string) => {
+    if (settings.aiProvider === 'gemini') {
+      updateSettings({ geminiModel: value });
+    } else if (settings.aiProvider === 'openrouter') {
+      updateSettings({ openRouterModel: value });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-8 max-w-5xl mx-auto">
@@ -391,9 +431,33 @@ export function PromptPreview() {
 
       {/* LLM test runner section */}
       <div className="border-t border-border pt-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-xl font-bold">LLM Test Runner</h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <select
+                value={settings.aiProvider}
+                onChange={(e) => updateSettings({ aiProvider: e.target.value as AIProvider })}
+                className="text-xs rounded border border-input bg-background px-2 py-1"
+              >
+                <option value="gemini">Gemini</option>
+                <option value="claude">Claude</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+              {modelOptions.length > 0 && (
+                <select
+                  value={currentModel}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="text-xs rounded border border-input bg-background px-2 py-1"
+                >
+                  {modelOptions.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
             {testResults.size > 0 && (
               <span className="text-sm text-muted-foreground">
                 <span className="text-green-600 font-medium">{passCount} passed</span>
@@ -402,6 +466,9 @@ export function PromptPreview() {
                     {' / '}
                     <span className="text-red-600 font-medium">{failCount} failed</span>
                   </>
+                )}
+                {testResults.size === TEST_CASES.length && (
+                  <span className="ml-1">· avg {(avgDuration / 1000).toFixed(1)}s</span>
                 )}
               </span>
             )}
