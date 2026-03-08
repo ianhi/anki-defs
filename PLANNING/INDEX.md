@@ -1,117 +1,47 @@
 # Planning Index
 
-## Start Here
-
-The project has three backends sharing one React frontend. All backends are functional.
-
-**Top priorities (in order):**
-
-1. ~~Add automated tests to the web stack~~ -- vitest set up, initial tests in place
-2. ~~Set up CI pipeline (GitHub Actions)~~ -- `.github/workflows/ci.yml` running
-3. Manually test the anki-addon inside Anki Desktop -- code complete but never run in Anki
-
 ## Current Status
 
-### What's Working
+All three backends are functional. Web stack uses JSON-first pipeline (single LLM call).
 
-- **Web app** (`client/` + `ankiconnect-server/`): Full feature set -- JSON-first card
-  pipeline (single LLM call), duplicate detection, session tracking, offline queue, sync
-  button, mobile UX. Bearer token auth for Tailscale access. Three AI providers (Claude,
-  Gemini, OpenRouter). Sentence mode without highlights blocked (future: Anki-aware filtering).
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Web app (`client/` + `ankiconnect-server/`) | Working | JSON-first pipeline, 3 AI providers, bearer auth, mobile UX |
+| Android (`android/`) | Working | WebView + NanoHTTPd, still uses old two-call pipeline |
+| Anki add-on (`anki-addon/`) | Code complete | Never manually tested inside Anki Desktop |
+| Shared prompts (`shared/prompts/`) | Working | JSON-format templates, all backends load from shared |
+| Tests | 80+ vitest tests | Card extraction, JSON parsing, prompts, AI service, client utils |
+| CI | Working | `.github/workflows/ci.yml` — typecheck + lint + format + tests |
+| Docs site (`docs/`) | Deployed | Astro Starlight on GitHub Pages |
 
-- **Android app** (`android/`): WebView loading shared React frontend via NanoHTTPd. Gemini
-  API, AnkiDroid ContentProvider, share intents, JS bridge. Phases 1-5 complete.
+## Active Plans
 
-- **Anki add-on** (`anki-addon/`): Python backend running inside Anki Desktop. Direct
-  collection access, QTimer-polled socket server, all API endpoints, SSE streaming, three
-  AI providers. Zero vendored dependencies (stdlib only). 45 unit tests. Build/install
-  scripts in `scripts/`.
+| Doc | Summary | What's left |
+|-----|---------|-------------|
+| [next-steps.md](next-steps.md) | Feature roadmap | Prioritized TODO list |
+| [json-first-pipeline.md](json-first-pipeline.md) | Migrate Android + add-on to single JSON call | Web done; Android and add-on still use old pipeline |
 
-- **Shared prompts** (`shared/prompts/`): 4 prompt templates + variables.json. Prompts
-  instruct LLM to return JSON directly (no markdown). Templates support `user_template`
-  with `{{variable}}` substitution for structured context injection (retry-with-context).
-  All three backends load from these at runtime (ankiconnect-server direct, anki-addon via
-  build copy, Android via Gradle asset copy).
+## Reference (keep, don't modify)
 
-- **Docs site** (`docs/`): Astro Starlight site. Pages: home, getting-started, usage,
-  tailscale, architecture, anki-addon. GitHub Actions workflow deployed
-  (`.github/workflows/docs.yml`).
+| Doc | Purpose |
+|-----|---------|
+| [security-audit.md](security-audit.md) | Security findings — all 9 fixes implemented |
+| [team-workflow.md](team-workflow.md) | Coordinator playbook for multi-agent work |
+| [repo-structure.md](repo-structure.md) | Monorepo layout explanation |
+| [anki-addon.md](anki-addon.md) | Add-on architecture (QTimer, zero deps) |
+| [android-backend.md](android-backend.md) | NanoHTTPd server design |
+| [quick-translate.md](quick-translate.md) | Future: native Android popup for quick defs |
 
-- **Security**: Full audit completed. Bearer token auth on Express and add-on, CORS
-  restrictions, Android localhost binding, deletion ownership checks, backslash escaping
-  in search. See [security-audit.md](security-audit.md).
+## Subproject Planning
 
-### What's Missing
+- `android/PLANNING/` — Android-specific plans and future features
+- `client/PLANNING/` — Client-specific plans (currently empty)
+- `ankiconnect-server/PLANNING/` — Server-specific plans (currently empty)
+- `shared/PLANNING/` — Shared type plans (currently empty)
 
-- **Web stack tests** -- vitest installed, 80 tests across 6 test files covering card
-  extraction, JSON parsing, prompt rendering, AI service, and client utils. More coverage
-  needed (SSE integration, auth middleware, React component tests).
-- ~~**GitHub Actions CI**~~ -- Done. `.github/workflows/ci.yml` runs typecheck + lint +
-  format + tests on push/PR to main.
-- ~~**Prompt sharing**~~ -- Done. All three backends now load from `shared/prompts/*.json`.
-- **Anki add-on not tested manually** -- code complete but needs manual testing inside
-  Anki Desktop.
+## For Agents
 
-## Active Work Tracks
-
-### 1. Web App Polish
-
-See [next-steps.md](next-steps.md) for prioritized TODOs:
-
-- ~~Retry-with-context~~ -- Done. Inline context input on cards, stacking refinements,
-  structured `{{userContext}}` template variable instead of string concatenation.
-- ~~Colloquial word resilience~~ -- Done. Prompts updated to preserve dialectal words.
-- ~~JSON-first pipeline~~ -- Done. Single LLM call returns JSON, no more markdown+extraction.
-- Unmarked sentence mode (auto-detect unknown words -- requires Anki-aware word filtering)
-
-### 2. Testing Infrastructure
-
-Vitest set up with 80 tests across 6 test files. CI pipeline in place.
-
-- Done: card extraction, JSON parsing, prompt rendering, AI service, client utils
-- Remaining: SSE integration tests, auth middleware, React component tests
-
-### 3. Anki Add-on Finalization
-
-See [anki-addon.md](anki-addon.md). Remaining:
-
-- Manual testing inside Anki Desktop
-- Potential AnkiWeb distribution
-
-### 4. Android Future Work
-
-See [android/PLANNING/future-features.md](../android/PLANNING/future-features.md).
-Phases 1-5 complete. Phase 6 (shared prompts) done. Phase 7 (quick-translate) is future.
-
-## Plan Documents
-
-| Doc                                              | Summary                                               | Status                  |
-| ------------------------------------------------ | ----------------------------------------------------- | ----------------------- |
-| [next-steps.md](next-steps.md)                   | Web app feature TODOs                                 | Active                  |
-| [anki-addon.md](anki-addon.md)                   | Anki Desktop add-on plan                              | Phases 1-5 done, 6 done |
-| [security-audit.md](security-audit.md)           | Security findings and fixes                           | Complete (9/9)          |
-| [prompt-design.md](prompt-design.md)             | Prompt template design                                | Done (shared/prompts/)  |
-| [json-first-pipeline.md](json-first-pipeline.md) | Replace markdown+extraction with single JSON LLM call | Done (web)              |
-| [overview.md](overview.md)                       | WebView architecture + phase plan                     | Reference               |
-| [architecture.md](architecture.md)               | Data flow diagram                                     | Reference               |
-| [repo-structure.md](repo-structure.md)           | Monorepo layout                                       | Reference               |
-| [progress.md](progress.md)                       | What's been built                                     | Reference               |
-| [team-workflow.md](team-workflow.md)             | Coordinator playbook for multi-agent work             | Reference               |
-
-### Completed (kept for reference)
-
-| Doc                                            | Summary                               |
-| ---------------------------------------------- | ------------------------------------- |
-| [migration.md](migration.md)                   | Monorepo merge (Phase 1)              |
-| [frontend-changes.md](frontend-changes.md)     | Frontend platform awareness (Phase 3) |
-| [webview-bridge.md](webview-bridge.md)         | WebView + native bridges (Phases 4-5) |
-| [claude-md-strategy.md](claude-md-strategy.md) | CLAUDE.md hierarchy design            |
-| [settings-design.md](settings-design.md)       | Android settings design               |
-
-## How to Use This Directory
-
-- **Before starting work**: Read this INDEX and the relevant plan doc.
-- **When you finish a task**: Update the plan doc's status and this INDEX.
-- **When you discover new requirements**: Create a new `.md` file and add it here.
-- **When you implement something**: Update DOCS/ files to reflect code changes.
-- Keep plans focused -- one concern per document.
+- **Read this file first**, then the relevant plan doc for your task.
+- **Update docs in the same commit** as code changes.
+- When a plan is **fully done**: delete the file and remove from this index.
+- When you **discover new work**: create a `.md` and add it here.

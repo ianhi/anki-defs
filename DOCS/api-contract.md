@@ -35,7 +35,7 @@ is missing and prints warnings for extra routes not in the contract.
 
 | Method | Endpoint       | Description                             |
 | ------ | -------------- | --------------------------------------- |
-| POST   | `/stream`      | SSE endpoint for streaming AI responses |
+| POST   | `/stream`      | SSE endpoint for AI card generation     |
 | POST   | `/relemmatize` | Re-check the dictionary form of a word  |
 
 ### Settings Routes (`/api/settings`)
@@ -63,11 +63,12 @@ The `/api/chat/stream` endpoint sends these discriminated union events (defined 
 
 | `type`         | `data`        | Description                        |
 | -------------- | ------------- | ---------------------------------- |
-| `text`         | `string`      | Streamed text chunk from AI        |
 | `card_preview` | `CardPreview` | Card preview with duplicate status |
 | `usage`        | `TokenUsage`  | Token usage and cost data          |
 | `done`         | `null`        | Stream complete                    |
 | `error`        | `string`      | Error message                      |
+
+No `text` events — the client shows a spinner until card previews arrive.
 
 ## Settings Storage
 
@@ -82,14 +83,17 @@ Settings stored in `~/.config/bangla-anki/settings.json`:
   "openRouterApiKey": "...",
   "openRouterModel": "google/gemini-2.5-flash",
   "showTransliteration": false,
+  "leftHanded": false,
   "defaultDeck": "Bangla",
   "defaultModel": "Bangla (and reversed)",
   "ankiConnectUrl": "http://localhost:8765",
   "fieldMapping": {
     "Word": "Bangla",
     "Definition": "Eng_trans",
+    "BanglaDefinition": "bangla-def",
     "Example": "example sentence",
     "Translation": "sentence-trans"
-  }
+  },
+  "apiToken": "auto-generated-on-first-startup"
 }
 ```
