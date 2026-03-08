@@ -16,7 +16,9 @@ class SharedPromptLoader(private val readAsset: (String) -> String) {
         val instruction = translit.getJSONObject("instruction")
         val marker = translit.getJSONObject("marker")
         Variables(
-            lemmaRules = json.getString("lemmaRules"),
+            preamble = json.getString("preamble"),
+            outputRules = json.getString("outputRules"),
+            languageRules = json.getString("languageRules"),
             transliterationInstructionTrue = instruction.getString("true"),
             transliterationInstructionFalse = instruction.getString("false"),
             transliterationMarkerTrue = marker.getString("true"),
@@ -26,14 +28,13 @@ class SharedPromptLoader(private val readAsset: (String) -> String) {
 
     private val templates: Map<String, PromptTemplate> by lazy {
         val names = listOf(
-            "single-word", "sentence", "focused-words",
-            "card-extraction", "define", "analyze", "relemmatize"
+            "single-word", "focused-words", "relemmatize"
         )
         names.associateWith { name ->
             val json = JSONObject(readAsset("prompts/$name.json"))
             PromptTemplate(
                 system = json.getString("system"),
-                userTemplate = json.optString("user_template", null)
+                userTemplate = if (json.has("user_template")) json.getString("user_template") else null
             )
         }
     }
@@ -41,26 +42,24 @@ class SharedPromptLoader(private val readAsset: (String) -> String) {
     private fun renderPrompt(template: String, transliteration: Boolean): String {
         val key = transliteration
         return template
+            .replace("{{preamble}}", variables.preamble)
+            .replace("{{outputRules}}", variables.outputRules)
+            .replace("{{languageRules}}", variables.languageRules)
             .replace("{{transliterationInstruction}}",
                 if (key) variables.transliterationInstructionTrue
                 else variables.transliterationInstructionFalse)
             .replace("{{translitMarker}}",
                 if (key) variables.transliterationMarkerTrue
                 else variables.transliterationMarkerFalse)
-            .replace("{{lemmaRules}}", variables.lemmaRules)
     }
 
     /**
-     * Get all system prompts for conversation endpoints, with transliteration setting applied.
+     * Get system prompts for the JSON-first card pipeline.
      */
     fun getSystemPrompts(transliteration: Boolean): SystemPrompts {
         return SystemPrompts(
             word = renderPrompt(templates.getValue("single-word").system, transliteration),
-            sentence = renderPrompt(templates.getValue("sentence").system, transliteration),
-            focusedWords = renderPrompt(templates.getValue("focused-words").system, transliteration),
-            extractCard = renderPrompt(templates.getValue("card-extraction").system, transliteration),
-            define = renderPrompt(templates.getValue("define").system, transliteration),
-            analyze = renderPrompt(templates.getValue("analyze").system, transliteration)
+            focusedWords = renderPrompt(templates.getValue("focused-words").system, transliteration)
         )
     }
 
@@ -72,6 +71,18 @@ class SharedPromptLoader(private val readAsset: (String) -> String) {
         return templates.getValue("relemmatize").system
             .replace("{{word}}", word)
             .replace("{{context}}", context)
+    }
+
+    /**
+     * Get the single-word user template for building user messages.
+     */
+    fun getWordUserTemplate(word: String, userContext: String? = null): String {
+        val template = templates.getValue("single-word").userTemplate
+            ?: return word
+        val contextStr = if (userContext != null) "\n\n(User note: $userContext)" else ""
+        return template
+            .replace("{{word}}", word)
+            .replace("{{userContext}}", contextStr)
     }
 
     /**
@@ -87,7 +98,9 @@ class SharedPromptLoader(private val readAsset: (String) -> String) {
 }
 
 data class Variables(
-    val lemmaRules: String,
+    val preamble: String,
+    val outputRules: String,
+    val languageRules: String,
     val transliterationInstructionTrue: String,
     val transliterationInstructionFalse: String,
     val transliterationMarkerTrue: String,
@@ -101,9 +114,5 @@ data class PromptTemplate(
 
 data class SystemPrompts(
     val word: String,
-    val sentence: String,
-    val focusedWords: String,
-    val extractCard: String,
-    val define: String,
-    val analyze: String
+    val focusedWords: String
 )

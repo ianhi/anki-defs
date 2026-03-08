@@ -2,7 +2,7 @@ package com.word2anki.ai
 
 /**
  * Input classification logic for vocabulary queries.
- * Prompt content now comes from SharedPromptLoader (shared/prompts/*.json).
+ * Prompt content now comes from SharedPromptLoader (shared prompts JSON files).
  */
 object PromptTemplates {
 
