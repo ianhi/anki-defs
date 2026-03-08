@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as sessionService from '../services/session.js';
 import type { SessionCard, PendingCard } from 'shared';
+import { getUsageTotals, clearUsage } from '../services/session.js';
 
 export const sessionRouter = Router();
 
@@ -97,5 +98,26 @@ sessionRouter.post('/clear', async (_req, res) => {
   } catch (error) {
     console.error('[Session] Error clearing session:', error);
     res.status(500).json({ error: 'Failed to clear session' });
+  }
+});
+
+// GET /api/session/usage - Get cumulative token usage
+sessionRouter.get('/usage', (_req, res) => {
+  try {
+    res.json(getUsageTotals());
+  } catch (error) {
+    console.error('[Session] Error getting usage:', error);
+    res.status(500).json({ error: 'Failed to get usage' });
+  }
+});
+
+// POST /api/session/usage/reset - Reset usage counters
+sessionRouter.post('/usage/reset', (_req, res) => {
+  try {
+    clearUsage();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Session] Error resetting usage:', error);
+    res.status(500).json({ error: 'Failed to reset usage' });
   }
 });

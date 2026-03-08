@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
-import type { SessionCard, PendingCard, SessionState } from 'shared';
+import type { SessionCard, PendingCard, SessionState, TokenUsage } from 'shared';
 
 const CONFIG_DIR = join(homedir(), '.config', 'bangla-anki');
 const DB_FILE = join(CONFIG_DIR, 'session.db');
@@ -42,6 +42,16 @@ db.exec(`
     deckName TEXT NOT NULL,
     modelName TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS usage_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    inputTokens INTEGER NOT NULL,
+    outputTokens INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    cost REAL NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+  );
 `);
 
 // Migration: add banglaDefinition column to existing tables
@@ -71,6 +81,13 @@ const stmts = {
   getPending: db.prepare('SELECT * FROM pending WHERE id = ?'),
   clearCards: db.prepare('DELETE FROM cards'),
   clearPending: db.prepare('DELETE FROM pending'),
+  insertUsage: db.prepare(
+    'INSERT INTO usage_log (inputTokens, outputTokens, provider, model, cost, createdAt) VALUES (@inputTokens, @outputTokens, @provider, @model, @cost, @createdAt)'
+  ),
+  usageTotals: db.prepare(
+    'SELECT COALESCE(SUM(inputTokens), 0) as totalInputTokens, COALESCE(SUM(outputTokens), 0) as totalOutputTokens, COALESCE(SUM(cost), 0) as totalCost, COUNT(*) as requestCount FROM usage_log'
+  ),
+  clearUsage: db.prepare('DELETE FROM usage_log'),
 };
 
 const promoteTx = db.transaction((pendingId: string, noteId: number): SessionCard | null => {
@@ -134,4 +151,32 @@ export async function promotePending(
 
 export async function clearAll(): Promise<void> {
   clearAllTx();
+}
+
+// --- Usage tracking ---
+
+export interface UsageTotals {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCost: number;
+  requestCount: number;
+}
+
+export function recordUsage(usage: TokenUsage, cost: number): void {
+  stmts.insertUsage.run({
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    provider: usage.provider,
+    model: usage.model || '',
+    cost,
+    createdAt: Date.now(),
+  });
+}
+
+export function getUsageTotals(): UsageTotals {
+  return stmts.usageTotals.get() as UsageTotals;
+}
+
+export function clearUsage(): void {
+  stmts.clearUsage.run();
 }

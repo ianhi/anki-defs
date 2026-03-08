@@ -4,6 +4,8 @@ import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
 import { buildCardPreviews, type CardResponse } from '../services/cardExtraction.js';
 import type { AnkiNote, ChatStreamRequest, RelemmatizeRequest, SSEEvent } from 'shared';
+import { computeCost } from 'shared';
+import { recordUsage } from '../services/session.js';
 
 export const chatRouter = Router();
 
@@ -104,9 +106,10 @@ chatRouter.post('/stream', async (req, res) => {
       userMessage
     );
 
-    // Send usage event
+    // Send usage event and record server-side
     if (usage) {
       sendSSE(res, { type: 'usage', data: usage });
+      recordUsage(usage, computeCost(usage));
     }
 
     // Parse JSON response
@@ -125,6 +128,7 @@ chatRouter.post('/stream', async (req, res) => {
         );
         if (retryUsage) {
           sendSSE(res, { type: 'usage', data: retryUsage });
+          recordUsage(retryUsage, computeCost(retryUsage));
         }
         const parsed = parseJsonResponse(retryResponse);
         cards = Array.isArray(parsed) ? (parsed as CardResponse[]) : [parsed as CardResponse];

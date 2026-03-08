@@ -168,4 +168,17 @@ export const sessionApi = {
     fetchJson<{ success: boolean }>('/session/clear', {
       method: 'POST',
     }),
+
+  getUsage: () =>
+    fetchJson<{
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      totalCost: number;
+      requestCount: number;
+    }>('/session/usage'),
+
+  resetUsage: () =>
+    fetchJson<{ success: boolean }>('/session/usage/reset', {
+      method: 'POST',
+    }),
 };
