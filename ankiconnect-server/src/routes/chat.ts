@@ -57,8 +57,9 @@ chatRouter.post('/stream', async (req, res) => {
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
   // Determine if this is a single word or a sentence/phrase
-  const trimmed = newMessage.trim();
-  const isSingleWord = !trimmed.includes(' ') && trimmed.length < 30;
+  // Strip (Context: ...) lines from retry-with-context before checking input type
+  const coreMessage = newMessage.replace(/\n\(Context:.*\)$/gm, '').trim();
+  const isSingleWord = !coreMessage.includes(' ') && coreMessage.length < 30;
   const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
   // Select the appropriate prompt based on input type
@@ -77,8 +78,8 @@ chatRouter.post('/stream', async (req, res) => {
     userMessage = newMessage;
   }
 
-  // Check Anki for highlighted words or single word
-  const wordsToCheck = hasHighlightedWords ? highlightedWords : isSingleWord ? [newMessage] : [];
+  // Check Anki for highlighted words or single word (use coreMessage without context lines)
+  const wordsToCheck = hasHighlightedWords ? highlightedWords : isSingleWord ? [coreMessage] : [];
   const ankiResults = new Map<string, boolean>();
 
   for (const word of wordsToCheck) {
@@ -112,7 +113,7 @@ chatRouter.post('/stream', async (req, res) => {
           if (hasHighlightedWords) {
             wordsForCards = highlightedWords;
           } else if (isSingleWord) {
-            wordsForCards = [newMessage];
+            wordsForCards = [coreMessage];
           } else {
             wordsForCards = extractVocabularyList(fullResponse);
             console.log('[Chat] Extracted vocabulary from sentence:', wordsForCards);
