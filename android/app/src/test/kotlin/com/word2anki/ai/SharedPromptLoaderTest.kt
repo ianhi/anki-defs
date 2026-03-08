@@ -10,7 +10,9 @@ class SharedPromptLoaderTest {
     private val testAssets = mapOf(
         "prompts/variables.json" to """
             {
-              "lemmaRules": "Test lemma rules here.",
+              "preamble": "Test preamble here.",
+              "outputRules": "Test output rules here.",
+              "languageRules": "Test language rules here.",
               "transliteration": {
                 "instruction": {
                   "true": " Include transliteration.",
@@ -24,22 +26,10 @@ class SharedPromptLoaderTest {
             }
         """.trimIndent(),
         "prompts/single-word.json" to """
-            {"system": "Define word.{{transliterationInstruction}}\n\n{{lemmaRules}}\n\nFormat: **[word]**{{translitMarker}}"}
-        """.trimIndent(),
-        "prompts/sentence.json" to """
-            {"system": "Analyze sentence.{{transliterationInstruction}}\n\n{{lemmaRules}}"}
+            {"system": "{{preamble}} Define word.{{transliterationInstruction}}\n\n{{languageRules}}\n\n{{outputRules}}", "user_template": "{{word}}{{userContext}}"}
         """.trimIndent(),
         "prompts/focused-words.json" to """
-            {"system": "Focus on words.{{transliterationInstruction}}", "user_template": "Sentence: {{sentence}}\n\nFocus words: {{highlightedWords}}"}
-        """.trimIndent(),
-        "prompts/card-extraction.json" to """
-            {"system": "Extract card data.\n\n{{lemmaRules}}"}
-        """.trimIndent(),
-        "prompts/define.json" to """
-            {"system": "Define JSON.{{transliterationInstruction}}\n\n{{lemmaRules}}"}
-        """.trimIndent(),
-        "prompts/analyze.json" to """
-            {"system": "Analyze JSON.\n\n{{lemmaRules}}"}
+            {"system": "{{preamble}} Focus on words.{{transliterationInstruction}}\n\n{{languageRules}}\n\n{{outputRules}}", "user_template": "Sentence: {{sentence}}\n\nFocus words: {{highlightedWords}}"}
         """.trimIndent(),
         "prompts/relemmatize.json" to """
             {"system": "Relemmatize \"{{word}}\".{{context}}"}
@@ -52,26 +42,39 @@ class SharedPromptLoaderTest {
     fun `getSystemPrompts with transliteration true includes transliteration instruction`() {
         val prompts = loader.getSystemPrompts(transliteration = true)
         assertTrue(prompts.word.contains("Include transliteration."))
-        assertTrue(prompts.word.contains("([transliteration])"))
-        assertTrue(prompts.word.contains("Test lemma rules here."))
     }
 
     @Test
     fun `getSystemPrompts with transliteration false excludes transliteration`() {
         val prompts = loader.getSystemPrompts(transliteration = false)
         assertTrue(prompts.word.contains("No transliteration."))
-        assertFalse(prompts.word.contains("([transliteration])"))
+        assertFalse(prompts.word.contains("Include transliteration."))
     }
 
     @Test
-    fun `getSystemPrompts returns all prompt types`() {
+    fun `getSystemPrompts renders preamble`() {
+        val prompts = loader.getSystemPrompts(transliteration = true)
+        assertTrue(prompts.word.contains("Test preamble here."))
+        assertTrue(prompts.focusedWords.contains("Test preamble here."))
+    }
+
+    @Test
+    fun `getSystemPrompts renders outputRules`() {
+        val prompts = loader.getSystemPrompts(transliteration = true)
+        assertTrue(prompts.word.contains("Test output rules here."))
+    }
+
+    @Test
+    fun `getSystemPrompts renders languageRules`() {
+        val prompts = loader.getSystemPrompts(transliteration = true)
+        assertTrue(prompts.word.contains("Test language rules here."))
+    }
+
+    @Test
+    fun `getSystemPrompts returns word and focusedWords prompts`() {
         val prompts = loader.getSystemPrompts(transliteration = true)
         assertTrue(prompts.word.contains("Define word."))
-        assertTrue(prompts.sentence.contains("Analyze sentence."))
         assertTrue(prompts.focusedWords.contains("Focus on words."))
-        assertTrue(prompts.extractCard.contains("Extract card data."))
-        assertTrue(prompts.define.contains("Define JSON."))
-        assertTrue(prompts.analyze.contains("Analyze JSON."))
     }
 
     @Test
@@ -100,12 +103,15 @@ class SharedPromptLoaderTest {
     }
 
     @Test
-    fun `lemmaRules are substituted in all relevant prompts`() {
-        val prompts = loader.getSystemPrompts(transliteration = true)
-        assertTrue(prompts.word.contains("Test lemma rules here."))
-        assertTrue(prompts.sentence.contains("Test lemma rules here."))
-        assertTrue(prompts.extractCard.contains("Test lemma rules here."))
-        assertTrue(prompts.define.contains("Test lemma rules here."))
-        assertTrue(prompts.analyze.contains("Test lemma rules here."))
+    fun `getWordUserTemplate returns word without context`() {
+        val result = loader.getWordUserTemplate("বাজার")
+        assertEquals("বাজার", result)
+    }
+
+    @Test
+    fun `getWordUserTemplate includes user context when provided`() {
+        val result = loader.getWordUserTemplate("বাজার", "like a marketplace")
+        assertTrue(result.contains("বাজার"))
+        assertTrue(result.contains("(User note: like a marketplace)"))
     }
 }

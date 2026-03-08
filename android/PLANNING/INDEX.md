@@ -15,6 +15,13 @@ for the phase plan. Relevant root planning docs:
 
 ## Completed
 
+- **JSON-first card pipeline** -- Android backend migrated from streaming markdown +
+  separate extraction call to single non-streaming JSON completion call. Matches the
+  web backend pipeline: one LLM call returns JSON, parsed with fault tolerance, emits
+  `usage` + `card_preview` + `done` SSE events (no more `text` events). Includes
+  `banglaDefinition` and `spellingCorrection` fields. `CardExtractor.kt` deleted.
+  Removed unused `/api/chat/define` and `/api/chat/analyze` endpoints.
+
 - **Shared prompt integration** -- Android now loads prompts from `shared/prompts/*.json`
   (copied into `assets/prompts/` at build time) instead of hardcoded Kotlin strings.
   All three backends share identical prompt templates.
