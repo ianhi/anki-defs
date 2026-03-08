@@ -56,6 +56,18 @@ function noteToCardContent(note: AnkiNote, fieldMapping: Record<string, string>)
 }
 
 /**
+ * Parse a spellingCorrection like "কাদছে → কাঁদছে" and apply it to the example sentence.
+ * Replaces the misspelled form with the corrected form (preserving **bold** markers).
+ */
+function applySpellingCorrection(sentence: string, correction: string): string {
+  const match = correction.match(/^(.+?)\s*→\s*(.+)$/);
+  if (!match) return sentence;
+  const [, wrong, right] = match;
+  // Replace both bare and **bold** occurrences
+  return sentence.replace(wrong!, right!).replace(`**${wrong}**`, `**${right}**`);
+}
+
+/**
  * Build CardPreview[] from parsed AI card responses + Anki duplicate check results.
  */
 export async function buildCardPreviews(
@@ -80,10 +92,15 @@ export async function buildCardPreviews(
         ? noteToCardContent(existingNote, fieldMapping)
         : undefined;
 
+    // Apply spelling correction to the example sentence if present
+    const exampleSentence = card.spellingCorrection
+      ? applySpellingCorrection(card.exampleSentence, card.spellingCorrection)
+      : card.exampleSentence;
+
     return {
       word: card.word,
       definition: card.definition,
-      exampleSentence: card.exampleSentence,
+      exampleSentence,
       sentenceTranslation: card.sentenceTranslation,
       rootWord: card.rootWord,
       spellingCorrection: card.spellingCorrection,

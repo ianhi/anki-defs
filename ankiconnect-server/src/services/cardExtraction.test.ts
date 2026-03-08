@@ -159,6 +159,22 @@ describe('buildCardPreviews', () => {
     expect(previews[0]!.existingCard).toBeDefined();
   });
 
+  it('spelling correction is applied to exampleSentence', async () => {
+    const cards: CardResponse[] = [
+      {
+        word: 'কাঁদা',
+        definition: 'to cry',
+        exampleSentence: 'বাচ্চাটা **কাদছে** কারণ সে পড়ে গেছে।',
+        sentenceTranslation: 'The child is crying because he fell.',
+        spellingCorrection: 'কাদছে → কাঁদছে',
+      },
+    ];
+
+    const previews = await buildCardPreviews(cards, 'Bangla', new Map());
+    expect(previews[0]!.exampleSentence).toBe('বাচ্চাটা **কাঁদছে** কারণ সে পড়ে গেছে।');
+    expect(previews[0]!.spellingCorrection).toBe('কাদছে → কাঁদছে');
+  });
+
   it('cached offline results (noteId=0) show alreadyExists but no existingCard', async () => {
     const cachedNote: AnkiNote = {
       noteId: 0,
