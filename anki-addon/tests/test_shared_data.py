@@ -44,14 +44,6 @@ class TestSharedPrompts:
         assert "system" in data
         assert "{{lemmaRules}}" in data["system"]
 
-    def test_define_prompt(self):
-        data = self._load("define.json")
-        assert "system" in data
-
-    def test_analyze_prompt(self):
-        data = self._load("analyze.json")
-        assert "system" in data
-
     def test_relemmatize_prompt(self):
         data = self._load("relemmatize.json")
         assert "system" in data
@@ -87,8 +79,6 @@ class TestPromptRendering:
         assert "sentence" in prompts
         assert "focusedWords" in prompts
         assert "extractCard" in prompts
-        assert "define" in prompts
-        assert "analyze" in prompts
         # Variables should be substituted
         for key, value in prompts.items():
             assert "{{lemmaRules}}" not in value, "Unsubstituted variable in {}".format(key)

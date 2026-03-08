@@ -81,14 +81,10 @@ def get_system_prompts(transliteration):
     sentence_prompt = _load_json("sentence.json")
     focused_prompt = _load_json("focused-words.json")
     extract_prompt = _load_json("card-extraction.json")
-    define_prompt = _load_json("define.json")
-    analyze_prompt = _load_json("analyze.json")
 
     return {
         "word": _render(word_prompt["system"]),
         "sentence": _render(sentence_prompt["system"]),
         "focusedWords": _render(focused_prompt["system"]),
         "extractCard": _render(extract_prompt["system"]),
-        "define": _render(define_prompt["system"]),
-        "analyze": _render(analyze_prompt["system"]),
     }
