@@ -37,9 +37,10 @@
 
 - Verify definitions via Samsad dictionary or Wiktionary for uncommon words
 
-### History and search
+### ~~History and search~~ (DONE)
 
-- Search past conversations, filter by words, stats over time
+- Searchable history panel with debounced full-text search across word/definition/banglaDefinition
+- `GET /api/session/history` endpoint with `?q=`, `?limit=`, `?offset=` pagination
 
 ### More test coverage
 
