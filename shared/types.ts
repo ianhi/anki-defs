@@ -20,10 +20,9 @@ export interface CardContent {
 
 // Card preview from AI response (includes Anki check results)
 export interface CardPreview extends CardContent {
-  inflectedForm?: string; // Original inflected form from the sentence (if different from lemma)
   alreadyExists: boolean; // Whether word already exists in Anki deck
-  lemmaMismatch?: boolean; // True when extraction AI returned a different lemma than the main AI
-  originalLemma?: string; // The lemma suggested by the main AI (when mismatched)
+  rootWord?: string; // If derived from a useful root word
+  spellingCorrection?: string; // If input was a typo: "বাজারে → বাজার"
 }
 
 export interface RelemmatizeRequest {
@@ -176,7 +175,6 @@ export interface PlatformInfo {
 
 // SSE event types (discriminated union for type safety)
 export type SSEEvent =
-  | { type: 'text'; data: string }
   | { type: 'card_preview'; data: CardPreview }
   | { type: 'usage'; data: TokenUsage }
   | { type: 'done'; data: null }
