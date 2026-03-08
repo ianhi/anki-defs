@@ -5,7 +5,8 @@ import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckS
 import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
-import { SettingsIcon, X, Layers, RefreshCw } from 'lucide-react';
+import { HistoryPanel } from './components/HistoryPanel';
+import { SettingsIcon, X, Layers, RefreshCw, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
 import { useTokenUsage } from './hooks/useTokenUsage';
@@ -29,6 +30,7 @@ export default function App() {
 function MainApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCards, setShowCards] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const { cards, pendingQueue } = useSessionCards();
   const totalCards = cards.length + pendingQueue.length;
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
@@ -78,6 +80,14 @@ function MainApp() {
               </Button>
             )}
             <Button
+              variant={showHistory ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setShowHistory(!showHistory)}
+              title="Word history"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            <Button
               variant={showCards ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setShowCards(!showCards)}
@@ -119,6 +129,24 @@ function MainApp() {
             </Button>
           </div>
           <SessionCardsPanel />
+        </aside>
+      )}
+
+      {/* History Sidebar - overlay on mobile, sidebar on desktop */}
+      {showHistory && (
+        <aside className="fixed inset-0 z-40 bg-card sm:static sm:inset-auto sm:w-72 sm:border-l sm:border-border flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <h2 className="font-medium">Word History</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setShowHistory(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <HistoryPanel />
         </aside>
       )}
 

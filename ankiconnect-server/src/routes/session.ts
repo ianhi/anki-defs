@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as sessionService from '../services/session.js';
+import { searchHistory } from '../services/session.js';
 import type { SessionCard, PendingCard } from 'shared';
 
 export const sessionRouter = Router();
@@ -97,5 +98,19 @@ sessionRouter.post('/clear', async (_req, res) => {
   } catch (error) {
     console.error('[Session] Error clearing session:', error);
     res.status(500).json({ error: 'Failed to clear session' });
+  }
+});
+
+// GET /api/session/history - Search past card history
+sessionRouter.get('/history', (req, res) => {
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit)) || 50, 1), 200);
+    const offset = Math.max(parseInt(String(req.query.offset)) || 0, 0);
+    const result = searchHistory(q, limit, offset);
+    res.json(result);
+  } catch (error) {
+    console.error('[Session] Error searching history:', error);
+    res.status(500).json({ error: 'Failed to search history' });
   }
 });

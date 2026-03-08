@@ -168,4 +168,15 @@ export const sessionApi = {
     fetchJson<{ success: boolean }>('/session/clear', {
       method: 'POST',
     }),
+
+  getHistory: (params: { q?: string; limit?: number; offset?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.set('q', params.q);
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.offset) searchParams.set('offset', String(params.offset));
+    const qs = searchParams.toString();
+    return fetchJson<{ items: SessionCard[]; total: number }>(
+      `/session/history${qs ? `?${qs}` : ''}`
+    );
+  },
 };

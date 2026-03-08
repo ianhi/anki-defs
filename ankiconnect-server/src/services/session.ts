@@ -135,3 +135,35 @@ export async function promotePending(
 export async function clearAll(): Promise<void> {
   clearAllTx();
 }
+
+// --- History search ---
+
+export interface HistoryResult {
+  items: SessionCard[];
+  total: number;
+}
+
+export function searchHistory(
+  query?: string,
+  limit: number = 50,
+  offset: number = 0
+): HistoryResult {
+  if (query && query.trim()) {
+    const pattern = `%${query.trim()}%`;
+    const countStmt = db.prepare(
+      'SELECT COUNT(*) as total FROM cards WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ?'
+    );
+    const selectStmt = db.prepare(
+      'SELECT * FROM cards WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ? ORDER BY createdAt DESC LIMIT ? OFFSET ?'
+    );
+    const { total } = countStmt.get(pattern, pattern, pattern) as { total: number };
+    const items = selectStmt.all(pattern, pattern, pattern, limit, offset) as SessionCard[];
+    return { items, total };
+  } else {
+    const countStmt = db.prepare('SELECT COUNT(*) as total FROM cards');
+    const selectStmt = db.prepare('SELECT * FROM cards ORDER BY createdAt DESC LIMIT ? OFFSET ?');
+    const { total } = countStmt.get() as { total: number };
+    const items = selectStmt.all(limit, offset) as SessionCard[];
+    return { items, total };
+  }
+}
