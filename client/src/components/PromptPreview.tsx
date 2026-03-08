@@ -6,7 +6,6 @@ interface PromptResult {
   mode: string;
   systemPrompt: string;
   userMessage: string;
-  extractionSystemPrompt: string;
 }
 
 const EXAMPLES = [
@@ -101,11 +100,6 @@ export function PromptPreview() {
 
           <PromptSection title="System Prompt" content={result.systemPrompt} />
           <PromptSection title="User Message" content={result.userMessage} />
-          <PromptSection
-            title="Card Extraction System Prompt"
-            content={result.extractionSystemPrompt}
-            defaultExpanded={false}
-          />
         </div>
       )}
     </div>
