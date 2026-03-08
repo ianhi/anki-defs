@@ -9,7 +9,7 @@ import { Label } from './ui/Label';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import type { AIProvider, Settings as SettingsType } from 'shared';
-import { CARD_DATA_FIELDS } from 'shared';
+import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Check, X, Loader2 } from 'lucide-react';
 import { usePlatform } from '@/hooks/usePlatform';
 
@@ -189,11 +189,15 @@ export function Settings() {
                 handleChange('geminiModel', e.target.value)
               }
             >
-              <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite ($0.10/$0.40)</option>
-              <option value="gemini-2.0-flash">Gemini 2.0 Flash ($0.10/$0.40)</option>
-              <option value="gemini-2.5-flash">Gemini 2.5 Flash ($0.15/$0.60)</option>
-              <option value="gemini-2.5-pro">Gemini 2.5 Pro ($1.25/$10.00)</option>
-              <option value="gemini-3-flash-preview">Gemini 3 Flash ($0.50/$3.00)</option>
+              {GEMINI_MODELS.map((m) => {
+                const p = MODEL_PRICING[m.value];
+                return (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                    {p ? ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})` : ''}
+                  </option>
+                );
+              })}
             </Select>
           </div>
         </>
@@ -224,15 +228,19 @@ export function Settings() {
                 handleChange('openRouterModel', e.target.value)
               }
             >
-              <option value="google/gemini-3-flash-preview">Gemini 3 Flash ($0.50/$3.00)</option>
-              <option value="google/gemini-2.5-flash">Gemini 2.5 Flash ($0.30/$2.50)</option>
-              <option value="openai/gpt-4.1-nano">GPT-4.1 Nano ($0.10/$0.40)</option>
-              <option value="openai/gpt-4.1-mini">GPT-4.1 Mini ($0.40/$1.60)</option>
-              <option value="meta-llama/llama-4-maverick:free">Llama 4 Maverick (Free)</option>
-              <option value="mistralai/mistral-small-3.1-24b-instruct:free">
-                Mistral Small 3.1 (Free)
-              </option>
-              <option value="deepseek/deepseek-v3.2">DeepSeek V3.2 ($0.24/$0.38)</option>
+              {OPENROUTER_MODELS.map((m) => {
+                const p = MODEL_PRICING[m.value];
+                return (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                    {p
+                      ? p.input === 0
+                        ? ' (Free)'
+                        : ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})`
+                      : ''}
+                  </option>
+                );
+              })}
             </Select>
           </div>
         </>

@@ -5,6 +5,7 @@ import { parseHighlightedWords, getCleanText } from '../lib/focus';
 import { chatApi } from '../lib/api';
 import { useSettingsStore } from '../hooks/useSettings';
 import type { CardPreview, TokenUsage, AIProvider } from 'shared';
+import { GEMINI_MODELS, OPENROUTER_MODELS, computeCost } from 'shared';
 import { Loader2, Play, Check, X } from 'lucide-react';
 
 interface PromptResult {
@@ -289,21 +290,6 @@ async function fetchPreview(text: string): Promise<PromptResult> {
   return res.json();
 }
 
-const GEMINI_MODELS = [
-  { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
-  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
-];
-
-const OPENROUTER_MODELS = [
-  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash' },
-  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-  { value: 'openai/gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-  { value: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini' },
-];
-
 export function PromptPreview() {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<PromptResult | null>(null);
@@ -357,13 +343,15 @@ export function PromptPreview() {
     setRunningAll(false);
   };
 
-  const totalChecks = [...testResults.values()].flatMap((r) => r.checks);
+  const results = [...testResults.values()];
+  const totalChecks = results.flatMap((r) => r.checks);
   const passCount = totalChecks.filter((c) => c.pass).length;
   const failCount = totalChecks.filter((c) => !c.pass).length;
   const avgDuration =
-    testResults.size > 0
-      ? [...testResults.values()].reduce((sum, r) => sum + r.durationMs, 0) / testResults.size
-      : 0;
+    results.length > 0 ? results.reduce((sum, r) => sum + r.durationMs, 0) / results.length : 0;
+  const totalInput = results.reduce((sum, r) => sum + (r.usage?.inputTokens || 0), 0);
+  const totalOutput = results.reduce((sum, r) => sum + (r.usage?.outputTokens || 0), 0);
+  const totalCost = results.reduce((sum, r) => sum + (r.usage ? computeCost(r.usage) : 0), 0);
 
   const currentModel =
     settings.aiProvider === 'gemini'
@@ -468,7 +456,13 @@ export function PromptPreview() {
                   </>
                 )}
                 {testResults.size === TEST_CASES.length && (
-                  <span className="ml-1">· avg {(avgDuration / 1000).toFixed(1)}s</span>
+                  <>
+                    <span className="ml-1">· avg {(avgDuration / 1000).toFixed(1)}s</span>
+                    <span className="ml-1">
+                      · {totalInput}in/{totalOutput}out
+                    </span>
+                    {totalCost > 0 && <span className="ml-1">· ${totalCost.toFixed(4)}</span>}
+                  </>
                 )}
               </span>
             )}

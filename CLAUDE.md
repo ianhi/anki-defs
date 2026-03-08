@@ -70,6 +70,9 @@ files outside your stated scope.
 - Prompt templates live in `shared/prompts/*.json` -- not duplicated per-backend.
 - Platform-specific UI uses a platform detection hook, not separate components.
 - This is an application, not a library. No backwards-compatibility shims.
+- **No duplication**: Always reuse shared constants, components, and utilities. Model lists,
+  pricing data, and types belong in `shared/`. UI components should be reused, not recreated.
+  If you need the same data or logic in two places, put it in `shared/` or extract a component.
 
 ## Documentation Workflow
 

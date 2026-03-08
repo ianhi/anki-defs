@@ -121,16 +121,42 @@ export const DEFAULT_SETTINGS: Settings = {
   apiToken: '',
 };
 
+// Model options per provider
+export interface ModelOption {
+  value: string;
+  label: string;
+}
+
+export const GEMINI_MODELS: ModelOption[] = [
+  { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
+  { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+  { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+  { value: 'gemini-3-flash-preview', label: 'Gemini 3 Flash' },
+];
+
+export const OPENROUTER_MODELS: ModelOption[] = [
+  { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash' },
+  { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  { value: 'openai/gpt-4.1-nano', label: 'GPT-4.1 Nano' },
+  { value: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+  { value: 'meta-llama/llama-4-maverick:free', label: 'Llama 4 Maverick (Free)' },
+  { value: 'mistralai/mistral-small-3.1-24b-instruct:free', label: 'Mistral Small 3.1 (Free)' },
+  { value: 'deepseek/deepseek-v3.2', label: 'DeepSeek V3.2' },
+];
+
 // Pricing per million tokens (input/output) in USD
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   // Claude
   'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
   // Gemini
-  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
   'gemini-2.5-flash-lite': { input: 0.1, output: 0.4 },
-  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
   'gemini-2.0-flash': { input: 0.1, output: 0.4 },
-  // OpenRouter (per-model, approximate)
+  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.5-pro': { input: 1.25, output: 10.0 },
+  'gemini-3-flash-preview': { input: 0.5, output: 3.0 },
+  // OpenRouter
+  'google/gemini-3-flash-preview': { input: 0.5, output: 3.0 },
   'google/gemini-2.5-flash': { input: 0.15, output: 0.6 },
   'openai/gpt-4.1-nano': { input: 0.1, output: 0.4 },
   'openai/gpt-4.1-mini': { input: 0.4, output: 1.6 },
@@ -138,6 +164,12 @@ export const MODEL_PRICING: Record<string, { input: number; output: number }> = 
   'mistralai/mistral-small-3.1-24b-instruct:free': { input: 0.0, output: 0.0 },
   'deepseek/deepseek-v3.2': { input: 0.24, output: 0.38 },
 };
+
+export function computeCost(usage: TokenUsage): number {
+  const pricing = MODEL_PRICING[usage.model || ''];
+  if (!pricing) return 0;
+  return (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
+}
 
 // API request/response types
 export interface ChatStreamRequest {
