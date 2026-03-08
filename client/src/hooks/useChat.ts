@@ -9,27 +9,32 @@ import { useTokenUsage } from './useTokenUsage';
 
 interface ChatState {
   messages: Message[];
-  isStreaming: boolean;
+  activeStreamCount: number;
   error: string | null;
   setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
-  setIsStreaming: (streaming: boolean) => void;
   setError: (error: string | null) => void;
   clearMessages: () => void;
+  incrementStreams: () => void;
+  decrementStreams: () => void;
 }
 
 const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
       messages: [],
-      isStreaming: false,
+      activeStreamCount: 0,
       error: null,
       setMessages: (updater) =>
         set((state) => ({
           messages: typeof updater === 'function' ? updater(state.messages) : updater,
         })),
-      setIsStreaming: (streaming) => set({ isStreaming: streaming }),
       setError: (error) => set({ error }),
-      clearMessages: () => set({ messages: [], error: null }),
+      clearMessages: () => set({ messages: [], error: null, activeStreamCount: 0 }),
+      incrementStreams: () => set((state) => ({ activeStreamCount: state.activeStreamCount + 1 })),
+      decrementStreams: () =>
+        set((state) => ({
+          activeStreamCount: Math.max(0, state.activeStreamCount - 1),
+        })),
     }),
     {
       name: 'bangla-chat',
@@ -41,20 +46,25 @@ const useChatStore = create<ChatState>()(
 );
 
 export function useChat() {
-  const { messages, isStreaming, error, setMessages, setIsStreaming, setError, clearMessages } =
-    useChatStore();
+  const {
+    messages,
+    activeStreamCount,
+    error,
+    setMessages,
+    setError,
+    clearMessages,
+    incrementStreams,
+    decrementStreams,
+  } = useChatStore();
 
-  const currentRequestRef = useRef<string | null>(null);
+  const isStreaming = activeStreamCount > 0;
+
+  // Track active request IDs for cancellation on clear
+  const activeRequestsRef = useRef(new Set<string>());
 
   const sendMessage = useCallback(
     async (content: string, deck?: string, userContext?: string, mode?: 'english-to-bangla') => {
       const requestId = generateId();
-
-      if (currentRequestRef.current !== null) {
-        console.log('[Chat] Ignoring duplicate request, already streaming');
-        return;
-      }
-      currentRequestRef.current = requestId;
 
       setError(null);
 
@@ -81,7 +91,8 @@ export function useChat() {
       };
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
-      setIsStreaming(true);
+      incrementStreams();
+      activeRequestsRef.current.add(requestId);
 
       try {
         // Send clean text + extracted words to API
@@ -93,7 +104,7 @@ export function useChat() {
           userContext,
           mode
         )) {
-          if (currentRequestRef.current !== requestId) {
+          if (!activeRequestsRef.current.has(requestId)) {
             console.log('[Chat] Request cancelled, stopping stream');
             return;
           }
@@ -139,24 +150,16 @@ export function useChat() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        if (currentRequestRef.current === requestId) {
-          setIsStreaming(false);
-          currentRequestRef.current = null;
-        }
+        activeRequestsRef.current.delete(requestId);
+        decrementStreams();
       }
     },
-    [setMessages, setIsStreaming, setError]
+    [setMessages, setError, incrementStreams, decrementStreams]
   );
 
   const retryWithContext = useCallback(
     async (assistantMsgId: string, context: string) => {
-      if (currentRequestRef.current !== null) {
-        console.log('[Chat] Ignoring retry, already streaming');
-        return;
-      }
-
       const requestId = generateId();
-      currentRequestRef.current = requestId;
       setError(null);
 
       // Find the assistant message and the preceding user message
@@ -199,7 +202,8 @@ export function useChat() {
             : msg
         )
       );
-      setIsStreaming(true);
+      incrementStreams();
+      activeRequestsRef.current.add(requestId);
 
       const { settings } = await import('@/hooks/useSettings').then((m) => ({
         settings: m.useSettingsStore.getState().settings,
@@ -212,7 +216,7 @@ export function useChat() {
           retryHighlightedWords,
           userContext
         )) {
-          if (currentRequestRef.current !== requestId) {
+          if (!activeRequestsRef.current.has(requestId)) {
             console.log('[Chat] Retry cancelled, stopping stream');
             return;
           }
@@ -258,18 +262,17 @@ export function useChat() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        if (currentRequestRef.current === requestId) {
-          setIsStreaming(false);
-          currentRequestRef.current = null;
-        }
+        activeRequestsRef.current.delete(requestId);
+        decrementStreams();
       }
     },
-    [setMessages, setIsStreaming, setError]
+    [setMessages, setError, incrementStreams, decrementStreams]
   );
 
   const clearChat = useCallback(() => {
+    // Cancel all active requests
+    activeRequestsRef.current.clear();
     clearMessages();
-    currentRequestRef.current = null;
   }, [clearMessages]);
 
   return {

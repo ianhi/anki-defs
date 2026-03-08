@@ -39,7 +39,7 @@ export function Chat() {
 
       {error && <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">{error}</div>}
 
-      <MessageInput onSend={handleSend} disabled={isStreaming} />
+      <MessageInput onSend={handleSend} />
     </div>
   );
 }

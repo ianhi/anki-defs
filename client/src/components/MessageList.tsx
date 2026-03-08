@@ -2,8 +2,12 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
 import { MODEL_PRICING } from 'shared';
 import { CardPreview } from './CardPreview';
-import { cn } from '@/lib/utils';
-import { User, Bot, Eye, MessageSquare } from 'lucide-react';
+import { Button } from './ui/Button';
+import { cn, markdownBoldToHtml } from '@/lib/utils';
+import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
+import { useSettingsStore } from '@/hooks/useSettings';
+import { useSessionCards } from '@/hooks/useSessionCards';
+import { User, Bot, Eye, MessageSquare, Plus, Loader2 } from 'lucide-react';
 
 function MarkedText({ text }: { text: string }) {
   // Render **word** markers as highlighted spans, preserving exact occurrences
@@ -54,6 +58,12 @@ function CardPreviewList({
 }) {
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [showDismissed, setShowDismissed] = useState(false);
+  const [addingAll, setAddingAll] = useState(false);
+
+  const { settings } = useSettingsStore();
+  const sessionCards = useSessionCards();
+  const { data: ankiConnected } = useAnkiStatus();
+  const createNote = useCreateNote();
 
   const handleDismiss = useCallback((idx: number) => {
     setDismissed((prev) => new Set(prev).add(idx));
@@ -61,8 +71,75 @@ function CardPreviewList({
 
   const dismissedCount = dismissed.size;
 
+  // Count how many cards haven't been added yet
+  const unadded = previews.filter(
+    (p) =>
+      !sessionCards.cards.find(
+        (c) => c.word.toLowerCase().trim() === p.word.toLowerCase().trim()
+      ) &&
+      !sessionCards.pendingQueue.find(
+        (c) => c.word.toLowerCase().trim() === p.word.toLowerCase().trim()
+      )
+  );
+  const showAddAll = previews.length > 1 && unadded.length > 1;
+
+  const handleAddAll = async () => {
+    setAddingAll(true);
+    const targetDeck = settings.defaultDeck;
+    const targetModel = settings.defaultModel;
+
+    for (const preview of unadded) {
+      if (!ankiConnected) {
+        sessionCards.addToPendingQueue(preview, targetDeck, targetModel);
+        continue;
+      }
+      try {
+        const noteId = await createNote.mutateAsync({
+          deckName: targetDeck,
+          modelName: targetModel,
+          fields: {
+            Word: preview.word,
+            Definition: preview.definition,
+            BanglaDefinition: preview.banglaDefinition,
+            Example: markdownBoldToHtml(preview.exampleSentence),
+            Translation: preview.sentenceTranslation,
+          },
+          tags: ['auto-generated'],
+        });
+        sessionCards.addCard(preview, targetDeck, targetModel, noteId);
+      } catch (error) {
+        console.error('Failed to create card, adding to queue:', error);
+        sessionCards.addToPendingQueue(preview, targetDeck, targetModel);
+      }
+    }
+    setAddingAll(false);
+  };
+
   return (
     <div className="mt-4 -mx-1 space-y-3">
+      {showAddAll && (
+        <div className="flex justify-end">
+          <Button
+            onClick={handleAddAll}
+            disabled={addingAll}
+            size="sm"
+            variant="outline"
+            className="text-xs"
+          >
+            {addingAll ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              <>
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add All ({unadded.length})
+              </>
+            )}
+          </Button>
+        </div>
+      )}
       {previews.map((preview, idx) => (
         <CardPreview
           key={`${messageId}-${preview.word}-${idx}`}
