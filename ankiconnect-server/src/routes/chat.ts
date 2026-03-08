@@ -3,7 +3,7 @@ import * as aiService from '../services/ai.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
 import { buildCardPreviews, type CardResponse } from '../services/cardExtraction.js';
-import type { ChatStreamRequest, RelemmatizeRequest, SSEEvent } from 'shared';
+import type { AnkiNote, ChatStreamRequest, RelemmatizeRequest, SSEEvent } from 'shared';
 
 export const chatRouter = Router();
 
@@ -83,16 +83,17 @@ chatRouter.post('/stream', async (req, res) => {
     userMessage = rendered || newMessage;
   }
 
-  // Pre-check Anki for input words
+  // Pre-check Anki for input words (store full note for comparison UI)
   const wordsToCheck = hasHighlightedWords ? highlightedWords : [newMessage];
-  const ankiResults = new Map<string, boolean>();
+  const ankiResults = new Map<string, AnkiNote | null>();
 
   for (const word of wordsToCheck) {
     try {
       const existingNote = await ankiService.searchWordCached(word, targetDeck);
-      ankiResults.set(word, !!existingNote);
+      ankiResults.set(word, existingNote);
     } catch (error) {
       console.warn('[Chat] Anki search failed:', error);
+      ankiResults.set(word, null);
     }
   }
 

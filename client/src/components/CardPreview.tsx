@@ -20,6 +20,8 @@ import {
   Pencil,
   RefreshCw,
   MessageSquare,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface CardPreviewProps {
@@ -49,6 +51,29 @@ function highlightBoldMarkers(sentence: string): React.ReactNode {
         );
       })}
     </>
+  );
+}
+
+/** Strip HTML tags to plain text for safe rendering */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '');
+}
+
+function ExistingCardContent({ card }: { card: NonNullable<CardPreviewType['existingCard']> }) {
+  return (
+    <div className="mt-1.5 p-2 rounded bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-xs sm:text-sm space-y-0.5">
+      <p>
+        <span className="font-semibold">{stripHtml(card.word)}</span>
+        <span className="text-muted-foreground"> — </span>
+        {stripHtml(card.definition)}
+      </p>
+      {card.exampleSentence && (
+        <p className="text-muted-foreground">{stripHtml(card.exampleSentence)}</p>
+      )}
+      {card.sentenceTranslation && (
+        <p className="text-muted-foreground italic">{stripHtml(card.sentenceTranslation)}</p>
+      )}
+    </div>
   );
 }
 
@@ -84,6 +109,7 @@ export function CardPreview({
   const [isRelemmatizing, setIsRelemmatizing] = useState(false);
   const [showRetryInput, setShowRetryInput] = useState(false);
   const [retryContext, setRetryContext] = useState('');
+  const [showExisting, setShowExisting] = useState(false);
 
   const { settings } = useSettingsStore();
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } = sessionCards;
@@ -287,6 +313,18 @@ export function CardPreview({
           )}
         </div>
       </CardHeader>
+      {preview.existingCard && alreadyExists && (
+        <div className="px-3 sm:px-6 pt-0 pb-1">
+          <button
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            onClick={() => setShowExisting(!showExisting)}
+          >
+            {showExisting ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {showExisting ? 'Hide' : 'Show'} existing card
+          </button>
+          {showExisting && <ExistingCardContent card={preview.existingCard} />}
+        </div>
+      )}
       {preview.exampleSentence && (
         <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
           <p className="text-xs sm:text-sm">{highlightBoldMarkers(preview.exampleSentence)}</p>

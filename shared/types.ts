@@ -21,6 +21,7 @@ export interface CardContent {
 // Card preview from AI response (includes Anki check results)
 export interface CardPreview extends CardContent {
   alreadyExists: boolean; // Whether word already exists in Anki deck
+  existingCard?: CardContent; // The existing card's content (for comparison)
   rootWord?: string; // If derived from a useful root word
   spellingCorrection?: string; // If input was a typo: "বাজারে → বাজার"
 }
