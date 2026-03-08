@@ -4,9 +4,10 @@ Implementation reference docs that span multiple subprojects.
 
 ## Reference
 
-| Doc                                | Summary                                           |
-| ---------------------------------- | ------------------------------------------------- |
-| [api-contract.md](api-contract.md) | Full API endpoint reference with request/response |
+| Doc                                  | Summary                                                    |
+| ------------------------------------ | ---------------------------------------------------------- |
+| [api-contract.md](api-contract.md)   | Full API endpoint reference with request/response          |
+| [card-pipeline.md](card-pipeline.md) | Lemmatization, word highlighting, and card extraction flow |
 
 ## Subproject Docs
 
