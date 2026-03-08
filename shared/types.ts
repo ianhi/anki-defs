@@ -122,7 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fieldMapping: {
     Word: 'Bangla',
     Definition: 'Eng_trans',
-    BanglaDefinition: 'Bangla_definition',
+    BanglaDefinition: 'bangla-def',
     Example: 'example sentence',
     Translation: 'sentence-trans',
   },
