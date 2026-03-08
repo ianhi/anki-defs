@@ -1,6 +1,13 @@
 # API Contract Reference
 
-Source of truth: `shared/types.ts`
+Source of truth: `shared/types.ts` (types), `shared/api-routes.json` (route list)
+
+## Enforcement
+
+Run `npm run check:api` (or `scripts/check-api-contract.sh` directly) to verify all
+backends implement every required route. The script reads `shared/api-routes.json` and
+greps each backend's route registration files. It exits non-zero if any required route
+is missing and prints warnings for extra routes not in the contract.
 
 ## Endpoints
 

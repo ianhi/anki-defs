@@ -1,0 +1,61 @@
+{
+  "description": "Canonical list of required API routes. All backends MUST implement required routes. Optional routes are platform-specific.",
+  "routes": [
+    { "method": "GET", "path": "/api/health" },
+    { "method": "GET", "path": "/api/platform" },
+    { "method": "GET", "path": "/api/anki/decks" },
+    { "method": "GET", "path": "/api/anki/models" },
+    { "method": "GET", "path": "/api/anki/models/:name/fields" },
+    { "method": "POST", "path": "/api/anki/search" },
+    { "method": "POST", "path": "/api/anki/notes" },
+    { "method": "GET", "path": "/api/anki/notes/:id" },
+    { "method": "DELETE", "path": "/api/anki/notes/:id" },
+    { "method": "GET", "path": "/api/anki/status" },
+    { "method": "POST", "path": "/api/chat/stream" },
+    { "method": "POST", "path": "/api/chat/relemmatize" },
+    { "method": "GET", "path": "/api/settings" },
+    { "method": "PUT", "path": "/api/settings" }
+  ],
+  "optional": [
+    {
+      "method": "POST",
+      "path": "/api/anki/sync",
+      "note": "Not applicable on Android (AnkiDroid syncs independently)"
+    },
+    {
+      "method": "GET",
+      "path": "/api/session",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/cards",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/session/cards/:id",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/pending",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/session/pending/:id",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/pending/:id/promote",
+      "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "POST",
+      "path": "/api/session/clear",
+      "note": "Session management not yet implemented on Android"
+    }
+  ]
+}
