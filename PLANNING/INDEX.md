@@ -14,9 +14,10 @@ The project has three backends sharing one React frontend. All backends are func
 
 ### What's Working
 
-- **Web app** (`client/` + `ankiconnect-server/`): Full feature set -- AI streaming, card
-  creation, duplicate detection, session tracking, offline queue, sync button, mobile UX.
-  Bearer token auth for Tailscale access. Three AI providers (Claude, Gemini, OpenRouter).
+- **Web app** (`client/` + `ankiconnect-server/`): Full feature set -- JSON-first card
+  pipeline (single LLM call), duplicate detection, session tracking, offline queue, sync
+  button, mobile UX. Bearer token auth for Tailscale access. Three AI providers (Claude,
+  Gemini, OpenRouter). Sentence mode without highlights blocked (future: Anki-aware filtering).
 
 - **Android app** (`android/`): WebView loading shared React frontend via NanoHTTPd. Gemini
   API, AnkiDroid ContentProvider, share intents, JS bridge. Phases 1-5 complete.
@@ -26,11 +27,11 @@ The project has three backends sharing one React frontend. All backends are func
   AI providers. Zero vendored dependencies (stdlib only). 45 unit tests. Build/install
   scripts in `scripts/`.
 
-- **Shared prompts** (`shared/prompts/`): 5 prompt templates + variables.json extracted to
-  JSON files. Templates support `user_template` with `{{variable}}` substitution for
-  structured context injection (retry-with-context). All three backends load from these
-  at runtime (ankiconnect-server direct, anki-addon via build copy, Android via Gradle
-  asset copy). API contract enforcement script validates route parity across backends.
+- **Shared prompts** (`shared/prompts/`): 4 prompt templates + variables.json. Prompts
+  instruct LLM to return JSON directly (no markdown). Templates support `user_template`
+  with `{{variable}}` substitution for structured context injection (retry-with-context).
+  All three backends load from these at runtime (ankiconnect-server direct, anki-addon via
+  build copy, Android via Gradle asset copy).
 
 - **Docs site** (`docs/`): Astro Starlight site. Pages: home, getting-started, usage,
   tailscale, architecture, anki-addon. GitHub Actions workflow deployed
@@ -42,8 +43,9 @@ The project has three backends sharing one React frontend. All backends are func
 
 ### What's Missing
 
-- **Web stack tests started** -- vitest installed, 31 tests covering card extraction,
-  prompt rendering, and client utils. More coverage needed (API routes, SSE, auth).
+- **Web stack tests** -- vitest installed, 80 tests across 6 test files covering card
+  extraction, JSON parsing, prompt rendering, AI service, and client utils. More coverage
+  needed (SSE integration, auth middleware, React component tests).
 - ~~**GitHub Actions CI**~~ -- Done. `.github/workflows/ci.yml` runs typecheck + lint +
   format + tests on push/PR to main.
 - ~~**Prompt sharing**~~ -- Done. All three backends now load from `shared/prompts/*.json`.
@@ -59,16 +61,15 @@ See [next-steps.md](next-steps.md) for prioritized TODOs:
 - ~~Retry-with-context~~ -- Done. Inline context input on cards, stacking refinements,
   structured `{{userContext}}` template variable instead of string concatenation.
 - ~~Colloquial word resilience~~ -- Done. Prompts updated to preserve dialectal words.
-- Prompt testing end-to-end (lemmatization, mismatch badges)
-- Disambiguation support, root word suggestions
-- Unmarked sentence mode (auto-detect unknown words)
+- ~~JSON-first pipeline~~ -- Done. Single LLM call returns JSON, no more markdown+extraction.
+- Unmarked sentence mode (auto-detect unknown words -- requires Anki-aware word filtering)
 
 ### 2. Testing Infrastructure
 
-Vitest set up with 31 tests across 3 test files. CI pipeline in place.
+Vitest set up with 80 tests across 6 test files. CI pipeline in place.
 
-- Done: card extraction (14 tests), prompt rendering (9 tests), client utils (8 tests)
-- Remaining: API route tests, SSE streaming, auth middleware, React component tests
+- Done: card extraction, JSON parsing, prompt rendering, AI service, client utils
+- Remaining: SSE integration tests, auth middleware, React component tests
 
 ### 3. Anki Add-on Finalization
 
@@ -84,17 +85,18 @@ Phases 1-5 complete. Phase 6 (shared prompts) done. Phase 7 (quick-translate) is
 
 ## Plan Documents
 
-| Doc                                    | Summary                                   | Status                  |
-| -------------------------------------- | ----------------------------------------- | ----------------------- |
-| [next-steps.md](next-steps.md)         | Web app feature TODOs                     | Active                  |
-| [anki-addon.md](anki-addon.md)         | Anki Desktop add-on plan                  | Phases 1-5 done, 6 done |
-| [security-audit.md](security-audit.md) | Security findings and fixes               | Complete (9/9)          |
-| [prompt-design.md](prompt-design.md)   | Prompt template design                    | Done (shared/prompts/)  |
-| [overview.md](overview.md)             | WebView architecture + phase plan         | Reference               |
-| [architecture.md](architecture.md)     | Data flow diagram                         | Reference               |
-| [repo-structure.md](repo-structure.md) | Monorepo layout                           | Reference               |
-| [progress.md](progress.md)             | What's been built                         | Reference               |
-| [team-workflow.md](team-workflow.md)   | Coordinator playbook for multi-agent work | Reference               |
+| Doc                                              | Summary                                               | Status                  |
+| ------------------------------------------------ | ----------------------------------------------------- | ----------------------- |
+| [next-steps.md](next-steps.md)                   | Web app feature TODOs                                 | Active                  |
+| [anki-addon.md](anki-addon.md)                   | Anki Desktop add-on plan                              | Phases 1-5 done, 6 done |
+| [security-audit.md](security-audit.md)           | Security findings and fixes                           | Complete (9/9)          |
+| [prompt-design.md](prompt-design.md)             | Prompt template design                                | Done (shared/prompts/)  |
+| [json-first-pipeline.md](json-first-pipeline.md) | Replace markdown+extraction with single JSON LLM call | Done (web)              |
+| [overview.md](overview.md)                       | WebView architecture + phase plan                     | Reference               |
+| [architecture.md](architecture.md)               | Data flow diagram                                     | Reference               |
+| [repo-structure.md](repo-structure.md)           | Monorepo layout                                       | Reference               |
+| [progress.md](progress.md)                       | What's been built                                     | Reference               |
+| [team-workflow.md](team-workflow.md)             | Coordinator playbook for multi-agent work             | Reference               |
 
 ### Completed (kept for reference)
 

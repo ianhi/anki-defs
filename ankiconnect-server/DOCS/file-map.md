@@ -6,7 +6,7 @@
 
 ## Routes (`src/routes/`)
 
-- `chat.ts` -- SSE streaming endpoint, input classification, card extraction pipeline; also non-streaming endpoints: /define, /relemmatize, /analyze
+- `chat.ts` -- SSE endpoint, input classification, JSON-first card pipeline (one LLM call); also /relemmatize
 - `anki.ts` -- AnkiConnect proxy routes (decks, models, notes, search, status)
 - `settings.ts` -- Settings CRUD (GET/PUT)
 - `session.ts` -- Session card persistence (SQLite-backed)
@@ -18,12 +18,12 @@
 
 ## Services (`src/services/`)
 
-- `ai.ts` -- Unified AI interface, system prompt templates, provider routing
-- `claude.ts` -- Claude API streaming provider
-- `gemini.ts` -- Gemini API streaming provider + structured card extraction
-- `openrouter.ts` -- OpenRouter API streaming provider
+- `ai.ts` -- Unified AI interface: `getJsonCompletion()`, prompt loading/rendering, provider routing
+- `claude.ts` -- Claude API provider (streaming + JSON completion)
+- `gemini.ts` -- Gemini API provider (streaming + JSON completion with `responseMimeType`)
+- `openrouter.ts` -- OpenRouter API provider (streaming + JSON completion)
 - `anki.ts` -- AnkiConnect wrapper (`yanki-connect` method chaining)
-- `cardExtraction.ts` -- Card extraction orchestration: parse AI response -> Anki duplicate check -> Gemini structured extraction -> lemma mismatch detection
+- `cardExtraction.ts` -- `buildCardPreviews()`: maps LLM JSON cards to CardPreview with Anki dedup
 - `settings.ts` -- Settings file management (`~/.config/bangla-anki/settings.json`)
 - `session.ts` -- SQLite session store (better-sqlite3)
 
