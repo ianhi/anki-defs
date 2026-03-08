@@ -8,11 +8,6 @@
 - Need to verify: card creation, search, deletion, SSE streaming, prompt loading
 - See `anki-addon/PLANNING/` for details
 
-### Migrate Android + add-on to JSON-first pipeline
-
-- See [json-first-pipeline.md](json-first-pipeline.md) for migration checklist
-- Both still use old two-call pipeline (markdown streaming + extraction)
-
 ## Medium Priority
 
 ### Unmarked sentence mode

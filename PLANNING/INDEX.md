@@ -2,7 +2,7 @@
 
 ## Current Status
 
-All three backends are functional. Web stack uses JSON-first pipeline (single LLM call).
+All three backends are functional. All use JSON-first pipeline (single LLM call).
 
 | Component | Status | Notes |
 |-----------|--------|-------|
@@ -19,7 +19,6 @@ All three backends are functional. Web stack uses JSON-first pipeline (single LL
 | Doc | Summary | What's left |
 |-----|---------|-------------|
 | [next-steps.md](next-steps.md) | Feature roadmap | Prioritized TODO list |
-| [json-first-pipeline.md](json-first-pipeline.md) | Migrate Android + add-on to single JSON call | Web done; Android and add-on still use old pipeline |
 
 ## Reference (keep, don't modify)
 

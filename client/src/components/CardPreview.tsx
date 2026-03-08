@@ -84,7 +84,7 @@ export function CardPreview({
   assistantMsgId,
   onRetryWithContext,
 }: CardPreviewProps) {
-  // Recover "added" state from session store after page refresh
+  // Derive "added" state reactively from session store (survives page refresh)
   const sessionCards = useSessionCards();
   const sessionMatch = sessionCards.cards.find(
     (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
@@ -93,15 +93,13 @@ export function CardPreview({
     (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
   );
 
-  const [isAdded, setIsAdded] = useState(!!sessionMatch);
+  const isAdded = !!sessionMatch;
+  const isQueued = !!pendingMatch;
+  const addedToDeck = sessionMatch?.deckName ?? pendingMatch?.deckName ?? null;
+  const addedNoteId = sessionMatch?.noteId ?? null;
+  const pendingQueueId = pendingMatch?.id ?? null;
+
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
-  const [isQueued, setIsQueued] = useState(!!pendingMatch);
-  // Track what deck/model the card was actually added to
-  const [addedToDeck, setAddedToDeck] = useState<string | null>(
-    sessionMatch?.deckName ?? pendingMatch?.deckName ?? null
-  );
-  const [addedNoteId, setAddedNoteId] = useState<number | null>(sessionMatch?.noteId ?? null);
-  const [pendingQueueId, setPendingQueueId] = useState<string | null>(pendingMatch?.id ?? null);
   // Editable word and definition
   const [editedWord, setEditedWord] = useState<string | null>(null);
   const [editedDefinition, setEditedDefinition] = useState<string | null>(null);
@@ -139,10 +137,7 @@ export function CardPreview({
 
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
-      const queueId = addToPendingQueue(cardPreview, targetDeck, targetModel);
-      setIsQueued(true);
-      setAddedToDeck(targetDeck);
-      setPendingQueueId(queueId);
+      addToPendingQueue(cardPreview, targetDeck, targetModel);
       return;
     }
 
@@ -159,34 +154,20 @@ export function CardPreview({
         },
         tags: ['auto-generated'],
       });
-      setIsAdded(true);
-      setAddedToDeck(targetDeck);
-      setAddedNoteId(noteId);
       addCard(cardPreview, targetDeck, targetModel, noteId);
     } catch (error) {
       console.error('Failed to create card, adding to queue:', error);
       // If Anki fails, add to pending queue
-      const queueId = addToPendingQueue(cardPreview, targetDeck, targetModel);
-      setIsQueued(true);
-      setAddedToDeck(targetDeck);
-      setPendingQueueId(queueId);
+      addToPendingQueue(cardPreview, targetDeck, targetModel);
     }
   };
 
   const handleUndo = async () => {
-    if (!addedNoteId) return;
+    if (!addedNoteId || !sessionMatch) return;
 
     try {
       await deleteNote.mutateAsync(addedNoteId);
-      // Find and remove the card from session
-      const sessionCards = useSessionCards.getState().cards;
-      const cardToRemove = sessionCards.find((c) => c.noteId === addedNoteId);
-      if (cardToRemove) {
-        removeCard(cardToRemove.id);
-      }
-      setIsAdded(false);
-      setAddedNoteId(null);
-      setAddedToDeck(null);
+      removeCard(sessionMatch.id);
     } catch (error) {
       console.error('Failed to undo card:', error);
     }
@@ -195,9 +176,6 @@ export function CardPreview({
   const handleRemoveFromQueue = () => {
     if (!pendingQueueId) return;
     removeFromPendingQueue(pendingQueueId);
-    setIsQueued(false);
-    setPendingQueueId(null);
-    setAddedToDeck(null);
   };
 
   const handleRelemmatize = async () => {
