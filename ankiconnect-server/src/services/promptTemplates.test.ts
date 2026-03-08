@@ -10,6 +10,17 @@ function loadPrompt(name: string): Record<string, unknown> {
   return JSON.parse(readFileSync(resolve(promptsDir, `${name}.json`), 'utf-8'));
 }
 
+// Render a template by substituting all variables (mimics ai.ts renderPrompt)
+function renderTemplate(template: string): string {
+  const vars = loadPrompt('variables') as Record<string, unknown>;
+  return template
+    .replace(/\{\{preamble\}\}/g, vars.preamble as string)
+    .replace(/\{\{sharedRules\}\}/g, vars.sharedRules as string)
+    .replace(/\{\{transliterationInstruction\}\}/g, '')
+    .replace(/\{\{translitMarker\}\}/g, '')
+    .replace(/\{\{lemmaRules\}\}/g, vars.lemmaRules as string);
+}
+
 const singleWord = loadPrompt('single-word');
 const sentence = loadPrompt('sentence');
 const focusedWords = loadPrompt('focused-words');
@@ -40,9 +51,14 @@ describe('single-word.json', () => {
     expect(singleWord.user_template).toContain('{{userContext}}');
   });
 
-  it('mentions colloquial or dialectal handling', () => {
-    const system = singleWord.system as string;
-    expect(system).toMatch(/colloquial|dialectal/i);
+  it('rendered prompt mentions colloquial or dialectal handling', () => {
+    const rendered = renderTemplate(singleWord.system as string);
+    expect(rendered).toMatch(/colloquial|dialectal/i);
+  });
+
+  it('rendered prompt contains lemmatization rules', () => {
+    const rendered = renderTemplate(singleWord.system as string);
+    expect(rendered).toContain('Lemmatization Rules');
   });
 });
 
@@ -53,8 +69,9 @@ describe('sentence.json', () => {
     expect(sentence.user_template).toContain('{{userContext}}');
   });
 
-  it('contains "Do NOT generate example sentences"', () => {
-    expect(sentence.system as string).toContain('Do NOT generate example sentences');
+  it('rendered prompt says not to generate example sentences', () => {
+    const rendered = renderTemplate(sentence.system as string);
+    expect(rendered).toMatch(/do not generate.*example sentences/i);
   });
 });
 
@@ -65,8 +82,9 @@ describe('focused-words.json', () => {
     expect(focusedWords.user_template).toContain('{{highlightedWords}}');
   });
 
-  it('contains "Do NOT generate example sentences"', () => {
-    expect(focusedWords.system as string).toContain('Do NOT generate example sentences');
+  it('rendered prompt says not to generate example sentences', () => {
+    const rendered = renderTemplate(focusedWords.system as string);
+    expect(rendered).toMatch(/do not generate.*example sentences/i);
   });
 });
 
@@ -77,6 +95,18 @@ describe('card-extraction.json', () => {
 });
 
 describe('variables.json', () => {
+  it('has preamble as a non-empty string', () => {
+    expect(variables.preamble).toBeDefined();
+    expect(typeof variables.preamble).toBe('string');
+    expect((variables.preamble as string).length).toBeGreaterThan(0);
+  });
+
+  it('has sharedRules as a non-empty string', () => {
+    expect(variables.sharedRules).toBeDefined();
+    expect(typeof variables.sharedRules).toBe('string');
+    expect((variables.sharedRules as string).length).toBeGreaterThan(0);
+  });
+
   it('has lemmaRules as a non-empty string', () => {
     expect(variables.lemmaRules).toBeDefined();
     expect(typeof variables.lemmaRules).toBe('string');

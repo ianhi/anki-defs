@@ -66,6 +66,8 @@ function loadPrompt(name: string): { system: string; user_template?: string } {
 }
 
 interface Variables {
+  preamble: string;
+  sharedRules: string;
   lemmaRules: string;
   transliteration: {
     instruction: { true: string; false: string };
@@ -88,6 +90,8 @@ const promptTemplates = {
 function renderPrompt(template: string, transliteration: boolean): string {
   const key = transliteration ? 'true' : 'false';
   return template
+    .replace(/\{\{preamble\}\}/g, variables.preamble)
+    .replace(/\{\{sharedRules\}\}/g, variables.sharedRules)
     .replace(/\{\{transliterationInstruction\}\}/g, variables.transliteration.instruction[key])
     .replace(/\{\{translitMarker\}\}/g, variables.transliteration.marker[key])
     .replace(/\{\{lemmaRules\}\}/g, variables.lemmaRules);

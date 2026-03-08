@@ -4,6 +4,7 @@ import { Settings } from './components/Settings';
 import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckSelector';
 import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { RetryUxDemo } from './components/RetryUxDemo';
+import { PromptPreview } from './components/PromptPreview';
 import { SettingsIcon, X, Layers, RefreshCw } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
@@ -17,6 +18,9 @@ const demoParam = new URLSearchParams(window.location.search).get('demo');
 export default function App() {
   if (demoParam === 'retry') {
     return <RetryUxDemo />;
+  }
+  if (demoParam === 'prompts') {
+    return <PromptPreview />;
   }
 
   return <MainApp />;

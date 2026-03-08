@@ -26,6 +26,7 @@ import express from 'express';
 import cors from 'cors';
 import { ankiRouter } from './routes/anki.js';
 import { chatRouter } from './routes/chat.js';
+import { promptsRouter } from './routes/prompts.js';
 import { settingsRouter } from './routes/settings.js';
 import { sessionRouter } from './routes/session.js';
 import { getSettings, saveSettings } from './services/settings.js';
@@ -73,6 +74,7 @@ app.use('/api', async (req, res, next) => {
 // Routes
 app.use('/api/anki', ankiRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/prompts', promptsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/session', sessionRouter);
 

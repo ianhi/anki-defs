@@ -43,7 +43,8 @@ chatRouter.post('/stream', async (req, res) => {
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
   // Determine if this is a single word or a sentence/phrase
-  const isSingleWord = !newMessage.includes(' ') && newMessage.length < 30;
+  const trimmedMessage = newMessage.trim();
+  const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
   const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
   // Select the appropriate prompt based on input type
