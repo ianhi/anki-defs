@@ -28,15 +28,23 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings: { ...state.settings, aiProvider: provider },
     })),
 
-  setDefaultDeck: (deck) =>
+  setDefaultDeck: (deck) => {
     set((state) => ({
       settings: { ...state.settings, defaultDeck: deck },
-    })),
+    }));
+    settingsApi.update({ defaultDeck: deck }).catch((err) => {
+      console.error('Failed to persist deck selection:', err);
+    });
+  },
 
-  setDefaultModel: (model) =>
+  setDefaultModel: (model) => {
     set((state) => ({
       settings: { ...state.settings, defaultModel: model },
-    })),
+    }));
+    settingsApi.update({ defaultModel: model }).catch((err) => {
+      console.error('Failed to persist model selection:', err);
+    });
+  },
 
   loadSettings: (settings) =>
     set({
