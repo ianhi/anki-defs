@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/Button';
+import { CardPreview as CardPreviewComponent } from './CardPreview';
 import { parseHighlightedWords, getCleanText } from '../lib/focus';
 import { chatApi } from '../lib/api';
 import type { CardPreview, TokenUsage } from 'shared';
@@ -154,21 +155,27 @@ const TEST_CASES: TestCase[] = [
   },
   {
     label: 'Missing chandrabindu',
-    value: 'কাদা',
-    description: 'কাদা (mud) vs কাঁদা (to cry) — missing ঁ is a common learner typo for "to cry"',
+    value: 'বাচ্চাটা **কাদছে** কারণ সে পড়ে গেছে',
+    description:
+      'কাদছে missing ঁ — context (child fell down) makes it কাঁদছে (crying), not কাদা (mud)',
     checks: (cards) => {
       const card = cards[0];
       return [
         { label: 'Returns exactly 1 card', pass: cards.length === 1 },
         {
-          label: 'Has definition',
-          pass: !!card && card.definition.length > 0,
+          label: 'Lemmatized to কাঁদা (to cry)',
+          pass: !!card && card.word === 'কাঁদা',
           detail: card ? `${card.word} — ${card.definition}` : undefined,
         },
         {
-          label: 'spellingCorrection field present (if interpreted as কাঁদা typo)',
-          pass: !!card && (!!card.spellingCorrection || card.word === 'কাদা'),
-          detail: card?.spellingCorrection ?? `word: ${card?.word} (may be valid — কাদা means mud)`,
+          label: 'spellingCorrection notes কাদছে → কাঁদছে',
+          pass: !!card && !!card.spellingCorrection,
+          detail: card?.spellingCorrection ?? '(missing)',
+        },
+        {
+          label: 'Corrected spelling in exampleSentence (কাঁদছে not কাদছে)',
+          pass: !!card && card.exampleSentence.includes('কাঁদ'),
+          detail: card?.exampleSentence,
         },
       ];
     },
@@ -530,6 +537,14 @@ function TestCaseCard({
                 <span className="text-muted-foreground ml-1 truncate">— {check.detail}</span>
               )}
             </div>
+          ))}
+        </div>
+      )}
+
+      {result && result.cards.length > 0 && (
+        <div className="px-4 py-3 border-t border-border/50 space-y-2">
+          {result.cards.map((card, i) => (
+            <CardPreviewComponent key={i} preview={card} />
           ))}
         </div>
       )}

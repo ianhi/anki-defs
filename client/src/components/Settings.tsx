@@ -193,6 +193,7 @@ export function Settings() {
               <option value="gemini-2.0-flash">Gemini 2.0 Flash ($0.10/$0.40)</option>
               <option value="gemini-2.5-flash">Gemini 2.5 Flash ($0.15/$0.60)</option>
               <option value="gemini-2.5-pro">Gemini 2.5 Pro ($1.25/$10.00)</option>
+              <option value="gemini-3-flash-preview">Gemini 3 Flash ($0.50/$3.00)</option>
             </Select>
           </div>
         </>
@@ -223,6 +224,7 @@ export function Settings() {
                 handleChange('openRouterModel', e.target.value)
               }
             >
+              <option value="google/gemini-3-flash-preview">Gemini 3 Flash ($0.50/$3.00)</option>
               <option value="google/gemini-2.5-flash">Gemini 2.5 Flash ($0.30/$2.50)</option>
               <option value="openai/gpt-4.1-nano">GPT-4.1 Nano ($0.10/$0.40)</option>
               <option value="openai/gpt-4.1-mini">GPT-4.1 Mini ($0.40/$1.60)</option>
