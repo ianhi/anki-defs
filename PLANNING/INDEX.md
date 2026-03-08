@@ -19,6 +19,7 @@ All three backends are functional. All use JSON-first pipeline (single LLM call)
 | Doc | Summary | What's left |
 |-----|---------|-------------|
 | [next-steps.md](next-steps.md) | Feature roadmap | Prioritized TODO list |
+| [english-to-bangla.md](english-to-bangla.md) | English → Bangla lookup mode | Design phase — needs prefix vs auto-detect decision |
 
 ## Reference (keep, don't modify)
 
