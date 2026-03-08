@@ -63,13 +63,24 @@ export function CardPreview({
   assistantMsgId,
   onRetryWithContext,
 }: CardPreviewProps) {
-  const [isAdded, setIsAdded] = useState(false);
+  // Recover "added" state from session store after page refresh
+  const sessionCards = useSessionCards();
+  const sessionMatch = sessionCards.cards.find(
+    (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
+  );
+  const pendingMatch = sessionCards.pendingQueue.find(
+    (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
+  );
+
+  const [isAdded, setIsAdded] = useState(!!sessionMatch);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
-  const [isQueued, setIsQueued] = useState(false);
+  const [isQueued, setIsQueued] = useState(!!pendingMatch);
   // Track what deck/model the card was actually added to
-  const [addedToDeck, setAddedToDeck] = useState<string | null>(null);
-  const [addedNoteId, setAddedNoteId] = useState<number | null>(null);
-  const [pendingQueueId, setPendingQueueId] = useState<string | null>(null);
+  const [addedToDeck, setAddedToDeck] = useState<string | null>(
+    sessionMatch?.deckName ?? pendingMatch?.deckName ?? null
+  );
+  const [addedNoteId, setAddedNoteId] = useState<number | null>(sessionMatch?.noteId ?? null);
+  const [pendingQueueId, setPendingQueueId] = useState<string | null>(pendingMatch?.id ?? null);
   // Editable word and definition
   const [editedWord, setEditedWord] = useState<string | null>(null);
   const [editedDefinition, setEditedDefinition] = useState<string | null>(null);
@@ -79,8 +90,7 @@ export function CardPreview({
   const [retryContext, setRetryContext] = useState('');
 
   const { settings } = useSettingsStore();
-  const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } =
-    useSessionCards();
+  const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } = sessionCards;
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
   const deleteNote = useDeleteNote();
