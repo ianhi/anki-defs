@@ -53,8 +53,16 @@ export async function searchNotes(query: string): Promise<AnkiNote[]> {
     }));
 }
 
+/** Get the top-level deck name for duplicate searches (e.g. "Bangla::Foo::Bar" → "Bangla"). */
+function getRootDeck(deckName: string): string {
+  const sep = deckName.indexOf('::');
+  return sep === -1 ? deckName : deckName.substring(0, sep);
+}
+
 export async function searchWord(word: string, deckName: string): Promise<AnkiNote | null> {
-  const escapedDeck = deckName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  // Search the root deck so duplicates are found across all subdecks
+  const rootDeck = getRootDeck(deckName);
+  const escapedDeck = rootDeck.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const escapedWord = word.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
   // Search the word field from settings mapping, plus common fallbacks
@@ -188,11 +196,14 @@ async function refreshWordCache(): Promise<void> {
   const deckName = settings.defaultDeck;
   if (!deckName) return;
 
+  // Cache the root deck so duplicates are found across all subdecks
+  const rootDeck = getRootDeck(deckName);
+
   const ankiClient = await getClient();
-  const escapedDeck = deckName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const escapedDeck = rootDeck.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const noteIds = await ankiClient.note.findNotes({ query: `deck:"${escapedDeck}"` });
   if (noteIds.length === 0) {
-    wordCache.set(deckName, new Set());
+    wordCache.set(rootDeck, new Set());
     return;
   }
 
@@ -209,8 +220,8 @@ async function refreshWordCache(): Promise<void> {
     }
   }
 
-  wordCache.set(deckName, words);
-  console.log(`[Anki] Word cache refreshed for "${deckName}": ${words.size} words`);
+  wordCache.set(rootDeck, words);
+  console.log(`[Anki] Word cache refreshed for "${rootDeck}": ${words.size} words`);
 }
 
 /**
@@ -221,8 +232,8 @@ export async function searchWordCached(word: string, deckName: string): Promise<
   try {
     return await searchWord(word, deckName);
   } catch {
-    // Anki offline -- check the cache
-    const cached = wordCache.get(deckName);
+    // Anki offline -- check the cache (keyed by root deck)
+    const cached = wordCache.get(getRootDeck(deckName));
     if (cached && cached.has(word.toLowerCase())) {
       return {
         noteId: 0,
@@ -259,10 +270,11 @@ export async function searchWordsCached(
 
 /** Add a word to the cache after successful card creation. */
 export function addWordToCache(word: string, deckName: string): void {
-  let cached = wordCache.get(deckName);
+  const rootDeck = getRootDeck(deckName);
+  let cached = wordCache.get(rootDeck);
   if (!cached) {
     cached = new Set();
-    wordCache.set(deckName, cached);
+    wordCache.set(rootDeck, cached);
   }
   cached.add(word.toLowerCase());
 }
