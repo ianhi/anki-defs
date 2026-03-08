@@ -14,7 +14,6 @@ import {
   Plus,
   Loader2,
   X,
-  AlertTriangle,
   Clock,
   Undo2,
   Pencil,
@@ -268,15 +267,6 @@ export function CardPreview({
             {preview.spellingCorrection && (
               <Badge variant="outline" className="border-blue-500 text-blue-600 dark:text-blue-400">
                 {preview.spellingCorrection}
-              </Badge>
-            )}
-            {alreadyExists && (
-              <Badge
-                variant="outline"
-                className="border-yellow-500 text-yellow-600 dark:text-yellow-400"
-              >
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                {existsInSession && !preview.alreadyExists ? 'In session' : 'In deck'}
               </Badge>
             )}
           </div>
