@@ -67,8 +67,8 @@ function loadPrompt(name: string): { system: string; user_template?: string } {
 
 interface Variables {
   preamble: string;
-  sharedRules: string;
-  lemmaRules: string;
+  outputRules: string;
+  languageRules: string;
   transliteration: {
     instruction: { true: string; false: string };
     marker: { true: string; false: string };
@@ -91,10 +91,10 @@ function renderPrompt(template: string, transliteration: boolean): string {
   const key = transliteration ? 'true' : 'false';
   return template
     .replace(/\{\{preamble\}\}/g, variables.preamble)
-    .replace(/\{\{sharedRules\}\}/g, variables.sharedRules)
+    .replace(/\{\{outputRules\}\}/g, variables.outputRules)
+    .replace(/\{\{languageRules\}\}/g, variables.languageRules)
     .replace(/\{\{transliterationInstruction\}\}/g, variables.transliteration.instruction[key])
-    .replace(/\{\{translitMarker\}\}/g, variables.transliteration.marker[key])
-    .replace(/\{\{lemmaRules\}\}/g, variables.lemmaRules);
+    .replace(/\{\{translitMarker\}\}/g, variables.transliteration.marker[key]);
 }
 
 // System prompts for different operations

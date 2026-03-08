@@ -126,7 +126,8 @@ template as `(User note: ...)`. Multiple retries stack context with `; ` separat
 | `ankiconnect-server/src/routes/chat.ts`             | Mode detection, prompt selection, SSE orchestration |
 | `ankiconnect-server/src/services/cardExtraction.ts` | Inflected form extraction, card preview building    |
 | `ankiconnect-server/src/services/gemini.ts`         | `extractCardData` / `extractCardDataFromSentence`   |
-| `ankiconnect-server/src/services/ai.ts`             | Prompt loading, template rendering                  |
+| `ankiconnect-server/src/services/ai.ts`             | Prompt loading, variable rendering (`renderPrompt`) |
 | `client/src/components/CardPreview.tsx`             | Card UI, add/undo/edit, retry-with-context          |
 | `client/src/lib/utils.ts`                           | `boldWordInSentence()`                              |
 | `shared/prompts/*.json`                             | Prompt templates with `{{variable}}` substitution   |
+| `shared/prompts/variables.json`                     | Shared variables: `preamble`, `outputRules`, `languageRules`, `transliteration` |

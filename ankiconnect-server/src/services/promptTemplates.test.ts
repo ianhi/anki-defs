@@ -15,10 +15,10 @@ function renderTemplate(template: string): string {
   const vars = loadPrompt('variables') as Record<string, unknown>;
   return template
     .replace(/\{\{preamble\}\}/g, vars.preamble as string)
-    .replace(/\{\{sharedRules\}\}/g, vars.sharedRules as string)
+    .replace(/\{\{outputRules\}\}/g, vars.outputRules as string)
+    .replace(/\{\{languageRules\}\}/g, vars.languageRules as string)
     .replace(/\{\{transliterationInstruction\}\}/g, '')
-    .replace(/\{\{translitMarker\}\}/g, '')
-    .replace(/\{\{lemmaRules\}\}/g, vars.lemmaRules as string);
+    .replace(/\{\{translitMarker\}\}/g, '');
 }
 
 const singleWord = loadPrompt('single-word');
@@ -56,9 +56,10 @@ describe('single-word.json', () => {
     expect(rendered).toMatch(/colloquial|dialectal/i);
   });
 
-  it('rendered prompt contains lemmatization rules', () => {
+  it('rendered prompt contains language-specific rules', () => {
     const rendered = renderTemplate(singleWord.system as string);
-    expect(rendered).toContain('Lemmatization Rules');
+    expect(rendered).toContain('Lemmatization');
+    expect(rendered).toContain('Bangla');
   });
 });
 
@@ -101,16 +102,16 @@ describe('variables.json', () => {
     expect((variables.preamble as string).length).toBeGreaterThan(0);
   });
 
-  it('has sharedRules as a non-empty string', () => {
-    expect(variables.sharedRules).toBeDefined();
-    expect(typeof variables.sharedRules).toBe('string');
-    expect((variables.sharedRules as string).length).toBeGreaterThan(0);
+  it('has outputRules as a non-empty string', () => {
+    expect(variables.outputRules).toBeDefined();
+    expect(typeof variables.outputRules).toBe('string');
+    expect((variables.outputRules as string).length).toBeGreaterThan(0);
   });
 
-  it('has lemmaRules as a non-empty string', () => {
-    expect(variables.lemmaRules).toBeDefined();
-    expect(typeof variables.lemmaRules).toBe('string');
-    expect((variables.lemmaRules as string).length).toBeGreaterThan(0);
+  it('has languageRules as a non-empty string', () => {
+    expect(variables.languageRules).toBeDefined();
+    expect(typeof variables.languageRules).toBe('string');
+    expect((variables.languageRules as string).length).toBeGreaterThan(0);
   });
 
   it('has transliteration.instruction with true and false keys', () => {

@@ -10,6 +10,7 @@
 - `anki.ts` -- AnkiConnect proxy routes (decks, models, notes, search, status)
 - `settings.ts` -- Settings CRUD (GET/PUT)
 - `session.ts` -- Session card persistence (SQLite-backed)
+- `prompts.ts` -- POST /api/prompts/preview: renders prompt templates without calling LLM (debug tool)
 
 ## Types (`src/types/`)
 
@@ -35,6 +36,8 @@
 
 ## Modifying AI Prompts
 
-1. Edit system prompts in `src/services/ai.ts`
-2. Update expected JSON response format if needed
-3. Update types in `shared/types.ts` if response shape changes
+1. Edit prompt templates in `shared/prompts/*.json` (NOT in ai.ts)
+2. Template variables (`{{preamble}}`, `{{outputRules}}`, `{{languageRules}}`, etc.) are defined in `shared/prompts/variables.json`
+3. Variable substitution happens in `src/services/ai.ts` (`renderPrompt`)
+4. Use `/api/prompts/preview` or the `?demo=prompts` debug page to test rendered output
+5. Update types in `shared/types.ts` if response shape changes
