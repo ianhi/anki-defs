@@ -4,15 +4,24 @@
 
 All three backends are functional. All use JSON-first pipeline (single LLM call).
 
-| Component                                   | Status           | Notes                                                                     |
-| ------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
-| Web app (`client/` + `ankiconnect-server/`) | Working          | JSON-first pipeline, 3 AI providers, bearer auth, mobile UX               |
-| Android (`android/`)                        | Working          | WebView + NanoHTTPd, still uses old two-call pipeline                     |
-| Anki add-on (`anki-addon/`)                 | Code complete    | Never manually tested inside Anki Desktop                                 |
-| Shared prompts (`shared/prompts/`)          | Working          | JSON-format templates, all backends load from shared                      |
-| Tests                                       | 149 vitest tests | Auth, session, settings, card extraction, prompts, AI, client hooks/utils |
-| CI                                          | Working          | `.github/workflows/ci.yml` — typecheck + lint + format + tests            |
-| Docs site (`docs/`)                         | Deployed         | Astro Starlight on GitHub Pages                                           |
+| Component                                   | Status           | Notes                                                                          |
+| ------------------------------------------- | ---------------- | ------------------------------------------------------------------------------ |
+| Web app (`client/` + `ankiconnect-server/`) | Working          | JSON-first pipeline, 3 AI providers, bearer auth, mobile UX, EN→BN mode       |
+| Android (`android/`)                        | Working          | WebView + NanoHTTPd, still uses old two-call pipeline                          |
+| Anki add-on (`anki-addon/`)                 | Code complete    | Never manually tested inside Anki Desktop                                      |
+| Shared prompts (`shared/prompts/`)          | Working          | JSON-format templates incl. english-to-bangla, all backends load from shared   |
+| Tests                                       | 149 vitest tests | Auth, session, settings, card extraction, prompts, AI, client hooks/utils      |
+| CI                                          | Working          | `.github/workflows/ci.yml` — typecheck + lint + format + tests                 |
+| Docs site (`docs/`)                         | Deployed         | Astro Starlight on GitHub Pages                                                |
+
+### Recent additions (not yet reflected in test count)
+
+- English → Bangla lookup mode (prefix `bn:` + auto-detect Latin, disambiguation via highlights)
+- Concurrent streaming (type next prompt while previous processes)
+- "Add All" button for multi-card responses
+- Server-side token usage tracking (SQLite)
+- History & search panel with indexed queries
+- Token display dropdown (input/output breakdown + cost)
 
 ## Active Plans
 
@@ -27,7 +36,7 @@ All three backends are functional. All use JSON-first pipeline (single LLM call)
 | [security-audit.md](security-audit.md)   | Security findings — all 9 fixes implemented |
 | [team-workflow.md](team-workflow.md)     | Coordinator playbook for multi-agent work   |
 | [repo-structure.md](repo-structure.md)   | Monorepo layout explanation                 |
-| [anki-addon.md](anki-addon.md)           | Add-on architecture (QTimer, zero deps)     |
+| [anki-addon.md](anki-addon.md)           | Add-on architecture (can bundle deps)       |
 | [android-backend.md](android-backend.md) | NanoHTTPd server design                     |
 | [quick-translate.md](quick-translate.md) | Future: native Android popup for quick defs |
 
