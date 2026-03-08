@@ -35,7 +35,20 @@ promptsRouter.post('/preview', async (req, res) => {
   let systemPrompt: string;
   let userMessage: string;
 
-  if (isEnglishToBangla) {
+  if (isEnglishToBangla && hasHighlightedWords) {
+    mode = 'english-to-bangla-focused';
+    systemPrompt = prompts.englishToBangla;
+    const rendered = aiService.renderUserTemplate(
+      'englishToBangla',
+      {
+        sentence: newMessage,
+        highlightedWords: highlightedWords.join(', '),
+      },
+      'focused'
+    );
+    userMessage =
+      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
+  } else if (isEnglishToBangla) {
     mode = 'english-to-bangla';
     systemPrompt = prompts.englishToBangla;
     const rendered = aiService.renderUserTemplate('englishToBangla', { word: newMessage });

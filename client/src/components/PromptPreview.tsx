@@ -79,6 +79,38 @@ const TEST_CASES: TestCase[] = [
     },
   },
   {
+    label: 'EN→BN: disambig',
+    value: 'they tried to **frame** him',
+    description:
+      'English sentence with highlight — should pick "to frame someone" meaning, not picture frame',
+    mode: 'english-to-bangla',
+    checks: (cards) => {
+      const card = cards[0];
+      return [
+        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        {
+          label: 'Word is Bangla',
+          pass: !!card && /[\u0980-\u09FF]/.test(card.word),
+          detail: card?.word,
+        },
+        {
+          label: 'Definition relates to framing/accusing (not picture frame)',
+          pass:
+            !!card &&
+            /frame|accus|blame|falsely|set.?up|ফাঁস/i.test(
+              card.definition + ' ' + (card.banglaDefinition || '')
+            ),
+          detail: card ? `${card.word} — ${card.definition}` : undefined,
+        },
+        {
+          label: 'Has example sentence with bold',
+          pass: !!card && /\*\*[^*]+\*\*/.test(card.exampleSentence),
+          detail: card?.exampleSentence,
+        },
+      ];
+    },
+  },
+  {
     label: 'Single word',
     value: 'বাজার',
     description: 'Basic single word lookup',

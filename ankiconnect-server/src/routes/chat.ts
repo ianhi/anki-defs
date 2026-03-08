@@ -68,7 +68,21 @@ chatRouter.post('/stream', async (req, res) => {
   let systemPrompt: string;
   let userMessage: string;
 
-  if (isEnglishToBangla) {
+  if (isEnglishToBangla && hasHighlightedWords) {
+    // English sentence with highlighted words → disambiguated EN→BN lookup
+    systemPrompt = prompts.englishToBangla;
+    const rendered = aiService.renderUserTemplate(
+      'englishToBangla',
+      {
+        sentence: newMessage,
+        highlightedWords: highlightedWords.join(', '),
+      },
+      'focused'
+    );
+    userMessage =
+      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
+    console.log('[Chat] Using English→Bangla focused prompt for:', highlightedWords);
+  } else if (isEnglishToBangla) {
     systemPrompt = prompts.englishToBangla;
     const rendered = aiService.renderUserTemplate('englishToBangla', {
       word: newMessage,

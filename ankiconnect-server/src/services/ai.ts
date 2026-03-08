@@ -76,7 +76,11 @@ export function resetClients(): void {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const promptsDir = resolve(__dirname, '../../../shared/prompts');
 
-function loadPrompt(name: string): { system: string; user_template?: string } {
+function loadPrompt(name: string): {
+  system: string;
+  user_template?: string;
+  user_template_focused?: string;
+} {
   const filePath = resolve(promptsDir, `${name}.json`);
   return JSON.parse(readFileSync(filePath, 'utf-8'));
 }
@@ -141,12 +145,17 @@ export function renderUserTemplate(
     userContext?: string;
     sentence?: string;
     highlightedWords?: string;
-  }
+  },
+  variant?: 'focused'
 ): string | null {
   const template = promptTemplates[templateKey];
-  if (!template.user_template) return null;
+  const templateStr =
+    variant === 'focused' && template.user_template_focused
+      ? template.user_template_focused
+      : template.user_template;
+  if (!templateStr) return null;
 
-  let result = template.user_template;
+  let result = templateStr;
   result = result.replace(/\{\{word\}\}/g, variables.word || '');
   result = result.replace(
     /\{\{userContext\}\}/g,

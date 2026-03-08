@@ -52,7 +52,7 @@ export function MessageInput({
     const trimmed = value.trim();
 
     if (isEnglishToBangla) {
-      // Strip prefix if present, send with mode
+      // Strip prefix if present, keep ** markers for disambiguation
       const text = hasPrefix ? trimmed.slice(prefix.length).trim() : trimmed;
       if (text && !disabled) {
         onSend(text, 'english-to-bangla');
@@ -199,10 +199,11 @@ export function MessageInput({
             </span>
             <span className="text-muted-foreground">
               {hasPrefix ? 'prefix detected' : 'auto-detected'}
+              {hasSpaces && highlightedWords.length === 0 ? ' · tap words to disambiguate' : ''}
             </span>
           </div>
         )}
-        {showFocusBar && !isEnglishToBangla && (
+        {showFocusBar && (
           <div className="flex items-center gap-2 text-sm min-h-[28px]">
             <span className="text-muted-foreground shrink-0">Focus:</span>
             <div className="flex gap-1 flex-wrap items-center">
