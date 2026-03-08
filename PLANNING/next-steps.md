@@ -21,12 +21,6 @@
 - Add `eng-disambig` and `bangla-disambig` fields for homonyms
 - e.g. তারা = star vs they
 
-### Cache prompt files in production
-
-- `reloadPrompts()` is called on every `/api/prompts/preview` request for live editing
-- For normal usage, prompts should be loaded once at startup
-- Use `NODE_ENV` check or only reload in preview endpoint
-
 ## Lower Priority
 
 ### Cloze card support
@@ -36,12 +30,3 @@
 ### Web search verification
 
 - Verify definitions via Samsad dictionary or Wiktionary for uncommon words
-
-### ~~History and search~~ (DONE)
-
-- Searchable history panel with debounced full-text search across word/definition/banglaDefinition
-- `GET /api/session/history` endpoint with `?q=`, `?limit=`, `?offset=` pagination
-
-### More test coverage
-
-- SSE integration tests, auth middleware, React component tests

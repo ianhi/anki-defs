@@ -10,7 +10,7 @@ All three backends are functional. All use JSON-first pipeline (single LLM call)
 | Android (`android/`) | Working | WebView + NanoHTTPd, still uses old two-call pipeline |
 | Anki add-on (`anki-addon/`) | Code complete | Never manually tested inside Anki Desktop |
 | Shared prompts (`shared/prompts/`) | Working | JSON-format templates, all backends load from shared |
-| Tests | 80+ vitest tests | Card extraction, JSON parsing, prompts, AI service, client utils |
+| Tests | 149 vitest tests | Auth, session, settings, card extraction, prompts, AI, client hooks/utils |
 | CI | Working | `.github/workflows/ci.yml` — typecheck + lint + format + tests |
 | Docs site (`docs/`) | Deployed | Astro Starlight on GitHub Pages |
 
