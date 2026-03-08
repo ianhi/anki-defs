@@ -26,9 +26,11 @@ The project has three backends sharing one React frontend. All backends are func
   AI providers. Zero vendored dependencies (stdlib only). 45 unit tests. Build/install
   scripts in `scripts/`.
 
-- **Shared prompts** (`shared/prompts/`): 7 prompt templates + variables.json extracted to
-  JSON files. All three backends load from these at runtime (ankiconnect-server direct,
-  anki-addon via build copy, Android via Gradle asset copy).
+- **Shared prompts** (`shared/prompts/`): 5 prompt templates + variables.json extracted to
+  JSON files. Templates support `user_template` with `{{variable}}` substitution for
+  structured context injection (retry-with-context). All three backends load from these
+  at runtime (ankiconnect-server direct, anki-addon via build copy, Android via Gradle
+  asset copy). API contract enforcement script validates route parity across backends.
 
 - **Docs site** (`docs/`): Astro Starlight site. Pages: home, getting-started, usage,
   tailscale, architecture, anki-addon. GitHub Actions workflow deployed
@@ -54,6 +56,9 @@ The project has three backends sharing one React frontend. All backends are func
 
 See [next-steps.md](next-steps.md) for prioritized TODOs:
 
+- ~~Retry-with-context~~ -- Done. Inline context input on cards, stacking refinements,
+  structured `{{userContext}}` template variable instead of string concatenation.
+- ~~Colloquial word resilience~~ -- Done. Prompts updated to preserve dialectal words.
 - Prompt testing end-to-end (lemmatization, mismatch badges)
 - Disambiguation support, root word suggestions
 - Unmarked sentence mode (auto-detect unknown words)
