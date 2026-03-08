@@ -37,4 +37,23 @@ describe('boldWordInSentence', () => {
       'ছেলেটা <b>বাজারে</b> যাচ্ছে'
     );
   });
+
+  it('bolds one specific word when sentence has multiple Bangla words', () => {
+    // Focused-words: user highlights only one word from a multi-word sentence
+    expect(boldWordInSentence('সে বাজারে যাচ্ছে আর খাচ্ছে', 'যাচ্ছে')).toBe(
+      'সে বাজারে <b>যাচ্ছে</b> আর খাচ্ছে'
+    );
+  });
+
+  it('bolds inflected form when it differs from lemma', () => {
+    // In focused-words mode, the inflected form (e.g. বাজারে) is used for bolding
+    // even though the card's word is the lemma (বাজার)
+    const sentence = 'ছেলেটা বাজারে যাচ্ছে';
+    const inflectedForm = 'বাজারে'; // not the lemma বাজার
+    expect(boldWordInSentence(sentence, inflectedForm)).toBe('ছেলেটা <b>বাজারে</b> যাচ্ছে');
+  });
+
+  it('bolds only the first occurrence when word appears multiple times', () => {
+    expect(boldWordInSentence('cat and cat', 'cat')).toBe('<b>cat</b> and cat');
+  });
 });

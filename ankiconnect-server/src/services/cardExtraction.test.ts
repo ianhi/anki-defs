@@ -99,4 +99,24 @@ describe('extractInflectedForms', () => {
     expect(result.get('করা')).toBe('করেছিল');
     expect(result.get('কাঁদা')).toBe('কাঁদছে');
   });
+
+  it('maps inflected forms correctly for focused-words scenario', () => {
+    // When wordsForCards contains inflected forms from the sentence and
+    // Gemini returns lemmatized forms, extractInflectedForms should
+    // provide the mapping from lemma -> inflected form
+    const response = `## Word-by-word Analysis
+
+- **বাজারে** — in the market. From **বাজার**
+- **যাচ্ছে** — is going. From **যাওয়া**
+- **খাচ্ছে** — is eating. From **খাওয়া**`;
+
+    const inflectedForms = extractInflectedForms(response);
+
+    // Simulating focused-words: user highlighted "বাজারে" and "যাচ্ছে"
+    // The vocabulary list gives lemmas: বাজার, যাওয়া
+    // inflectedForms should map lemma -> inflected so we can set inflectedForm on card
+    expect(inflectedForms.get('বাজার')).toBe('বাজারে');
+    expect(inflectedForms.get('যাওয়া')).toBe('যাচ্ছে');
+    expect(inflectedForms.get('খাওয়া')).toBe('খাচ্ছে');
+  });
 });
