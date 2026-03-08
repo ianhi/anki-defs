@@ -93,13 +93,13 @@ sentence, each card gets the full sentence with only its word bolded.
 
 ## Card Fields
 
-| Standard Field     | Description                         | Anki Note Field (default) |
-| ------------------ | ----------------------------------- | ------------------------- |
-| Word               | Lemmatized dictionary form          | Bangla                    |
-| Definition         | English meaning (under 10 words)    | Eng_trans                 |
-| BanglaDefinition   | Bangla definition (simple, concise) | Bangla_definition         |
-| Example            | Example sentence with **bold** word | example sentence          |
-| Translation        | English translation of example      | sentence-trans            |
+| Standard Field   | Description                         | Anki Note Field (default) |
+| ---------------- | ----------------------------------- | ------------------------- |
+| Word             | Lemmatized dictionary form          | Bangla                    |
+| Definition       | English meaning (under 10 words)    | Eng_trans                 |
+| BanglaDefinition | Bangla definition (simple, concise) | Bangla_definition         |
+| Example          | Example sentence with **bold** word | example sentence          |
+| Translation      | English translation of example      | sentence-trans            |
 
 Field mapping is configurable in Settings — maps standard field names to the
 user's Anki note type field names.

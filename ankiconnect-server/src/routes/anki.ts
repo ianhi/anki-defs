@@ -68,6 +68,7 @@ ankiRouter.post('/notes', async (req, res) => {
       model: modelName,
       word: fields.Word || '',
       definition: fields.Definition || '',
+      banglaDefinition: fields.BanglaDefinition || '',
       exampleSentence: fields.Example || '',
       sentenceTranslation: fields.Translation || '',
       tags,

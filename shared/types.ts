@@ -70,6 +70,7 @@ export interface CreateCardParams {
   model: string;
   word: string;
   definition: string;
+  banglaDefinition: string;
   exampleSentence: string;
   sentenceTranslation: string;
   tags?: string[];

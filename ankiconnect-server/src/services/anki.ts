@@ -128,6 +128,9 @@ export async function createCard(params: CreateCardParams): Promise<number> {
   if (params.definition) {
     fields[mapping.Definition || 'Definition'] = params.definition;
   }
+  if (params.banglaDefinition) {
+    fields[mapping.BanglaDefinition || 'BanglaDefinition'] = params.banglaDefinition;
+  }
   if (params.exampleSentence) {
     fields[mapping.Example || 'Example'] = params.exampleSentence;
   }
