@@ -18,6 +18,7 @@ interface TestCase {
   label: string;
   value: string;
   description: string;
+  mode?: 'english-to-bangla';
   checks: (cards: CardPreview[]) => CheckResult[];
 }
 
@@ -28,6 +29,55 @@ interface CheckResult {
 }
 
 const TEST_CASES: TestCase[] = [
+  {
+    label: 'EN→BN: snatch',
+    value: 'snatch',
+    description: 'English word → most natural Bangla equivalent',
+    mode: 'english-to-bangla',
+    checks: (cards) => {
+      const card = cards[0];
+      return [
+        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        {
+          label: 'Word is Bangla (not English)',
+          pass: !!card && /[\u0980-\u09FF]/.test(card.word),
+          detail: card?.word,
+        },
+        {
+          label: 'Has English definition',
+          pass: !!card && card.definition.length > 0,
+          detail: card?.definition,
+        },
+        {
+          label: 'Example has **bold** markers',
+          pass: !!card && /\*\*[^*]+\*\*/.test(card.exampleSentence),
+          detail: card?.exampleSentence,
+        },
+      ];
+    },
+  },
+  {
+    label: 'EN→BN: phrase',
+    value: 'what does it matter',
+    description: 'English phrase → idiomatic Bangla equivalent (not word-by-word)',
+    mode: 'english-to-bangla',
+    checks: (cards) => {
+      const card = cards[0];
+      return [
+        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        {
+          label: 'Word is Bangla',
+          pass: !!card && /[\u0980-\u09FF]/.test(card.word),
+          detail: card ? `${card.word} — ${card.definition}` : undefined,
+        },
+        {
+          label: 'Has example sentence',
+          pass: !!card && card.exampleSentence.length > 0,
+          detail: card?.exampleSentence,
+        },
+      ];
+    },
+  },
   {
     label: 'Single word',
     value: 'বাজার',
@@ -247,7 +297,9 @@ async function runTestCase(tc: TestCase): Promise<LLMResult> {
     for await (const event of chatApi.stream(
       cleanText,
       undefined,
-      highlightedWords.length > 0 ? highlightedWords : undefined
+      highlightedWords.length > 0 ? highlightedWords : undefined,
+      undefined,
+      tc.mode
     )) {
       switch (event.type) {
         case 'card_preview':
@@ -274,7 +326,7 @@ async function runTestCase(tc: TestCase): Promise<LLMResult> {
   };
 }
 
-async function fetchPreview(text: string): Promise<PromptResult> {
+async function fetchPreview(text: string, mode?: string): Promise<PromptResult> {
   const highlightedWords = parseHighlightedWords(text);
   const cleanText = getCleanText(text);
 
@@ -284,6 +336,7 @@ async function fetchPreview(text: string): Promise<PromptResult> {
     body: JSON.stringify({
       newMessage: cleanText,
       highlightedWords: highlightedWords.length > 0 ? highlightedWords : undefined,
+      mode,
     }),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -312,7 +365,16 @@ export function PromptPreview() {
     debounceRef.current = setTimeout(async () => {
       try {
         setError(null);
-        setResult(await fetchPreview(input));
+        const trimmed = input.trim();
+        const prefix = settings.englishToBanglaPrefix || 'bn:';
+        const hasPrefix = trimmed.toLowerCase().startsWith(prefix.toLowerCase());
+        const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;]+$/.test(trimmed);
+        const previewMode =
+          trimmed.length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly))
+            ? 'english-to-bangla'
+            : undefined;
+        const previewInput = hasPrefix ? trimmed.slice(prefix.length).trim() : input;
+        setResult(await fetchPreview(previewInput, previewMode));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to fetch');
       }
@@ -321,7 +383,7 @@ export function PromptPreview() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [input]);
+  }, [input, settings.englishToBanglaPrefix, settings.autoDetectEnglish]);
 
   const runOne = async (tc: TestCase) => {
     setRunningTests((prev) => new Set(prev).add(tc.label));

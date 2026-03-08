@@ -96,6 +96,8 @@ export interface Settings {
   ankiConnectUrl: string;
   fieldMapping: FieldMapping;
   apiToken: string;
+  englishToBanglaPrefix: string;
+  autoDetectEnglish: boolean;
 }
 
 export const CARD_DATA_FIELDS = [
@@ -127,6 +129,8 @@ export const DEFAULT_SETTINGS: Settings = {
     Translation: 'sentence-trans',
   },
   apiToken: '',
+  englishToBanglaPrefix: 'bn:',
+  autoDetectEnglish: true,
 };
 
 // Model options per provider
@@ -186,6 +190,7 @@ export interface ChatStreamRequest {
   deck?: string;
   highlightedWords?: string[];
   userContext?: string;
+  mode?: 'english-to-bangla';
 }
 
 export interface SearchNotesRequest {

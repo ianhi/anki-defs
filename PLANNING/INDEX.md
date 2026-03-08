@@ -4,32 +4,31 @@
 
 All three backends are functional. All use JSON-first pipeline (single LLM call).
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Web app (`client/` + `ankiconnect-server/`) | Working | JSON-first pipeline, 3 AI providers, bearer auth, mobile UX |
-| Android (`android/`) | Working | WebView + NanoHTTPd, still uses old two-call pipeline |
-| Anki add-on (`anki-addon/`) | Code complete | Never manually tested inside Anki Desktop |
-| Shared prompts (`shared/prompts/`) | Working | JSON-format templates, all backends load from shared |
-| Tests | 149 vitest tests | Auth, session, settings, card extraction, prompts, AI, client hooks/utils |
-| CI | Working | `.github/workflows/ci.yml` — typecheck + lint + format + tests |
-| Docs site (`docs/`) | Deployed | Astro Starlight on GitHub Pages |
+| Component                                   | Status           | Notes                                                                     |
+| ------------------------------------------- | ---------------- | ------------------------------------------------------------------------- |
+| Web app (`client/` + `ankiconnect-server/`) | Working          | JSON-first pipeline, 3 AI providers, bearer auth, mobile UX               |
+| Android (`android/`)                        | Working          | WebView + NanoHTTPd, still uses old two-call pipeline                     |
+| Anki add-on (`anki-addon/`)                 | Code complete    | Never manually tested inside Anki Desktop                                 |
+| Shared prompts (`shared/prompts/`)          | Working          | JSON-format templates, all backends load from shared                      |
+| Tests                                       | 149 vitest tests | Auth, session, settings, card extraction, prompts, AI, client hooks/utils |
+| CI                                          | Working          | `.github/workflows/ci.yml` — typecheck + lint + format + tests            |
+| Docs site (`docs/`)                         | Deployed         | Astro Starlight on GitHub Pages                                           |
 
 ## Active Plans
 
-| Doc | Summary | What's left |
-|-----|---------|-------------|
+| Doc                            | Summary         | What's left           |
+| ------------------------------ | --------------- | --------------------- |
 | [next-steps.md](next-steps.md) | Feature roadmap | Prioritized TODO list |
-| [english-to-bangla.md](english-to-bangla.md) | English → Bangla lookup mode | Design phase — needs prefix vs auto-detect decision |
 
 ## Reference (keep, don't modify)
 
-| Doc | Purpose |
-|-----|---------|
-| [security-audit.md](security-audit.md) | Security findings — all 9 fixes implemented |
-| [team-workflow.md](team-workflow.md) | Coordinator playbook for multi-agent work |
-| [repo-structure.md](repo-structure.md) | Monorepo layout explanation |
-| [anki-addon.md](anki-addon.md) | Add-on architecture (QTimer, zero deps) |
-| [android-backend.md](android-backend.md) | NanoHTTPd server design |
+| Doc                                      | Purpose                                     |
+| ---------------------------------------- | ------------------------------------------- |
+| [security-audit.md](security-audit.md)   | Security findings — all 9 fixes implemented |
+| [team-workflow.md](team-workflow.md)     | Coordinator playbook for multi-agent work   |
+| [repo-structure.md](repo-structure.md)   | Monorepo layout explanation                 |
+| [anki-addon.md](anki-addon.md)           | Add-on architecture (QTimer, zero deps)     |
+| [android-backend.md](android-backend.md) | NanoHTTPd server design                     |
 | [quick-translate.md](quick-translate.md) | Future: native Android popup for quick defs |
 
 ## Subproject Planning

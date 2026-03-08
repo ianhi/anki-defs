@@ -100,6 +100,7 @@ function loadAllPrompts() {
     word: loadPrompt('single-word'),
     focusedWords: loadPrompt('focused-words'),
     relemmatize: loadPrompt('relemmatize'),
+    englishToBangla: loadPrompt('english-to-bangla'),
   };
 }
 
@@ -128,6 +129,7 @@ export function getSystemPrompts(transliteration: boolean) {
   return {
     word: renderPrompt(promptTemplates.word.system, transliteration),
     focusedWords: renderPrompt(promptTemplates.focusedWords.system, transliteration),
+    englishToBangla: renderPrompt(promptTemplates.englishToBangla.system, transliteration),
   };
 }
 

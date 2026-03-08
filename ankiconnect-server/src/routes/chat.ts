@@ -30,7 +30,7 @@ export function parseJsonResponse(raw: string): unknown {
 // POST /api/chat/stream - SSE endpoint for AI-generated card data
 chatRouter.post('/stream', async (req, res) => {
   console.log('[Chat] POST /stream');
-  const { newMessage, deck, highlightedWords, userContext } = req.body as ChatStreamRequest;
+  const { newMessage, deck, highlightedWords, userContext, mode } = req.body as ChatStreamRequest;
 
   if (!newMessage) {
     res.status(400).json({ error: 'newMessage is required' });
@@ -49,11 +49,12 @@ chatRouter.post('/stream', async (req, res) => {
 
   // Classify input
   const trimmedMessage = newMessage.trim();
+  const isEnglishToBangla = mode === 'english-to-bangla';
   const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
   const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
-  // Sentence without highlights is blocked
-  if (!isSingleWord && !hasHighlightedWords) {
+  // Sentence without highlights is blocked (unless English→Bangla mode)
+  if (!isEnglishToBangla && !isSingleWord && !hasHighlightedWords) {
     sendSSE(res, {
       type: 'error',
       data: 'Sentence mode without highlighted words is not supported. Please highlight the words you want to learn.',
@@ -67,7 +68,15 @@ chatRouter.post('/stream', async (req, res) => {
   let systemPrompt: string;
   let userMessage: string;
 
-  if (hasHighlightedWords) {
+  if (isEnglishToBangla) {
+    systemPrompt = prompts.englishToBangla;
+    const rendered = aiService.renderUserTemplate('englishToBangla', {
+      word: newMessage,
+      userContext,
+    });
+    userMessage = rendered || newMessage;
+    console.log('[Chat] Using English→Bangla prompt for:', newMessage);
+  } else if (hasHighlightedWords) {
     systemPrompt = prompts.focusedWords;
     const rendered = aiService.renderUserTemplate('focusedWords', {
       sentence: newMessage,
@@ -86,7 +95,12 @@ chatRouter.post('/stream', async (req, res) => {
   }
 
   // Pre-check Anki for input words (store full note for comparison UI)
-  const wordsToCheck = hasHighlightedWords ? highlightedWords : [newMessage];
+  // For English→Bangla, we can't pre-check since we don't know the Bangla word yet
+  const wordsToCheck = isEnglishToBangla
+    ? []
+    : hasHighlightedWords
+      ? highlightedWords
+      : [newMessage];
   const ankiResults = new Map<string, AnkiNote | null>();
 
   for (const word of wordsToCheck) {

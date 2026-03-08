@@ -8,9 +8,14 @@ export const promptsRouter = Router();
 // Reloads prompt files from disk each time so edits are picked up without restart
 promptsRouter.post('/preview', async (req, res) => {
   aiService.reloadPrompts();
-  const { newMessage, highlightedWords } = req.body as {
+  const {
+    newMessage,
+    highlightedWords,
+    mode: requestMode,
+  } = req.body as {
     newMessage: string;
     highlightedWords?: string[];
+    mode?: string;
   };
 
   if (!newMessage) {
@@ -22,6 +27,7 @@ promptsRouter.post('/preview', async (req, res) => {
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
   const trimmedMessage = newMessage.trim();
+  const isEnglishToBangla = requestMode === 'english-to-bangla';
   const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
   const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
@@ -29,7 +35,12 @@ promptsRouter.post('/preview', async (req, res) => {
   let systemPrompt: string;
   let userMessage: string;
 
-  if (hasHighlightedWords) {
+  if (isEnglishToBangla) {
+    mode = 'english-to-bangla';
+    systemPrompt = prompts.englishToBangla;
+    const rendered = aiService.renderUserTemplate('englishToBangla', { word: newMessage });
+    userMessage = rendered || newMessage;
+  } else if (hasHighlightedWords) {
     mode = 'focused-words';
     systemPrompt = prompts.focusedWords;
     const rendered = aiService.renderUserTemplate('focusedWords', {

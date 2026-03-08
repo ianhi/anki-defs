@@ -47,7 +47,7 @@ export function useChat() {
   const currentRequestRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(
-    async (content: string, deck?: string, userContext?: string) => {
+    async (content: string, deck?: string, userContext?: string, mode?: 'english-to-bangla') => {
       const requestId = generateId();
 
       if (currentRequestRef.current !== null) {
@@ -90,7 +90,8 @@ export function useChat() {
           cleanText,
           deck,
           apiHighlightedWords,
-          userContext
+          userContext,
+          mode
         )) {
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Request cancelled, stopping stream');

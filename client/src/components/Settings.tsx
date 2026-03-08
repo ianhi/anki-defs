@@ -274,6 +274,33 @@ export function Settings() {
         />
       </div>
 
+      {/* English→Bangla Settings */}
+      <div className="flex items-center justify-between">
+        <Label htmlFor="auto-detect-english">Auto-detect English input</Label>
+        <input
+          id="auto-detect-english"
+          type="checkbox"
+          checked={localSettings.autoDetectEnglish}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('autoDetectEnglish', e.target.checked)
+          }
+          className="h-4 w-4 rounded border-input"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="en-bn-prefix">English→Bangla prefix</Label>
+        <Input
+          id="en-bn-prefix"
+          value={localSettings.englishToBanglaPrefix}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            handleChange('englishToBanglaPrefix', e.target.value)
+          }
+          placeholder="bn:"
+          className="w-24"
+        />
+      </div>
+
       {/* Default Deck */}
       <div className="space-y-2">
         <Label htmlFor="default-deck">Default Deck</Label>

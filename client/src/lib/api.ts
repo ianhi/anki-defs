@@ -82,14 +82,15 @@ export const chatApi = {
     message: string,
     deck?: string,
     highlightedWords?: string[],
-    userContext?: string
+    userContext?: string,
+    mode?: 'english-to-bangla'
   ): AsyncGenerator<SSEEvent, void, unknown> {
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ newMessage: message, deck, highlightedWords, userContext }),
+      body: JSON.stringify({ newMessage: message, deck, highlightedWords, userContext, mode }),
     });
 
     if (!response.ok) {

@@ -9,9 +9,10 @@ import {
   parseHighlightedWords,
   getCleanText,
 } from '../lib/focus';
+import { useSettingsStore } from '@/hooks/useSettings';
 
 interface MessageInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, mode?: 'english-to-bangla') => void;
   disabled?: boolean;
   placeholder?: string;
 }
@@ -25,6 +26,14 @@ export function MessageInput({
   const [cursorPos, setCursorPos] = useState(0);
   const [hasSelection, setHasSelection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { settings } = useSettingsStore();
+
+  // Detect English→Bangla mode
+  const prefix = settings.englishToBanglaPrefix || 'bn:';
+  const hasPrefix = value.trimStart().toLowerCase().startsWith(prefix.toLowerCase());
+  const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;]+$/.test(value.trim());
+  const isEnglishToBangla =
+    value.trim().length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly));
 
   // Listen for external "set input" events (e.g. clicking a Bangla definition)
   useEffect(() => {
@@ -41,6 +50,18 @@ export function MessageInput({
 
   const handleSubmit = () => {
     const trimmed = value.trim();
+
+    if (isEnglishToBangla) {
+      // Strip prefix if present, send with mode
+      const text = hasPrefix ? trimmed.slice(prefix.length).trim() : trimmed;
+      if (text && !disabled) {
+        onSend(text, 'english-to-bangla');
+        setValue('');
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
+      }
+      return;
+    }
+
     const clean = getCleanText(trimmed);
     const blocked = clean.includes(' ') && parseHighlightedWords(trimmed).length === 0;
     if (trimmed && !disabled && !blocked) {
@@ -149,10 +170,11 @@ export function MessageInput({
   const showFocusBar = value.trim().length > 0;
 
   // Block submission when input has spaces (multi-word) but no highlighted words
+  // English→Bangla mode bypasses this check
   const cleanText = getCleanText(value).trim();
   const hasSpaces = cleanText.includes(' ');
   const highlightedWords = parseHighlightedWords(value);
-  const needsHighlight = hasSpaces && highlightedWords.length === 0;
+  const needsHighlight = !isEnglishToBangla && hasSpaces && highlightedWords.length === 0;
 
   const handlePreviewTap = () => {
     if (previewToken) {
@@ -170,7 +192,17 @@ export function MessageInput({
   return (
     <div className="border-t border-border p-2 sm:p-4">
       <div className="max-w-4xl mx-auto space-y-2">
-        {showFocusBar && (
+        {isEnglishToBangla && (
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
+              EN → বাংলা
+            </span>
+            <span className="text-muted-foreground">
+              {hasPrefix ? 'prefix detected' : 'auto-detected'}
+            </span>
+          </div>
+        )}
+        {showFocusBar && !isEnglishToBangla && (
           <div className="flex items-center gap-2 text-sm min-h-[28px]">
             <span className="text-muted-foreground shrink-0">Focus:</span>
             <div className="flex gap-1 flex-wrap items-center">
@@ -222,7 +254,7 @@ export function MessageInput({
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 sm:px-4 sm:py-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+            className={`flex-1 resize-none rounded-lg border bg-background px-3 py-2 sm:px-4 sm:py-3 text-base focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${isEnglishToBangla ? 'border-blue-400 dark:border-blue-600' : 'border-input'}`}
           />
           <Button
             onMouseDown={(e) => {
