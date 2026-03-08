@@ -119,8 +119,12 @@ def get_completion(system_prompt, user_message):
     return ""
 
 
-def extract_card_data(word, explanation):
-    """Extract card data using Gemini structured output (JSON mode)."""
+def get_json_completion(system_prompt, user_message):
+    """Get a non-streaming Gemini completion with JSON mime type.
+
+    Uses responseMimeType: application/json for structured output.
+    Returns dict with 'text' and optional 'usage' keys.
+    """
     api_key, model = _get_config()
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}".format(
@@ -128,25 +132,13 @@ def extract_card_data(word, explanation):
         )
     )
 
-    prompt = 'Extract flashcard data from this explanation of the Bangla word "{}":\n\n{}'.format(
-        word, explanation
-    )
-
     data = json.dumps(
         {
-            "contents": [{"parts": [{"text": prompt}]}],
+            "system_instruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"parts": [{"text": user_message}]}],
             "generationConfig": {
+                "maxOutputTokens": 2048,
                 "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "word": {"type": "STRING"},
-                        "definition": {"type": "STRING"},
-                        "exampleSentence": {"type": "STRING"},
-                        "sentenceTranslation": {"type": "STRING"},
-                    },
-                    "required": ["word", "definition", "exampleSentence", "sentenceTranslation"],
-                },
             },
         }
     ).encode("utf-8")
@@ -161,77 +153,27 @@ def extract_card_data(word, explanation):
     resp = urllib.request.urlopen(req, context=ctx)
     result = json.loads(resp.read().decode("utf-8"))
 
+    text = ""
     candidates = result.get("candidates", [])
     if candidates:
         parts = candidates[0].get("content", {}).get("parts", [])
         for part in parts:
-            text = part.get("text", "")
-            if text:
-                try:
-                    return json.loads(text)
-                except json.JSONDecodeError:
-                    pass
-    return {"word": word, "definition": "", "exampleSentence": "", "sentenceTranslation": ""}
+            t = part.get("text", "")
+            if t:
+                text = t
+                break
 
-
-def extract_card_data_from_sentence(word, original_sentence, sentence_translation, explanation):
-    """Extract card data for a word in sentence context."""
-    api_key, model = _get_config()
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}".format(
-            model, api_key
-        )
-    )
-
-    prompt = 'Extract the definition for the Bangla word "{}" from this explanation:\n\n{}\n\nThe example sentence is already provided: "{}"'.format(
-        word, explanation, original_sentence
-    )
-
-    data = json.dumps(
-        {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "responseSchema": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "word": {"type": "STRING"},
-                        "definition": {"type": "STRING"},
-                    },
-                    "required": ["word", "definition"],
-                },
-            },
+    usage = None
+    usage_meta = result.get("usageMetadata", {})
+    if usage_meta:
+        usage = {
+            "inputTokens": usage_meta.get("promptTokenCount", 0),
+            "outputTokens": usage_meta.get("candidatesTokenCount", 0),
+            "provider": "gemini",
+            "model": model,
         }
-    ).encode("utf-8")
 
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/json"},
-    )
-
-    ctx = ssl.create_default_context()
-    resp = urllib.request.urlopen(req, context=ctx)
-    result = json.loads(resp.read().decode("utf-8"))
-
-    parsed = {"word": word, "definition": ""}
-    candidates = result.get("candidates", [])
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        for part in parts:
-            text = part.get("text", "")
-            if text:
-                try:
-                    parsed = json.loads(text)
-                except json.JSONDecodeError:
-                    pass
-
-    return {
-        "word": parsed.get("word", word),
-        "definition": parsed.get("definition", ""),
-        "exampleSentence": original_sentence,
-        "sentenceTranslation": sentence_translation,
-    }
+    return {"text": text, "usage": usage}
 
 
 def _iter_sse_lines(resp):

@@ -1,133 +1,114 @@
-"""Card data extraction from AI responses.
+"""Card preview building from parsed JSON AI responses.
 
-Mirrors server/src/services/cardExtraction.ts -- extracts vocabulary lists,
-sentence translations, and inflected forms from AI text output, then uses
-Gemini structured output to extract card data.
+Takes parsed card dicts from the JSON-first pipeline, checks Anki for
+duplicates, applies spelling corrections, and returns card preview dicts.
 """
 
 import re
 
-from . import gemini_provider
 from .anki_service import search_word
 from .settings_service import get_settings
 
 
-def extract_vocabulary_list(response):
-    """Extract vocabulary list from AI response (for sentence mode)."""
-    match = re.search(r"\*\*Vocabulary:\*\*\s*([^\n]+)", response, re.IGNORECASE)
-    if not match or not match.group(1):
-        return []
-    words = [w.strip() for w in match.group(1).split(",")]
-    return [w for w in words if w and "*" not in w]
+def apply_spelling_correction(sentence, correction):
+    """Parse a spellingCorrection like 'input -> standard' and apply to sentence.
 
-
-def extract_sentence_translation(response):
-    """Extract sentence translation from AI response."""
-    match = re.search(r"\*\*(?:Sentence )?Translation:\*\*\s*([^\n]+)", response, re.IGNORECASE)
-    if match and match.group(1):
-        return match.group(1).strip()
-    return ""
-
-
-def extract_inflected_forms(response):
-    """Extract inflected-to-lemma mappings from the Word-by-word section.
-
-    Returns a dict of lemma -> inflected form.
+    Replaces the misspelled form with the corrected form (preserving **bold** markers).
     """
-    result = {}
-    for match in re.finditer(r"- \*\*([^*]+)\*\*[\s\S]*?From \*\*([^*]+)\*\*", response):
-        inflected = match.group(1).strip()
-        lemma = match.group(2).strip()
-        if inflected and lemma and inflected != lemma:
-            result[lemma] = inflected
+    match = re.match(r"^(.+?)\s*→\s*(.+)$", correction)
+    if not match:
+        return sentence
+    wrong = match.group(1)
+    right = match.group(2)
+    # Replace both bare and **bold** occurrences
+    result = sentence.replace(wrong, right).replace(
+        "**{}**".format(wrong), "**{}**".format(right)
+    )
     return result
 
 
-def extract_cards(
-    words_for_cards,
-    full_response,
-    original_sentence,
-    sentence_translation,
-    is_sentence_mode,
-    target_deck,
-    anki_results,
-    inflected_forms=None,
-):
-    """Extract card data for each word and check Anki for duplicates.
+def _note_to_existing_card(note, field_mapping):
+    """Reverse-map an Anki note's fields to card content using the field mapping.
 
-    anki_results: dict of {word: bool} (pre-populated).
-    Returns (card_previews, errors).
+    Returns a dict with word, definition, banglaDefinition, exampleSentence,
+    sentenceTranslation keys.
+    """
+    if not note or not field_mapping:
+        return None
+
+    def get_field(standard_name):
+        mapped_name = field_mapping.get(standard_name, standard_name)
+        field_data = note.get("fields", {}).get(mapped_name)
+        if field_data:
+            return field_data.get("value", "")
+        return ""
+
+    return {
+        "word": get_field("Word"),
+        "definition": get_field("Definition"),
+        "banglaDefinition": get_field("BanglaDefinition"),
+        "exampleSentence": get_field("Example"),
+        "sentenceTranslation": get_field("Translation"),
+    }
+
+
+def build_card_previews(cards, target_deck, anki_results):
+    """Build card preview dicts from parsed AI JSON cards + Anki duplicate checks.
+
+    cards: list of dicts with word, definition, banglaDefinition, exampleSentence,
+           sentenceTranslation, and optional spellingCorrection.
+    target_deck: deck name for Anki searches.
+    anki_results: dict of {word: note_dict_or_None} (pre-populated).
+    Returns list of card preview dicts.
     """
     settings = get_settings()
-    field_mapping = settings.get("fieldMapping")
-    errors: list = []
+    field_mapping = settings.get("fieldMapping") or {}
 
-    if not words_for_cards:
-        return [], errors
-
-    # Check Anki for words not yet checked
-    for word in words_for_cards:
-        if word not in anki_results:
+    # Check Anki for any words not yet checked
+    for card in cards:
+        word = card.get("word", "")
+        if word and word not in anki_results:
             _check_anki(word, target_deck, anki_results, field_mapping)
 
-    # Extract card data for each word
-    card_data_list = []
-    for word in words_for_cards:
-        try:
-            if is_sentence_mode:
-                card_data = gemini_provider.extract_card_data_from_sentence(
-                    word, original_sentence, sentence_translation, full_response
-                )
-            else:
-                card_data = gemini_provider.extract_card_data(word, full_response)
-            card_data_list.append({"word": word, "cardData": card_data})
-        except Exception as e:
-            errors.append(str(e))
+    previews = []
+    for card in cards:
+        word = card.get("word", "")
+        existing_note = anki_results.get(word)
 
-    # Check Anki for lemmatized forms (extraction may return a different lemma)
-    for item in card_data_list:
-        lemma = item["cardData"].get("word", "")
-        if lemma and lemma != item["word"]:
-            _check_anki(lemma, target_deck, anki_results, field_mapping)
+        existing_card = None
+        if existing_note:
+            existing_card = _note_to_existing_card(existing_note, field_mapping)
 
-    # Build card previews
-    card_previews = []
-    for item in card_data_list:
-        word = item["word"]
-        card_data = item["cardData"]
-        lemma_differs = card_data.get("word", "") != word
-
-        inflected = None
-        if lemma_differs:
-            inflected = word
-        elif inflected_forms:
-            inflected = inflected_forms.get(word) or inflected_forms.get(card_data.get("word", ""))
+        # Apply spelling correction to the example sentence if present
+        example_sentence = card.get("exampleSentence", "")
+        spelling_correction = card.get("spellingCorrection")
+        if spelling_correction and example_sentence:
+            example_sentence = apply_spelling_correction(example_sentence, spelling_correction)
 
         preview = {
-            "word": card_data.get("word", word),
-            "definition": card_data.get("definition", ""),
-            "exampleSentence": card_data.get("exampleSentence", ""),
-            "sentenceTranslation": card_data.get("sentenceTranslation", ""),
-            "alreadyExists": anki_results.get(card_data.get("word", ""), False)
-            or anki_results.get(word, False),
+            "word": word,
+            "definition": card.get("definition", ""),
+            "banglaDefinition": card.get("banglaDefinition", ""),
+            "exampleSentence": example_sentence,
+            "sentenceTranslation": card.get("sentenceTranslation", ""),
+            "alreadyExists": existing_note is not None,
         }
-        if inflected:
-            preview["inflectedForm"] = inflected
-        if lemma_differs:
-            preview["lemmaMismatch"] = True
-            preview["originalLemma"] = word
+        if spelling_correction:
+            preview["spellingCorrection"] = spelling_correction
+        if existing_card:
+            preview["existingCard"] = existing_card
 
-        card_previews.append(preview)
+        previews.append(preview)
 
-    return card_previews, errors
+    return previews
 
 
 def _check_anki(word, deck, results, field_mapping):
-    """Check Anki for a word, silently handling errors."""
+    """Check Anki for a word, storing the note dict or None. Silently handles errors."""
     if word in results:
         return
     try:
         note = search_word(word, deck, field_mapping)
-        results[word] = note is not None
+        results[word] = note
     except Exception:
-        pass
+        results[word] = None

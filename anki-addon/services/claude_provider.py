@@ -117,6 +117,54 @@ def get_completion(system_prompt, user_message):
     return ""
 
 
+def get_json_completion(system_prompt, user_message):
+    """Get a non-streaming Claude completion, returning text and usage.
+
+    Returns dict with 'text' and optional 'usage' keys.
+    """
+    api_key = _get_api_key()
+    data = json.dumps(
+        {
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 2048,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_message}],
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+        },
+    )
+
+    ctx = ssl.create_default_context()
+    resp = urllib.request.urlopen(req, context=ctx)
+    result = json.loads(resp.read().decode("utf-8"))
+
+    text = ""
+    for block in result.get("content", []):
+        if block.get("type") == "text":
+            text = block.get("text", "")
+            break
+
+    usage = None
+    usage_data = result.get("usage", {})
+    if usage_data:
+        usage = {
+            "inputTokens": usage_data.get("input_tokens", 0),
+            "outputTokens": usage_data.get("output_tokens", 0),
+            "provider": "claude",
+            "model": result.get("model", "claude-sonnet-4-20250514"),
+        }
+
+    return {"text": text, "usage": usage}
+
+
 def _iter_sse_lines(resp):
     """Iterate over SSE lines from an HTTP response, handling chunked data."""
     buf = ""

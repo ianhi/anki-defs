@@ -118,6 +118,54 @@ def get_completion(system_prompt, user_message):
     return ""
 
 
+def get_json_completion(system_prompt, user_message):
+    """Get a non-streaming OpenRouter completion, returning text and usage.
+
+    Returns dict with 'text' and optional 'usage' keys.
+    """
+    api_key, model = _get_config()
+    data = json.dumps(
+        {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "max_tokens": 2048,
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer {}".format(api_key),
+        },
+    )
+
+    ctx = ssl.create_default_context()
+    resp = urllib.request.urlopen(req, context=ctx)
+    result = json.loads(resp.read().decode("utf-8"))
+
+    text = ""
+    choices = result.get("choices", [])
+    if choices:
+        text = choices[0].get("message", {}).get("content", "")
+
+    usage = None
+    usage_data = result.get("usage")
+    if usage_data:
+        usage = {
+            "inputTokens": usage_data.get("prompt_tokens", 0),
+            "outputTokens": usage_data.get("completion_tokens", 0),
+            "provider": "openrouter",
+            "model": model,
+        }
+
+    return {"text": text, "usage": usage}
+
+
 def _iter_sse_lines(resp):
     """Iterate over SSE lines from an HTTP response."""
     buf = ""

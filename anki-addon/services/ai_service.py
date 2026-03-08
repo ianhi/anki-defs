@@ -1,12 +1,13 @@
 """AI provider abstraction -- delegates to Claude, Gemini, or OpenRouter.
 
 Prompt templates are loaded from shared/prompts/*.json (the cross-backend
-source of truth). Variables like {{lemmaRules}} and {{transliterationInstruction}}
+source of truth). Variables like {{preamble}} and {{transliterationInstruction}}
 are substituted at runtime based on user settings.
 """
 
 import json
 import os
+import re
 
 from . import claude_provider, gemini_provider, openrouter_provider
 from .settings_service import get_settings
@@ -38,33 +39,43 @@ def get_provider_module():
         return gemini_provider
 
 
-def stream_completion(system_prompt, user_message, on_text, on_usage, on_done, on_error):
-    """Stream a completion. Callbacks: on_text(str), on_usage(dict), on_done(), on_error(str).
-
-    This is called from a daemon thread for SSE streaming.
-    """
-    provider = get_provider_module()
-    provider.stream_completion(system_prompt, user_message, on_text, on_usage, on_done, on_error)
-
-
 def get_completion(system_prompt, user_message):
     """Get a non-streaming completion. Returns the response text."""
     provider = get_provider_module()
     return provider.get_completion(system_prompt, user_message)
 
 
+def get_json_completion(system_prompt, user_message):
+    """Get a non-streaming JSON completion. Returns dict with 'text' and optional 'usage'."""
+    provider = get_provider_module()
+    return provider.get_json_completion(system_prompt, user_message)
+
+
+def parse_json_response(raw):
+    """Strip markdown code fences and parse JSON.
+
+    Returns the parsed object/array on success.
+    Raises ValueError/json.JSONDecodeError on failure.
+    """
+    stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw, count=1)
+    stripped = re.sub(r"\n?```\s*$", "", stripped, count=1)
+    return json.loads(stripped)
+
+
 def get_system_prompts(transliteration):
     """Load and render system prompts from shared/prompts/*.json.
 
-    Substitutes {{lemmaRules}}, {{transliterationInstruction}}, and
-    {{translitMarker}} variables based on the transliteration setting.
+    Substitutes {{preamble}}, {{outputRules}}, {{languageRules}},
+    {{transliterationInstruction}}, and {{translitMarker}} variables.
     """
     variables = _load_json("variables.json")
 
     # Build substitution map
     translit_key = "true" if transliteration else "false"
     subs = {
-        "{{lemmaRules}}": variables["lemmaRules"],
+        "{{preamble}}": variables["preamble"],
+        "{{outputRules}}": variables["outputRules"],
+        "{{languageRules}}": variables["languageRules"],
         "{{transliterationInstruction}}": variables["transliteration"]["instruction"][translit_key],
         "{{translitMarker}}": variables["transliteration"]["marker"][translit_key],
     }
@@ -78,13 +89,41 @@ def get_system_prompts(transliteration):
 
     # Load each prompt template and render
     word_prompt = _load_json("single-word.json")
-    sentence_prompt = _load_json("sentence.json")
     focused_prompt = _load_json("focused-words.json")
-    extract_prompt = _load_json("card-extraction.json")
 
     return {
         "word": _render(word_prompt["system"]),
-        "sentence": _render(sentence_prompt["system"]),
         "focusedWords": _render(focused_prompt["system"]),
-        "extractCard": _render(extract_prompt["system"]),
     }
+
+
+def _load_prompt_templates():
+    """Load prompt templates (with user_template fields)."""
+    return {
+        "word": _load_json("single-word.json"),
+        "focusedWords": _load_json("focused-words.json"),
+    }
+
+
+def render_user_template(template_key, variables):
+    """Render a user_template from a prompt file with variable substitution.
+
+    template_key: 'word' or 'focusedWords'
+    variables: dict with optional keys: word, userContext, sentence, highlightedWords
+    Returns the rendered string, or None if no user_template.
+    """
+    templates = _load_prompt_templates()
+    template = templates.get(template_key)
+    if not template or not template.get("user_template"):
+        return None
+
+    result = template["user_template"]
+    result = result.replace("{{word}}", variables.get("word", ""))
+    user_context = variables.get("userContext", "")
+    if user_context:
+        result = result.replace("{{userContext}}", "\n\n(User note: {})".format(user_context))
+    else:
+        result = result.replace("{{userContext}}", "")
+    result = result.replace("{{sentence}}", variables.get("sentence", ""))
+    result = result.replace("{{highlightedWords}}", variables.get("highlightedWords", ""))
+    return result

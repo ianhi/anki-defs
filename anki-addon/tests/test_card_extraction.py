@@ -1,64 +1,97 @@
-"""Tests for card extraction regex helpers (no Anki dependency)."""
+"""Tests for card extraction / card preview building (no Anki dependency)."""
 
-from services.card_extraction import (
-    extract_inflected_forms,
-    extract_sentence_translation,
-    extract_vocabulary_list,
-)
+import json
 
+import pytest
 
-class TestExtractVocabularyList:
-    def test_basic_extraction(self):
-        response = "Some text\n**Vocabulary:** one, two, three\nMore text"
-        words = extract_vocabulary_list(response)
-        assert words == ["one", "two", "three"]
-
-    def test_empty_when_no_vocabulary_line(self):
-        response = "Just some text without vocabulary"
-        assert extract_vocabulary_list(response) == []
-
-    def test_filters_asterisks(self):
-        response = "**Vocabulary:** one, **two**, three"
-        words = extract_vocabulary_list(response)
-        # Words containing * are filtered out
-        assert "one" in words
-        assert "three" in words
-
-    def test_trims_whitespace(self):
-        response = "**Vocabulary:**   one ,  two ,  three  "
-        words = extract_vocabulary_list(response)
-        assert words == ["one", "two", "three"]
+from services.ai_service import parse_json_response
+from services.card_extraction import _note_to_existing_card, apply_spelling_correction
 
 
-class TestExtractSentenceTranslation:
-    def test_basic_translation(self):
-        response = "**Translation:** This is the translation\nMore text"
-        assert extract_sentence_translation(response) == "This is the translation"
+class TestApplySpellingCorrection:
+    def test_basic_correction(self):
+        sentence = "মেয়েটা **কাদছে**।"
+        correction = "কাদছে → কাঁদছে"
+        result = apply_spelling_correction(sentence, correction)
+        assert result == "মেয়েটা **কাঁদছে**।"
 
-    def test_sentence_translation(self):
-        response = "**Sentence Translation:** This is the translation\nMore text"
-        assert extract_sentence_translation(response) == "This is the translation"
+    def test_no_arrow_returns_original(self):
+        sentence = "some sentence"
+        result = apply_spelling_correction(sentence, "no arrow here")
+        assert result == sentence
 
-    def test_empty_when_not_found(self):
-        response = "No translation line here"
-        assert extract_sentence_translation(response) == ""
+    def test_bare_and_bold_replacement(self):
+        sentence = "word **word** more word"
+        correction = "word → fixed"
+        result = apply_spelling_correction(sentence, correction)
+        assert "**fixed**" in result
+        # bare occurrences also replaced
+        assert "word" not in result.replace("**fixed**", "")
+
+    def test_empty_correction(self):
+        sentence = "hello"
+        result = apply_spelling_correction(sentence, "")
+        assert result == sentence
 
 
-class TestExtractInflectedForms:
-    def test_basic_extraction(self):
-        response = (
-            "- **inflected1** something From **lemma1**\n"
-            "- **inflected2** something From **lemma2**\n"
-        )
-        result = extract_inflected_forms(response)
-        assert result["lemma1"] == "inflected1"
-        assert result["lemma2"] == "inflected2"
+class TestNoteToExistingCard:
+    def test_basic_mapping(self):
+        note = {
+            "fields": {
+                "Bangla": {"value": "কাঁদা", "order": 0},
+                "Eng_trans": {"value": "to cry", "order": 1},
+                "bangla-def": {"value": "চোখ থেকে জল পড়া", "order": 2},
+                "example sentence": {"value": "মেয়েটা কাঁদছে।", "order": 3},
+                "sentence-trans": {"value": "The girl is crying.", "order": 4},
+            }
+        }
+        field_mapping = {
+            "Word": "Bangla",
+            "Definition": "Eng_trans",
+            "BanglaDefinition": "bangla-def",
+            "Example": "example sentence",
+            "Translation": "sentence-trans",
+        }
+        result = _note_to_existing_card(note, field_mapping)
+        assert result["word"] == "কাঁদা"
+        assert result["definition"] == "to cry"
+        assert result["banglaDefinition"] == "চোখ থেকে জল পড়া"
+        assert result["exampleSentence"] == "মেয়েটা কাঁদছে।"
+        assert result["sentenceTranslation"] == "The girl is crying."
 
-    def test_same_form_skipped(self):
-        response = "- **same** something From **same**\n"
-        result = extract_inflected_forms(response)
-        assert len(result) == 0
+    def test_none_note_returns_none(self):
+        assert _note_to_existing_card(None, {}) is None
 
-    def test_empty_when_no_pattern(self):
-        result = extract_inflected_forms("No word-by-word section here")
-        assert len(result) == 0
+    def test_none_mapping_returns_none(self):
+        assert _note_to_existing_card({"fields": {}}, None) is None
+
+
+class TestParseJsonResponse:
+    def test_plain_json_object(self):
+        raw = '{"word": "test", "definition": "a test"}'
+        result = parse_json_response(raw)
+        assert result["word"] == "test"
+
+    def test_json_array(self):
+        raw = '[{"word": "a"}, {"word": "b"}]'
+        result = parse_json_response(raw)
+        assert len(result) == 2
+
+    def test_strip_code_fences(self):
+        raw = '```json\n{"word": "test"}\n```'
+        result = parse_json_response(raw)
+        assert result["word"] == "test"
+
+    def test_strip_code_fences_no_json_label(self):
+        raw = '```\n{"word": "test"}\n```'
+        result = parse_json_response(raw)
+        assert result["word"] == "test"
+
+    def test_invalid_json_raises(self):
+        with pytest.raises((json.JSONDecodeError, ValueError)):
+            parse_json_response("not json at all")
+
+    def test_whitespace_around_fences(self):
+        raw = '```json\n  {"word": "test"}  \n```  '
+        result = parse_json_response(raw)
+        assert result["word"] == "test"

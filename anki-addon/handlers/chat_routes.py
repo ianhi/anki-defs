@@ -1,4 +1,4 @@
-"""Chat API handlers -- AI streaming and non-streaming endpoints."""
+"""Chat API handlers -- JSON-first card generation pipeline."""
 
 import concurrent.futures
 import json
@@ -7,21 +7,21 @@ import threading
 from ..server.sse import send_sse
 from ..server.web import Response
 from ..services import ai_service, anki_service
-from ..services.card_extraction import (
-    extract_cards,
-    extract_inflected_forms,
-    extract_sentence_translation,
-    extract_vocabulary_list,
-)
+from ..services.card_extraction import build_card_previews
 from ..services.settings_service import get_settings
 
 
 def handle_stream(_params, _headers, body):
-    """POST /api/chat/stream -- SSE endpoint for streaming AI responses."""
+    """POST /api/chat/stream -- SSE endpoint for AI-generated card data.
+
+    JSON-first pipeline: one non-streaming LLM call returns JSON directly,
+    then card previews are built and sent as SSE events.
+    """
     data = json.loads(body) if body else {}
     new_message = data.get("newMessage", "")
     deck = data.get("deck")
     highlighted_words = data.get("highlightedWords", [])
+    user_context = data.get("userContext", "")
 
     if not new_message:
         return Response.error("newMessage is required", 400)
@@ -36,46 +36,67 @@ def handle_stream(_params, _headers, body):
     is_single_word = " " not in trimmed and len(trimmed) < 30
     has_highlighted = bool(highlighted_words)
 
-    # Select prompt
+    # Block sentence without highlights
+    if not is_single_word and not has_highlighted:
+        def sse_handler(sock):
+            send_sse(
+                sock,
+                "error",
+                "Sentence mode without highlighted words is not supported. "
+                "Please highlight the words you want to learn.",
+            )
+            send_sse(sock, "done", None)
+            try:
+                sock.close()
+            except Exception:
+                pass
+
+        return Response.sse(sse_handler)
+
+    # Select prompt and build user message
     if has_highlighted:
         system_prompt = prompts["focusedWords"]
-        user_message = "Sentence: {}\n\nFocus words: {}".format(
-            new_message, ", ".join(highlighted_words)
+        rendered = ai_service.render_user_template(
+            "focusedWords",
+            {
+                "sentence": new_message,
+                "highlightedWords": ", ".join(highlighted_words),
+            },
         )
-    elif is_single_word:
-        system_prompt = prompts["word"]
-        user_message = new_message
+        user_message = (
+            rendered
+            or "Sentence: {}\n\nFocus words: {}".format(
+                new_message, ", ".join(highlighted_words)
+            )
+        )
     else:
-        system_prompt = prompts["sentence"]
-        user_message = new_message
+        system_prompt = prompts["word"]
+        rendered = ai_service.render_user_template(
+            "word",
+            {"word": new_message, "userContext": user_context},
+        )
+        user_message = rendered or new_message
 
-    # Pre-check Anki for highlighted words or single word (on main thread)
-    words_to_check = (
-        highlighted_words if has_highlighted else ([new_message] if is_single_word else [])
-    )
+    # Pre-check Anki for input words (on main thread -- collection access)
+    words_to_check = highlighted_words if has_highlighted else [new_message]
     anki_results = {}
     for word in words_to_check:
         try:
             existing = anki_service.search_word(word, target_deck, field_mapping)
-            anki_results[word] = existing is not None
+            anki_results[word] = existing  # note dict or None
         except Exception:
-            pass
+            anki_results[word] = None
 
-    # Return SSE response -- the callback runs in a daemon thread
+    # Return SSE response -- the worker runs in a daemon thread
     def sse_handler(sock):
         thread = threading.Thread(
-            target=_stream_worker,
+            target=_json_pipeline_worker,
             args=(
                 sock,
                 system_prompt,
                 user_message,
-                new_message,
                 target_deck,
-                is_single_word,
-                has_highlighted,
-                highlighted_words,
                 anki_results,
-                field_mapping,
             ),
             daemon=True,
         )
@@ -84,96 +105,76 @@ def handle_stream(_params, _headers, body):
     return Response.sse(sse_handler)
 
 
-def _stream_worker(
-    sock,
-    system_prompt,
-    user_message,
-    original_message,
-    target_deck,
-    is_single_word,
-    has_highlighted,
-    highlighted_words,
-    anki_results,
-    field_mapping,
-):
-    """Runs in a daemon thread -- handles AI streaming + card extraction."""
-    full_response_parts = []
+def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_results):
+    """Runs in a daemon thread -- JSON-first card generation pipeline.
 
-    def on_text(text):
-        full_response_parts.append(text)
-        send_sse(sock, "text", text)
+    1. Single non-streaming LLM call for JSON
+    2. Parse JSON with fault tolerance
+    3. Build card previews (Anki check on main thread)
+    4. Emit SSE events: usage, card_preview (per card), done
+    """
+    try:
+        # Single non-streaming AI call
+        result = ai_service.get_json_completion(system_prompt, user_message)
+        raw_response = result.get("text", "")
+        usage = result.get("usage")
 
-    def on_usage(usage):
-        send_sse(sock, "usage", usage)
+        # Send usage event
+        if usage:
+            send_sse(sock, "usage", usage)
 
-    def on_done():
+        # Parse JSON response with fault tolerance
+        cards = None
         try:
-            full_response = "".join(full_response_parts)
-
-            # Determine words for cards
-            if has_highlighted:
-                words_for_cards = highlighted_words
-            elif is_single_word:
-                words_for_cards = [original_message.strip()]
-            else:
-                words_for_cards = extract_vocabulary_list(full_response)
-
-            is_sentence_mode = not is_single_word
-            sentence_translation = (
-                extract_sentence_translation(full_response) if is_sentence_mode else ""
-            )
-            inflected_forms = (
-                extract_inflected_forms(full_response)
-                if is_sentence_mode and not has_highlighted
-                else None
-            )
-
-            # Card extraction needs Anki access (collection) -- use main thread bridge
-            from aqt import mw
-
-            future: concurrent.futures.Future = concurrent.futures.Future()
-
-            def _extract_on_main():
+            parsed = ai_service.parse_json_response(raw_response)
+            cards = parsed if isinstance(parsed, list) else [parsed]
+        except (json.JSONDecodeError, ValueError):
+            # Retry with healing prompt
+            try:
+                retry_result = ai_service.get_json_completion(
+                    "Fix the following malformed JSON. Return ONLY valid JSON, nothing else.",
+                    raw_response,
+                )
+                retry_usage = retry_result.get("usage")
+                if retry_usage:
+                    send_sse(sock, "usage", retry_usage)
+                parsed = ai_service.parse_json_response(retry_result.get("text", ""))
+                cards = parsed if isinstance(parsed, list) else [parsed]
+            except (json.JSONDecodeError, ValueError):
+                send_sse(sock, "error", "Failed to parse AI response as JSON")
+                send_sse(sock, "done", None)
                 try:
-                    previews, errors = extract_cards(
-                        words_for_cards=words_for_cards,
-                        full_response=full_response,
-                        original_sentence=original_message,
-                        sentence_translation=sentence_translation,
-                        is_sentence_mode=is_sentence_mode,
-                        target_deck=target_deck,
-                        anki_results=anki_results,
-                        inflected_forms=inflected_forms,
-                    )
-                    future.set_result((previews, errors))
-                except Exception as e:
-                    future.set_exception(e)
+                    sock.close()
+                except Exception:
+                    pass
+                return
 
-            mw.taskman.run_on_main(_extract_on_main)
-            previews, errors = future.result(timeout=30)
+        # Build card previews -- needs Anki access (collection) on main thread
+        from aqt import mw
 
-            for preview in previews:
-                send_sse(sock, "card_preview", preview)
-            for error in errors:
-                send_sse(sock, "error", error)
-        except Exception as e:
-            send_sse(sock, "error", str(e))
+        future = concurrent.futures.Future()
 
-        send_sse(sock, "done", None)
-        try:
-            sock.close()
-        except Exception:
-            pass
+        def _build_on_main():
+            try:
+                previews = build_card_previews(cards, target_deck, anki_results)
+                future.set_result(previews)
+            except Exception as e:
+                future.set_exception(e)
 
-    def on_error(error_msg):
-        send_sse(sock, "error", error_msg)
-        send_sse(sock, "done", None)
-        try:
-            sock.close()
-        except Exception:
-            pass
+        mw.taskman.run_on_main(_build_on_main)
+        previews = future.result(timeout=30)
 
-    ai_service.stream_completion(system_prompt, user_message, on_text, on_usage, on_done, on_error)
+        for preview in previews:
+            send_sse(sock, "card_preview", preview)
+
+    except Exception as e:
+        send_sse(sock, "error", str(e))
+
+    send_sse(sock, "done", None)
+    try:
+        sock.close()
+    except Exception:
+        pass
 
 
 def handle_relemmatize(_params, _headers, body):
@@ -216,5 +217,3 @@ def handle_relemmatize(_params, _headers, body):
         )
     except Exception as e:
         return Response.error("Failed to relemmatize word: {}".format(e))
-
-

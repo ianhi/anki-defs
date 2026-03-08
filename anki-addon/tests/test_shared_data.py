@@ -17,7 +17,9 @@ class TestSharedPrompts:
 
     def test_variables_json(self):
         data = self._load("variables.json")
-        assert "lemmaRules" in data
+        assert "preamble" in data
+        assert "outputRules" in data
+        assert "languageRules" in data
         assert "transliteration" in data
         assert "instruction" in data["transliteration"]
         assert "marker" in data["transliteration"]
@@ -27,22 +29,15 @@ class TestSharedPrompts:
     def test_single_word_prompt(self):
         data = self._load("single-word.json")
         assert "system" in data
-        assert "{{lemmaRules}}" in data["system"]
+        assert "user_template" in data
+        assert "{{preamble}}" in data["system"]
         assert "{{transliterationInstruction}}" in data["system"]
-
-    def test_sentence_prompt(self):
-        data = self._load("sentence.json")
-        assert "system" in data
-        assert "{{lemmaRules}}" in data["system"]
 
     def test_focused_words_prompt(self):
         data = self._load("focused-words.json")
         assert "system" in data
-
-    def test_card_extraction_prompt(self):
-        data = self._load("card-extraction.json")
-        assert "system" in data
-        assert "{{lemmaRules}}" in data["system"]
+        assert "user_template" in data
+        assert "{{preamble}}" in data["system"]
 
     def test_relemmatize_prompt(self):
         data = self._load("relemmatize.json")
@@ -76,12 +71,12 @@ class TestPromptRendering:
 
         prompts = get_system_prompts(False)
         assert "word" in prompts
-        assert "sentence" in prompts
         assert "focusedWords" in prompts
-        assert "extractCard" in prompts
         # Variables should be substituted
         for key, value in prompts.items():
-            assert "{{lemmaRules}}" not in value, "Unsubstituted variable in {}".format(key)
+            assert "{{preamble}}" not in value, "Unsubstituted variable in {}".format(key)
+            assert "{{outputRules}}" not in value
+            assert "{{languageRules}}" not in value
             assert "{{transliterationInstruction}}" not in value
             assert "{{translitMarker}}" not in value
         # Without transliteration, should say "Do NOT"
@@ -93,4 +88,29 @@ class TestPromptRendering:
         prompts = get_system_prompts(True)
         # With transliteration, should include instruction
         assert "Include romanized" in prompts["word"]
-        assert "([transliteration])" in prompts["word"]
+
+    def test_render_user_template_word(self):
+        from services.ai_service import render_user_template
+
+        result = render_user_template("word", {"word": "কাঁদা"})
+        assert result is not None
+        assert "কাঁদা" in result
+
+    def test_render_user_template_word_with_context(self):
+        from services.ai_service import render_user_template
+
+        result = render_user_template("word", {"word": "কাঁদা", "userContext": "to cry"})
+        assert result is not None
+        assert "কাঁদা" in result
+        assert "(User note: to cry)" in result
+
+    def test_render_user_template_focused_words(self):
+        from services.ai_service import render_user_template
+
+        result = render_user_template(
+            "focusedWords",
+            {"sentence": "ছেলেটা বাজারে যাচ্ছে", "highlightedWords": "বাজারে"},
+        )
+        assert result is not None
+        assert "ছেলেটা বাজারে যাচ্ছে" in result
+        assert "বাজারে" in result
