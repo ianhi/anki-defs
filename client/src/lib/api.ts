@@ -2,12 +2,8 @@ import type {
   Settings,
   AnkiNote,
   CreateNoteRequest,
-  DefineRequest,
-  AnalyzeRequest,
   RelemmatizeRequest,
   RelemmatizeResponse,
-  WordAnalysis,
-  SentenceAnalysis,
   SSEEvent,
   SessionState,
   SessionCard,
@@ -76,18 +72,6 @@ export const ankiApi = {
 
 // Chat API
 export const chatApi = {
-  define: (request: DefineRequest) =>
-    fetchJson<WordAnalysis>('/chat/define', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    }),
-
-  analyze: (request: AnalyzeRequest) =>
-    fetchJson<SentenceAnalysis>('/chat/analyze', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    }),
-
   relemmatize: (request: RelemmatizeRequest) =>
     fetchJson<RelemmatizeResponse>('/chat/relemmatize', {
       method: 'POST',
@@ -97,14 +81,15 @@ export const chatApi = {
   stream: async function* (
     message: string,
     deck?: string,
-    highlightedWords?: string[]
+    highlightedWords?: string[],
+    userContext?: string
   ): AsyncGenerator<SSEEvent, void, unknown> {
     const response = await fetch(`${API_BASE}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ newMessage: message, deck, highlightedWords }),
+      body: JSON.stringify({ newMessage: message, deck, highlightedWords, userContext }),
     });
 
     if (!response.ok) {

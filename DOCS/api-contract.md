@@ -26,12 +26,10 @@ Source of truth: `shared/types.ts`
 
 ### Chat Routes (`/api/chat`)
 
-| Method | Endpoint       | Description                              |
-| ------ | -------------- | ---------------------------------------- |
-| POST   | `/stream`      | SSE endpoint for streaming AI responses  |
-| POST   | `/define`      | Get definition for a word                |
-| POST   | `/relemmatize` | Re-check the dictionary form of a word   |
-| POST   | `/analyze`     | Analyze sentence, identify unknown words |
+| Method | Endpoint       | Description                             |
+| ------ | -------------- | --------------------------------------- |
+| POST   | `/stream`      | SSE endpoint for streaming AI responses |
+| POST   | `/relemmatize` | Re-check the dictionary form of a word  |
 
 ### Settings Routes (`/api/settings`)
 
@@ -56,15 +54,13 @@ Source of truth: `shared/types.ts`
 
 The `/api/chat/stream` endpoint sends these discriminated union events (defined as `SSEEvent` in `shared/types.ts`):
 
-| `type`              | `data`             | Description                        |
-| ------------------- | ------------------ | ---------------------------------- |
-| `text`              | `string`           | Streamed text chunk from AI        |
-| `card_preview`      | `CardPreview`      | Card preview with duplicate status |
-| `word_analysis`     | `WordAnalysis`     | Single word analysis result        |
-| `sentence_analysis` | `SentenceAnalysis` | Sentence analysis result           |
-| `usage`             | `TokenUsage`       | Token usage and cost data          |
-| `done`              | `null`             | Stream complete                    |
-| `error`             | `string`           | Error message                      |
+| `type`         | `data`        | Description                        |
+| -------------- | ------------- | ---------------------------------- |
+| `text`         | `string`      | Streamed text chunk from AI        |
+| `card_preview` | `CardPreview` | Card preview with duplicate status |
+| `usage`        | `TokenUsage`  | Token usage and cost data          |
+| `done`         | `null`        | Stream complete                    |
+| `error`        | `string`      | Error message                      |
 
 ## Settings Storage
 

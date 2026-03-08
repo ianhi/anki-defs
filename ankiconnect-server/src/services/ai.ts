@@ -82,8 +82,6 @@ const promptTemplates = {
   sentence: loadPrompt('sentence'),
   focusedWords: loadPrompt('focused-words'),
   extractCard: loadPrompt('card-extraction'),
-  define: loadPrompt('define'),
-  analyze: loadPrompt('analyze'),
   relemmatize: loadPrompt('relemmatize'),
 };
 
@@ -103,9 +101,31 @@ export function getSystemPrompts(transliteration: boolean) {
     sentence: renderPrompt(promptTemplates.sentence.system, transliteration),
     focusedWords: renderPrompt(promptTemplates.focusedWords.system, transliteration),
     extractCard: renderPrompt(promptTemplates.extractCard.system, transliteration),
-    define: renderPrompt(promptTemplates.define.system, transliteration),
-    analyze: renderPrompt(promptTemplates.analyze.system, transliteration),
   };
+}
+
+// Render a user_template from a prompt file with variable substitution
+export function renderUserTemplate(
+  templateKey: keyof typeof promptTemplates,
+  variables: {
+    word?: string;
+    userContext?: string;
+    sentence?: string;
+    highlightedWords?: string;
+  }
+): string | null {
+  const template = promptTemplates[templateKey];
+  if (!template.user_template) return null;
+
+  let result = template.user_template;
+  result = result.replace(/\{\{word\}\}/g, variables.word || '');
+  result = result.replace(
+    /\{\{userContext\}\}/g,
+    variables.userContext ? `\n\n(User note: ${variables.userContext})` : ''
+  );
+  result = result.replace(/\{\{sentence\}\}/g, variables.sentence || '');
+  result = result.replace(/\{\{highlightedWords\}\}/g, variables.highlightedWords || '');
+  return result;
 }
 
 // Relemmatize prompt is special -- it has word/context placeholders, not transliteration

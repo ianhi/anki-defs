@@ -7,6 +7,22 @@ Prompt templates have been extracted from ankiconnect-server to `shared/prompts/
 The anki-addon has its own copy (future: build step should copy from shared/).
 Android still has prompts hardcoded in Kotlin `PromptTemplates.kt`.
 
+### User Templates (structured variable substitution)
+
+Some prompts have a `user_template` field for structured user message rendering instead
+of passing raw input. This enables clean injection of optional fields like user context.
+
+| Prompt               | `user_template`                                               | Variables                  |
+| -------------------- | ------------------------------------------------------------- | -------------------------- |
+| `single-word.json`   | `{{word}}{{userContext}}`                                     | word, userContext          |
+| `sentence.json`      | `{{sentence}}{{userContext}}`                                 | sentence, userContext      |
+| `focused-words.json` | `Sentence: {{sentence}}\n\nFocus words: {{highlightedWords}}` | sentence, highlightedWords |
+| `relemmatize.json`   | _(uses system prompt placeholders)_                           | word, context              |
+
+`{{userContext}}` renders to `\n\n(User note: ...)` when present, empty string when absent.
+This powers the retry-with-context feature where users can provide English hints to correct
+AI misinterpretations (e.g., "it's colloquial for losing something").
+
 ## Original Context
 
 word2anki had a generic prompt. anki-defs had extensive Bangla-specific rules:

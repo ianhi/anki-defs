@@ -6,8 +6,6 @@ export interface Message {
   timestamp: number;
   highlightedWords?: string[];
   cardPreviews?: CardPreview[];
-  wordAnalysis?: WordAnalysis;
-  sentenceAnalysis?: SentenceAnalysis;
   tokenUsage?: TokenUsage;
   refinements?: string[];
   originalQuery?: string;
@@ -37,31 +35,6 @@ export interface RelemmatizeRequest {
 export interface RelemmatizeResponse {
   lemma: string;
   definition: string;
-}
-
-export interface WordAnalysis {
-  word: string;
-  lemma: string;
-  partOfSpeech: string;
-  definition: string;
-  examples: string[];
-  existsInAnki: boolean;
-  noteId?: number;
-}
-
-export interface SentenceAnalysis {
-  originalSentence: string;
-  translation: string;
-  words: AnalyzedWord[];
-}
-
-export interface AnalyzedWord {
-  word: string;
-  lemma: string;
-  partOfSpeech: string;
-  meaning: string;
-  existsInAnki: boolean;
-  noteId?: number;
 }
 
 // Session card types (synced between devices via server)
@@ -173,16 +146,7 @@ export interface ChatStreamRequest {
   newMessage: string;
   deck?: string;
   highlightedWords?: string[];
-}
-
-export interface DefineRequest {
-  word: string;
-  deck?: string;
-}
-
-export interface AnalyzeRequest {
-  sentence: string;
-  deck?: string;
+  userContext?: string;
 }
 
 export interface SearchNotesRequest {
@@ -215,8 +179,6 @@ export interface PlatformInfo {
 export type SSEEvent =
   | { type: 'text'; data: string }
   | { type: 'card_preview'; data: CardPreview }
-  | { type: 'word_analysis'; data: WordAnalysis }
-  | { type: 'sentence_analysis'; data: SentenceAnalysis }
   | { type: 'usage'; data: TokenUsage }
   | { type: 'done'; data: null }
   | { type: 'error'; data: string };

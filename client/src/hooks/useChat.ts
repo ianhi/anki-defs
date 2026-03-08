@@ -46,7 +46,7 @@ export function useChat() {
   const currentRequestRef = useRef<string | null>(null);
 
   const sendMessage = useCallback(
-    async (content: string, deck?: string, highlightedWords?: string[]) => {
+    async (content: string, deck?: string, highlightedWords?: string[], userContext?: string) => {
       const requestId = generateId();
 
       if (currentRequestRef.current !== null) {
@@ -80,7 +80,7 @@ export function useChat() {
       setIsStreaming(true);
 
       try {
-        for await (const event of chatApi.stream(content, deck, highlightedWords)) {
+        for await (const event of chatApi.stream(content, deck, highlightedWords, userContext)) {
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Request cancelled, stopping stream');
             return;
@@ -175,9 +175,8 @@ export function useChat() {
 
       const refinements = [...(assistantMsg.refinements || []), context];
 
-      // Build the re-query with all accumulated context
-      const contextLines = refinements.map((r) => `(Context: ${r})`).join('\n');
-      const reQuery = `${originalQuery}\n${contextLines}`;
+      // Send all accumulated refinements as structured userContext
+      const userContext = refinements.join('; ');
 
       // Reset the assistant message and add refinement
       setMessages((prev) =>
@@ -201,7 +200,12 @@ export function useChat() {
       }));
 
       try {
-        for await (const event of chatApi.stream(reQuery, settings.defaultDeck)) {
+        for await (const event of chatApi.stream(
+          originalQuery,
+          settings.defaultDeck,
+          undefined,
+          userContext
+        )) {
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Retry cancelled, stopping stream');
             return;
