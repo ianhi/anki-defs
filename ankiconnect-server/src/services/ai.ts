@@ -50,6 +50,22 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
   }
 }
 
+export async function getJsonCompletion(
+  systemPrompt: string,
+  userMessage: string
+): Promise<{ text: string; usage?: TokenUsage }> {
+  const provider = await getCurrentProvider();
+  console.log('[AI] getJsonCompletion using provider:', provider);
+
+  if (provider === 'claude') {
+    return claude.getJsonCompletion(systemPrompt, userMessage);
+  } else if (provider === 'openrouter') {
+    return openrouter.getJsonCompletion(systemPrompt, userMessage);
+  } else {
+    return gemini.getJsonCompletion(systemPrompt, userMessage);
+  }
+}
+
 export function resetClients(): void {
   claude.resetClient();
   gemini.resetClient();
@@ -82,9 +98,7 @@ function loadVariables(): Variables {
 function loadAllPrompts() {
   return {
     word: loadPrompt('single-word'),
-    sentence: loadPrompt('sentence'),
     focusedWords: loadPrompt('focused-words'),
-    extractCard: loadPrompt('card-extraction'),
     relemmatize: loadPrompt('relemmatize'),
   };
 }
@@ -113,9 +127,7 @@ function renderPrompt(template: string, transliteration: boolean): string {
 export function getSystemPrompts(transliteration: boolean) {
   return {
     word: renderPrompt(promptTemplates.word.system, transliteration),
-    sentence: renderPrompt(promptTemplates.sentence.system, transliteration),
     focusedWords: renderPrompt(promptTemplates.focusedWords.system, transliteration),
-    extractCard: renderPrompt(promptTemplates.extractCard.system, transliteration),
   };
 }
 

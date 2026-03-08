@@ -5,15 +5,15 @@ describe('getSystemPrompts', () => {
   it('returns all prompt types', () => {
     const prompts = getSystemPrompts(false);
     expect(prompts).toHaveProperty('word');
-    expect(prompts).toHaveProperty('sentence');
     expect(prompts).toHaveProperty('focusedWords');
-    expect(prompts).toHaveProperty('extractCard');
   });
 
   it('does not return removed prompt types', () => {
     const prompts = getSystemPrompts(false);
     expect(prompts).not.toHaveProperty('define');
     expect(prompts).not.toHaveProperty('analyze');
+    expect(prompts).not.toHaveProperty('sentence');
+    expect(prompts).not.toHaveProperty('extractCard');
   });
 
   it('all prompts are non-empty strings', () => {
@@ -69,7 +69,7 @@ describe('renderUserTemplate', () => {
   });
 
   it('returns null when template does not exist for given key', () => {
-    const result = renderUserTemplate('extractCard', { word: 'test' });
+    const result = renderUserTemplate('relemmatize', { word: 'test' });
     expect(result).toBeNull();
   });
 
@@ -87,24 +87,11 @@ describe('renderUserTemplate', () => {
     });
     expect(wordResult).not.toMatch(/\{\{.*?\}\}/);
 
-    const sentenceResult = renderUserTemplate('sentence', {
-      sentence: 'ছেলেটা বাজারে যাচ্ছে',
-      userContext: 'colloquial speech',
-    });
-    expect(sentenceResult).not.toMatch(/\{\{.*?\}\}/);
-
     const focusedResult = renderUserTemplate('focusedWords', {
       sentence: 'ছেলেটা বাজারে যাচ্ছে',
       highlightedWords: 'বাজারে, যাচ্ছে',
     });
     expect(focusedResult).not.toMatch(/\{\{.*?\}\}/);
-  });
-
-  it('renders sentence template with sentence variable', () => {
-    const result = renderUserTemplate('sentence', {
-      sentence: 'ছেলেটা বাজারে যাচ্ছে',
-    });
-    expect(result).toContain('ছেলেটা বাজারে যাচ্ছে');
   });
 
   it('renders focused-words template with sentence and highlighted words', () => {

@@ -2,12 +2,7 @@ import { Router, type Response } from 'express';
 import * as aiService from '../services/ai.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
-import {
-  extractCards,
-  extractVocabularyList,
-  extractSentenceTranslation,
-  extractInflectedForms,
-} from '../services/cardExtraction.js';
+import { buildCardPreviews, type CardResponse } from '../services/cardExtraction.js';
 import type { ChatStreamRequest, RelemmatizeRequest, SSEEvent } from 'shared';
 
 export const chatRouter = Router();
@@ -22,7 +17,15 @@ function sendSSE(res: Response, event: SSEEvent): void {
   res.write(`data: ${JSON.stringify(event)}\n\n`);
 }
 
-// POST /api/chat/stream - SSE endpoint for streaming AI responses
+/**
+ * Strip markdown code fences and parse JSON.
+ */
+export function parseJsonResponse(raw: string): unknown {
+  const stripped = raw.replace(/^```(?:json)?\s*\n?/m, '').replace(/\n?```\s*$/m, '');
+  return JSON.parse(stripped);
+}
+
+// POST /api/chat/stream - SSE endpoint for AI-generated card data
 chatRouter.post('/stream', async (req, res) => {
   console.log('[Chat] POST /stream');
   const { newMessage, deck, highlightedWords, userContext } = req.body as ChatStreamRequest;
@@ -42,12 +45,23 @@ chatRouter.post('/stream', async (req, res) => {
   const targetDeck = deck || settings.defaultDeck;
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
-  // Determine if this is a single word or a sentence/phrase
+  // Classify input
   const trimmedMessage = newMessage.trim();
   const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
   const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
 
-  // Select the appropriate prompt based on input type
+  // Sentence without highlights is blocked
+  if (!isSingleWord && !hasHighlightedWords) {
+    sendSSE(res, {
+      type: 'error',
+      data: 'Sentence mode without highlighted words is not supported. Please highlight the words you want to learn.',
+    });
+    sendSSE(res, { type: 'done', data: null });
+    res.end();
+    return;
+  }
+
+  // Select prompt and build user message
   let systemPrompt: string;
   let userMessage: string;
 
@@ -60,24 +74,17 @@ chatRouter.post('/stream', async (req, res) => {
     userMessage =
       rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
     console.log('[Chat] Using focused words prompt for:', highlightedWords);
-  } else if (isSingleWord) {
+  } else {
     systemPrompt = prompts.word;
     const rendered = aiService.renderUserTemplate('word', {
       word: newMessage,
       userContext,
     });
     userMessage = rendered || newMessage;
-  } else {
-    systemPrompt = prompts.sentence;
-    const rendered = aiService.renderUserTemplate('sentence', {
-      sentence: newMessage,
-      userContext,
-    });
-    userMessage = rendered || newMessage;
   }
 
-  // Check Anki for highlighted words or single word
-  const wordsToCheck = hasHighlightedWords ? highlightedWords : isSingleWord ? [newMessage] : [];
+  // Pre-check Anki for input words
+  const wordsToCheck = hasHighlightedWords ? highlightedWords : [newMessage];
   const ankiResults = new Map<string, boolean>();
 
   for (const word of wordsToCheck) {
@@ -89,90 +96,58 @@ chatRouter.post('/stream', async (req, res) => {
     }
   }
 
-  // Collect the full response for card extraction
-  let fullResponse = '';
-
-  // Stream AI response
   try {
-    await aiService.streamCompletion(systemPrompt, userMessage, {
-      onText: (text) => {
-        fullResponse += text;
-        sendSSE(res, { type: 'text', data: text });
-      },
-      onUsage: (usage) => {
-        sendSSE(res, { type: 'usage', data: usage });
-      },
-      onDone: async () => {
-        try {
-          console.log('[Chat] Stream done, extracting card data...');
+    // Single non-streaming AI call
+    const { text: rawResponse, usage } = await aiService.getJsonCompletion(
+      systemPrompt,
+      userMessage
+    );
 
-          // Determine which words to generate cards for
-          let wordsForCards: string[];
-          if (hasHighlightedWords) {
-            wordsForCards = highlightedWords;
-          } else if (isSingleWord) {
-            wordsForCards = [newMessage];
-          } else {
-            wordsForCards = extractVocabularyList(fullResponse);
-            console.log('[Chat] Extracted vocabulary from sentence:', wordsForCards);
-          }
+    // Send usage event
+    if (usage) {
+      sendSSE(res, { type: 'usage', data: usage });
+    }
 
-          const isSentenceMode = !isSingleWord;
-          const sentenceTranslation = isSentenceMode
-            ? extractSentenceTranslation(fullResponse)
-            : '';
-
-          // Extract inflected→lemma mappings for sentence highlighting
-          // Needed for both sentence and focused-words modes — user may
-          // highlight a lemma form that differs from the inflected form in the sentence
-          const inflectedForms = isSentenceMode ? extractInflectedForms(fullResponse) : undefined;
-
-          const settings2 = await getSettings();
-          const { cardPreviews, errors, totalUsage } = await extractCards({
-            wordsForCards,
-            fullResponse,
-            originalSentence: newMessage,
-            sentenceTranslation,
-            isSentenceMode,
-            targetDeck,
-            ankiResults,
-            inflectedForms,
-          });
-
-          for (const preview of cardPreviews) {
-            sendSSE(res, { type: 'card_preview', data: preview });
-          }
-          for (const error of errors) {
-            sendSSE(res, { type: 'error', data: error });
-          }
-          if (totalUsage) {
-            sendSSE(res, {
-              type: 'usage',
-              data: {
-                inputTokens: totalUsage.inputTokens,
-                outputTokens: totalUsage.outputTokens,
-                provider: 'gemini',
-                model: settings2.geminiModel || 'gemini-2.5-flash-lite',
-              },
-            });
-          }
-        } catch (error) {
-          console.error('[Chat] Error in onDone handler:', error);
-          sendSSE(res, { type: 'error', data: String(error) });
+    // Parse JSON response
+    let cards: CardResponse[];
+    try {
+      const parsed = parseJsonResponse(rawResponse);
+      // Single word returns an object, focused words returns an array
+      cards = Array.isArray(parsed) ? (parsed as CardResponse[]) : [parsed as CardResponse];
+    } catch {
+      // Retry with healing prompt
+      console.warn('[Chat] JSON parse failed, retrying with healing prompt');
+      try {
+        const { text: retryResponse, usage: retryUsage } = await aiService.getJsonCompletion(
+          'Fix the following malformed JSON. Return ONLY valid JSON, nothing else.',
+          rawResponse
+        );
+        if (retryUsage) {
+          sendSSE(res, { type: 'usage', data: retryUsage });
         }
-
+        const parsed = parseJsonResponse(retryResponse);
+        cards = Array.isArray(parsed) ? (parsed as CardResponse[]) : [parsed as CardResponse];
+      } catch {
+        sendSSE(res, { type: 'error', data: 'Failed to parse AI response as JSON' });
         sendSSE(res, { type: 'done', data: null });
         res.end();
-      },
-      onError: (error) => {
-        console.error('[Chat] Stream error:', error);
-        sendSSE(res, { type: 'error', data: error.message });
-        res.end();
-      },
-    });
+        return;
+      }
+    }
+
+    // Build card previews with Anki duplicate checks
+    const cardPreviews = await buildCardPreviews(cards, targetDeck, ankiResults);
+
+    for (const preview of cardPreviews) {
+      sendSSE(res, { type: 'card_preview', data: preview });
+    }
+
+    sendSSE(res, { type: 'done', data: null });
+    res.end();
   } catch (error) {
     console.error('[Chat] Unexpected error:', error);
     sendSSE(res, { type: 'error', data: String(error) });
+    sendSSE(res, { type: 'done', data: null });
     res.end();
   }
 });

@@ -76,3 +76,29 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
   const textBlock = response.content.find((block) => block.type === 'text');
   return textBlock ? textBlock.text : '';
 }
+
+export async function getJsonCompletion(
+  systemPrompt: string,
+  userMessage: string
+): Promise<{ text: string; usage?: TokenUsage }> {
+  const anthropic = await getClient();
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  });
+
+  const textBlock = response.content.find((block) => block.type === 'text');
+  const usage: TokenUsage | undefined = response.usage
+    ? {
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        provider: 'claude',
+        model: response.model,
+      }
+    : undefined;
+
+  return { text: textBlock ? textBlock.text : '', usage };
+}

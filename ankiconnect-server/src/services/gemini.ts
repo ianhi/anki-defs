@@ -1,6 +1,6 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { getSettings } from './settings.js';
-import type { CardPreview, TokenUsage } from 'shared';
+import type { TokenUsage } from 'shared';
 
 let client: GoogleGenAI | null = null;
 
@@ -96,135 +96,37 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
   }
 }
 
-export interface ExtractionUsage {
-  inputTokens: number;
-  outputTokens: number;
-}
-
-// Structured output for card extraction - single word mode (extract from AI examples)
-export async function extractCardData(
-  word: string,
-  explanation: string
-): Promise<{ card: Omit<CardPreview, 'alreadyExists'>; usage?: ExtractionUsage }> {
-  console.log('[Gemini] Extracting card data for single word:', word);
-
-  const genai = await getClient();
-  const settings = await getSettings();
-
-  const response = await genai.models.generateContent({
-    model: settings.geminiModel || 'gemini-2.5-flash-lite',
-    contents: `Extract flashcard data from this explanation of the Bangla word "${word}":\n\n${explanation}`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          word: {
-            type: Type.STRING,
-            description: 'The Bangla word (lemmatized/dictionary form)',
-          },
-          definition: {
-            type: Type.STRING,
-            description: 'Concise English definition (2-5 words, ideal for flashcard)',
-          },
-          exampleSentence: {
-            type: Type.STRING,
-            description: 'One natural example sentence in Bangla from the explanation',
-          },
-          sentenceTranslation: {
-            type: Type.STRING,
-            description: 'English translation of the example sentence',
-          },
-        },
-        required: ['word', 'definition', 'exampleSentence', 'sentenceTranslation'],
-      },
-    },
-  });
-
-  let data: Record<string, string>;
+export async function getJsonCompletion(
+  systemPrompt: string,
+  userMessage: string
+): Promise<{ text: string; usage?: TokenUsage }> {
   try {
-    data = JSON.parse(response.text ?? '{}');
-  } catch {
-    console.error('[Gemini] Failed to parse card extraction response:', response.text);
-    data = {};
-  }
-  console.log('[Gemini] Card data extracted:', data);
+    const genai = await getClient();
+    const settings = await getSettings();
+    const model = settings.geminiModel || 'gemini-2.5-flash-lite';
 
-  const usage = response.usageMetadata
-    ? {
-        inputTokens: response.usageMetadata.promptTokenCount ?? 0,
-        outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
-      }
-    : undefined;
-
-  return {
-    card: {
-      word: data.word || word,
-      definition: data.definition || '',
-      exampleSentence: data.exampleSentence || '',
-      sentenceTranslation: data.sentenceTranslation || '',
-    },
-    usage,
-  };
-}
-
-// Structured output for card extraction - sentence mode (use original sentence as example)
-export async function extractCardDataFromSentence(
-  word: string,
-  originalSentence: string,
-  sentenceTranslation: string,
-  explanation: string
-): Promise<{ card: Omit<CardPreview, 'alreadyExists'>; usage?: ExtractionUsage }> {
-  console.log('[Gemini] Extracting card data for word in sentence:', word);
-
-  const genai = await getClient();
-  const settings = await getSettings();
-
-  const response = await genai.models.generateContent({
-    model: settings.geminiModel || 'gemini-2.5-flash-lite',
-    contents: `Extract the definition for the Bangla word "${word}" from this explanation:\n\n${explanation}\n\nThe example sentence is already provided: "${originalSentence}"`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          word: {
-            type: Type.STRING,
-            description: 'The Bangla word (lemmatized/dictionary form)',
-          },
-          definition: {
-            type: Type.STRING,
-            description: 'Concise English definition (2-5 words, ideal for flashcard)',
-          },
-        },
-        required: ['word', 'definition'],
+    const response = await genai.models.generateContent({
+      model,
+      contents: userMessage,
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        maxOutputTokens: 2048,
       },
-    },
-  });
+    });
 
-  let data: Record<string, string>;
-  try {
-    data = JSON.parse(response.text ?? '{}');
-  } catch {
-    console.error('[Gemini] Failed to parse sentence card extraction response:', response.text);
-    data = {};
+    const usage: TokenUsage | undefined = response.usageMetadata
+      ? {
+          inputTokens: response.usageMetadata.promptTokenCount ?? 0,
+          outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
+          provider: 'gemini',
+          model,
+        }
+      : undefined;
+
+    return { text: response.text ?? '', usage };
+  } catch (error) {
+    console.error('[Gemini] JSON completion error:', error);
+    throw error;
   }
-  console.log('[Gemini] Card data extracted:', data);
-
-  const usage = response.usageMetadata
-    ? {
-        inputTokens: response.usageMetadata.promptTokenCount ?? 0,
-        outputTokens: response.usageMetadata.candidatesTokenCount ?? 0,
-      }
-    : undefined;
-
-  return {
-    card: {
-      word: data.word || word,
-      definition: data.definition || '',
-      exampleSentence: originalSentence,
-      sentenceTranslation: sentenceTranslation,
-    },
-    usage,
-  };
 }

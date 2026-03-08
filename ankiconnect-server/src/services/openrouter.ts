@@ -95,3 +95,36 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
     throw error;
   }
 }
+
+export async function getJsonCompletion(
+  systemPrompt: string,
+  userMessage: string
+): Promise<{ text: string; usage?: TokenUsage }> {
+  try {
+    const settings = await getSettings();
+    const openai = await getClient();
+
+    const response = await openai.chat.completions.create({
+      model: settings.openRouterModel,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      max_tokens: 2048,
+    });
+
+    const usage: TokenUsage | undefined = response.usage
+      ? {
+          inputTokens: response.usage.prompt_tokens ?? 0,
+          outputTokens: response.usage.completion_tokens ?? 0,
+          provider: 'openrouter',
+          model: settings.openRouterModel,
+        }
+      : undefined;
+
+    return { text: response.choices[0]?.message?.content ?? '', usage };
+  } catch (error) {
+    console.error('[OpenRouter] JSON completion error:', error);
+    throw error;
+  }
+}

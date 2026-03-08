@@ -44,19 +44,14 @@ promptsRouter.post('/preview', async (req, res) => {
     const rendered = aiService.renderUserTemplate('word', { word: newMessage });
     userMessage = rendered || newMessage;
   } else {
-    mode = 'sentence';
-    systemPrompt = prompts.sentence;
-    const rendered = aiService.renderUserTemplate('sentence', { sentence: newMessage });
-    userMessage = rendered || newMessage;
+    mode = 'sentence-blocked';
+    systemPrompt = '';
+    userMessage = newMessage;
   }
-
-  // Also show card extraction prompt (used as second LLM call)
-  const extractionSystemPrompt = prompts.extractCard;
 
   res.json({
     mode,
     systemPrompt,
     userMessage,
-    extractionSystemPrompt,
   });
 });

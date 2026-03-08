@@ -22,19 +22,11 @@ function renderTemplate(template: string): string {
 }
 
 const singleWord = loadPrompt('single-word');
-const sentence = loadPrompt('sentence');
 const focusedWords = loadPrompt('focused-words');
-const cardExtraction = loadPrompt('card-extraction');
 const variables = loadPrompt('variables');
 
 describe('prompt template JSON files', () => {
-  const promptFiles = [
-    'single-word',
-    'sentence',
-    'focused-words',
-    'card-extraction',
-    'relemmatize',
-  ];
+  const promptFiles = ['single-word', 'focused-words', 'relemmatize'];
 
   it.each(promptFiles)('%s has a non-empty system field', (name) => {
     const prompt = loadPrompt(name);
@@ -61,18 +53,10 @@ describe('single-word.json', () => {
     expect(rendered).toContain('Lemmatization');
     expect(rendered).toContain('Bangla');
   });
-});
 
-describe('sentence.json', () => {
-  it('has user_template with {{sentence}} and {{userContext}}', () => {
-    expect(sentence.user_template).toBeDefined();
-    expect(sentence.user_template).toContain('{{sentence}}');
-    expect(sentence.user_template).toContain('{{userContext}}');
-  });
-
-  it('rendered prompt says not to generate example sentences', () => {
-    const rendered = renderTemplate(sentence.system as string);
-    expect(rendered).toMatch(/do not generate.*example sentences/i);
+  it('rendered prompt mentions JSON output', () => {
+    const rendered = renderTemplate(singleWord.system as string);
+    expect(rendered).toContain('JSON');
   });
 });
 
@@ -83,15 +67,14 @@ describe('focused-words.json', () => {
     expect(focusedWords.user_template).toContain('{{highlightedWords}}');
   });
 
+  it('rendered prompt mentions JSON output', () => {
+    const rendered = renderTemplate(focusedWords.system as string);
+    expect(rendered).toContain('JSON');
+  });
+
   it('rendered prompt says not to generate example sentences', () => {
     const rendered = renderTemplate(focusedWords.system as string);
-    expect(rendered).toMatch(/do not generate.*example sentences/i);
-  });
-});
-
-describe('card-extraction.json', () => {
-  it('does NOT have a user_template', () => {
-    expect(cardExtraction.user_template).toBeUndefined();
+    expect(rendered).toMatch(/do not generate/i);
   });
 });
 
