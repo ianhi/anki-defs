@@ -10,6 +10,7 @@ interface SettingsState {
   setDefaultModel: (model: string) => void;
   loadSettings: (settings: Settings) => void;
   updateSettings: (updates: Partial<Settings>) => Promise<void>;
+  fetchSettings: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -50,4 +51,17 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       console.error('Failed to save settings:', error);
     }
   },
+
+  fetchSettings: async () => {
+    try {
+      const settings = await settingsApi.get();
+      set({ settings, isLoaded: true });
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+      set({ isLoaded: true });
+    }
+  },
 }));
+
+// Fetch settings from server on startup
+useSettingsStore.getState().fetchSettings();

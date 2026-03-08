@@ -43,6 +43,9 @@ db.exec(`
     modelName TEXT NOT NULL
   );
 
+  CREATE INDEX IF NOT EXISTS idx_cards_word ON cards(word);
+  CREATE INDEX IF NOT EXISTS idx_cards_definition ON cards(definition);
+
   CREATE TABLE IF NOT EXISTS usage_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     inputTokens INTEGER NOT NULL,
@@ -195,14 +198,21 @@ export function searchHistory(
 ): HistoryResult {
   if (query && query.trim()) {
     const pattern = `%${query.trim()}%`;
-    const countStmt = db.prepare(
-      'SELECT COUNT(*) as total FROM cards WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ?'
-    );
+    const where =
+      'WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ? OR sentenceTranslation LIKE ?';
+    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM cards ${where}`);
     const selectStmt = db.prepare(
-      'SELECT * FROM cards WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ? ORDER BY createdAt DESC LIMIT ? OFFSET ?'
+      `SELECT * FROM cards ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`
     );
-    const { total } = countStmt.get(pattern, pattern, pattern) as { total: number };
-    const items = selectStmt.all(pattern, pattern, pattern, limit, offset) as SessionCard[];
+    const { total } = countStmt.get(pattern, pattern, pattern, pattern) as { total: number };
+    const items = selectStmt.all(
+      pattern,
+      pattern,
+      pattern,
+      pattern,
+      limit,
+      offset
+    ) as SessionCard[];
     return { items, total };
   } else {
     const countStmt = db.prepare('SELECT COUNT(*) as total FROM cards');
