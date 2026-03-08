@@ -34,9 +34,9 @@ non-streaming call. The prompt instructs the LLM to return JSON directly.
 {
   "word": "কাঁদা",
   "definition": "to cry, to weep",
+  "banglaDefinition": "চোখ থেকে জল পড়া",
   "exampleSentence": "মেয়েটা **কাঁদছে**।",
   "sentenceTranslation": "The girl is crying.",
-  "rootWord": null,
   "spellingCorrection": null
 }
 ```
@@ -48,6 +48,7 @@ non-streaming call. The prompt instructs the LLM to return JSON directly.
   {
     "word": "বাজার",
     "definition": "market, bazaar",
+    "banglaDefinition": "যেখানে জিনিস কেনা-বেচা হয়",
     "exampleSentence": "ছেলেটা **বাজারে** যাচ্ছে",
     "sentenceTranslation": "The boy is going to the market.",
     ...
@@ -59,7 +60,7 @@ Key details:
 
 - Target word is bolded with `**markers**` in `exampleSentence`
 - For focused words, `exampleSentence` is always the user's original sentence
-- `rootWord` and `spellingCorrection` are optional fields
+- `spellingCorrection` is optional — present only when the LLM detects a typo
 
 ### 3. JSON Parsing with Fault Tolerance
 
@@ -73,8 +74,8 @@ The server parses the JSON response:
 ### 4. Card Preview Building (cardExtraction.ts)
 
 `buildCardPreviews(cards, targetDeck, ankiResults)` checks each card's word
-against Anki to set `alreadyExists`, and passes through `rootWord` and
-`spellingCorrection` fields.
+against Anki to set `alreadyExists`, and applies spelling corrections to the
+example sentence if present.
 
 ### 5. SSE Events
 
@@ -89,6 +90,19 @@ HTML escaping of non-bold parts.
 
 Each card bolds only its own word. If two words are highlighted from the same
 sentence, each card gets the full sentence with only its word bolded.
+
+## Card Fields
+
+| Standard Field     | Description                         | Anki Note Field (default) |
+| ------------------ | ----------------------------------- | ------------------------- |
+| Word               | Lemmatized dictionary form          | Bangla                    |
+| Definition         | English meaning (under 10 words)    | Eng_trans                 |
+| BanglaDefinition   | Bangla definition (simple, concise) | Bangla_definition         |
+| Example            | Example sentence with **bold** word | example sentence          |
+| Translation        | English translation of example      | sentence-trans            |
+
+Field mapping is configurable in Settings — maps standard field names to the
+user's Anki note type field names.
 
 ## Retry with Context
 

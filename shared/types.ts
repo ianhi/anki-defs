@@ -14,6 +14,7 @@ export interface Message {
 export interface CardContent {
   word: string;
   definition: string;
+  banglaDefinition: string;
   exampleSentence: string;
   sentenceTranslation: string;
 }
@@ -22,7 +23,6 @@ export interface CardContent {
 export interface CardPreview extends CardContent {
   alreadyExists: boolean; // Whether word already exists in Anki deck
   existingCard?: CardContent; // The existing card's content (for comparison)
-  rootWord?: string; // If derived from a useful root word
   spellingCorrection?: string; // If input was a typo: "বাজারে → বাজার"
 }
 
@@ -97,7 +97,13 @@ export interface Settings {
   apiToken: string;
 }
 
-export const CARD_DATA_FIELDS = ['Word', 'Definition', 'Example', 'Translation'] as const;
+export const CARD_DATA_FIELDS = [
+  'Word',
+  'Definition',
+  'BanglaDefinition',
+  'Example',
+  'Translation',
+] as const;
 export type CardDataField = (typeof CARD_DATA_FIELDS)[number];
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -115,6 +121,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fieldMapping: {
     Word: 'Bangla',
     Definition: 'Eng_trans',
+    BanglaDefinition: 'Bangla_definition',
     Example: 'example sentence',
     Translation: 'sentence-trans',
   },

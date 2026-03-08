@@ -43,6 +43,7 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
     const sessionCard: SessionCard = {
       word: card.word,
       definition: card.definition,
+      banglaDefinition: card.banglaDefinition,
       exampleSentence: card.exampleSentence,
       sentenceTranslation: card.sentenceTranslation,
       id: generateId(),
@@ -76,6 +77,7 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
     const pendingCard: PendingCard = {
       word: card.word,
       definition: card.definition,
+      banglaDefinition: card.banglaDefinition,
       exampleSentence: card.exampleSentence,
       sentenceTranslation: card.sentenceTranslation,
       id,

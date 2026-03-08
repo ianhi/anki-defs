@@ -5,9 +5,9 @@ import type { AnkiNote, CardContent, CardPreview } from 'shared';
 export interface CardResponse {
   word: string;
   definition: string;
+  banglaDefinition: string;
   exampleSentence: string;
   sentenceTranslation: string;
-  rootWord?: string;
   spellingCorrection?: string;
 }
 
@@ -50,6 +50,7 @@ function noteToCardContent(note: AnkiNote, fieldMapping: Record<string, string>)
   return {
     word: getField('Word'),
     definition: getField('Definition'),
+    banglaDefinition: getField('BanglaDefinition'),
     exampleSentence: getField('Example'),
     sentenceTranslation: getField('Translation'),
   };
@@ -100,9 +101,9 @@ export async function buildCardPreviews(
     return {
       word: card.word,
       definition: card.definition,
+      banglaDefinition: card.banglaDefinition,
       exampleSentence,
       sentenceTranslation: card.sentenceTranslation,
-      rootWord: card.rootWord,
       spellingCorrection: card.spellingCorrection,
       alreadyExists: !!existingNote,
       existingCard,

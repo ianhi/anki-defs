@@ -153,6 +153,7 @@ export function CardPreview({
         fields: {
           Word: currentWord,
           Definition: currentDefinition,
+          BanglaDefinition: preview.banglaDefinition,
           Example: markdownBoldToHtml(preview.exampleSentence),
           Translation: preview.sentenceTranslation,
         },
@@ -325,12 +326,14 @@ export function CardPreview({
           {showExisting && <ExistingCardContent card={preview.existingCard} />}
         </div>
       )}
+      {preview.banglaDefinition && (
+        <div className="px-3 sm:px-6 pt-0 pb-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground">{preview.banglaDefinition}</p>
+        </div>
+      )}
       {preview.exampleSentence && (
         <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
           <p className="text-xs sm:text-sm">{highlightBoldMarkers(preview.exampleSentence)}</p>
-          {preview.rootWord && (
-            <p className="text-xs text-muted-foreground mt-0.5">Root: {preview.rootWord}</p>
-          )}
           {preview.sentenceTranslation && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {preview.sentenceTranslation}

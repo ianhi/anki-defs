@@ -22,6 +22,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     word TEXT NOT NULL,
     definition TEXT NOT NULL,
+    banglaDefinition TEXT NOT NULL DEFAULT '',
     exampleSentence TEXT NOT NULL DEFAULT '',
     sentenceTranslation TEXT NOT NULL DEFAULT '',
     createdAt INTEGER NOT NULL,
@@ -34,6 +35,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     word TEXT NOT NULL,
     definition TEXT NOT NULL,
+    banglaDefinition TEXT NOT NULL DEFAULT '',
     exampleSentence TEXT NOT NULL DEFAULT '',
     sentenceTranslation TEXT NOT NULL DEFAULT '',
     createdAt INTEGER NOT NULL,
@@ -42,15 +44,27 @@ db.exec(`
   );
 `);
 
+// Migration: add banglaDefinition column to existing tables
+try {
+  db.exec("ALTER TABLE cards ADD COLUMN banglaDefinition TEXT NOT NULL DEFAULT ''");
+} catch {
+  /* column already exists */
+}
+try {
+  db.exec("ALTER TABLE pending ADD COLUMN banglaDefinition TEXT NOT NULL DEFAULT ''");
+} catch {
+  /* column already exists */
+}
+
 // Prepared statements
 const stmts = {
   allCards: db.prepare('SELECT * FROM cards ORDER BY createdAt'),
   allPending: db.prepare('SELECT * FROM pending ORDER BY createdAt'),
   insertCard: db.prepare(
-    'INSERT OR REPLACE INTO cards (id, word, definition, exampleSentence, sentenceTranslation, createdAt, noteId, deckName, modelName) VALUES (@id, @word, @definition, @exampleSentence, @sentenceTranslation, @createdAt, @noteId, @deckName, @modelName)'
+    'INSERT OR REPLACE INTO cards (id, word, definition, banglaDefinition, exampleSentence, sentenceTranslation, createdAt, noteId, deckName, modelName) VALUES (@id, @word, @definition, @banglaDefinition, @exampleSentence, @sentenceTranslation, @createdAt, @noteId, @deckName, @modelName)'
   ),
   insertPending: db.prepare(
-    'INSERT OR REPLACE INTO pending (id, word, definition, exampleSentence, sentenceTranslation, createdAt, deckName, modelName) VALUES (@id, @word, @definition, @exampleSentence, @sentenceTranslation, @createdAt, @deckName, @modelName)'
+    'INSERT OR REPLACE INTO pending (id, word, definition, banglaDefinition, exampleSentence, sentenceTranslation, createdAt, deckName, modelName) VALUES (@id, @word, @definition, @banglaDefinition, @exampleSentence, @sentenceTranslation, @createdAt, @deckName, @modelName)'
   ),
   deleteCard: db.prepare('DELETE FROM cards WHERE id = ?'),
   deletePending: db.prepare('DELETE FROM pending WHERE id = ?'),
@@ -68,6 +82,7 @@ const promoteTx = db.transaction((pendingId: string, noteId: number): SessionCar
     createdAt: pending.createdAt,
     word: pending.word,
     definition: pending.definition,
+    banglaDefinition: pending.banglaDefinition,
     exampleSentence: pending.exampleSentence,
     sentenceTranslation: pending.sentenceTranslation,
     deckName: pending.deckName,

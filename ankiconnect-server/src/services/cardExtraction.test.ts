@@ -13,6 +13,7 @@ vi.mock('./settings.js', () => ({
     fieldMapping: {
       Word: 'Bangla',
       Definition: 'Eng_trans',
+      BanglaDefinition: 'Bangla_definition',
       Example: 'example sentence',
       Translation: 'sentence-trans',
     },
@@ -32,6 +33,15 @@ const makeNote = (fields: Record<string, string>): AnkiNote => ({
   ),
 });
 
+const makeCard = (overrides?: Partial<CardResponse>): CardResponse => ({
+  word: 'বাজার',
+  definition: 'market',
+  banglaDefinition: 'যেখানে জিনিস কেনা-বেচা হয়',
+  exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
+  sentenceTranslation: 'I am going to the market.',
+  ...overrides,
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockSearchWord.mockResolvedValue(null);
@@ -39,19 +49,11 @@ beforeEach(() => {
 
 describe('buildCardPreviews', () => {
   it('single card, word not in Anki → alreadyExists: false', async () => {
-    const cards: CardResponse[] = [
-      {
-        word: 'বাজার',
-        definition: 'market',
-        exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
-        sentenceTranslation: 'I am going to the market.',
-      },
-    ];
-
-    const previews = await buildCardPreviews(cards, 'Bangla', new Map());
+    const previews = await buildCardPreviews([makeCard()], 'Bangla', new Map());
     expect(previews).toHaveLength(1);
     expect(previews[0]!.word).toBe('বাজার');
     expect(previews[0]!.definition).toBe('market');
+    expect(previews[0]!.banglaDefinition).toBe('যেখানে জিনিস কেনা-বেচা হয়');
     expect(previews[0]!.alreadyExists).toBe(false);
     expect(previews[0]!.existingCard).toBeUndefined();
   });
@@ -60,25 +62,19 @@ describe('buildCardPreviews', () => {
     const existingNote = makeNote({
       Bangla: 'বাজার',
       Eng_trans: 'bazaar, market',
+      Bangla_definition: 'হাট',
       'example sentence': 'সে <b>বাজারে</b> গেছে।',
       'sentence-trans': 'He went to the market.',
     });
     const ankiResults = new Map<string, AnkiNote | null>([['বাজার', existingNote]]);
-    const cards: CardResponse[] = [
-      {
-        word: 'বাজার',
-        definition: 'market',
-        exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
-        sentenceTranslation: 'I am going to the market.',
-      },
-    ];
 
-    const previews = await buildCardPreviews(cards, 'Bangla', ankiResults);
+    const previews = await buildCardPreviews([makeCard()], 'Bangla', ankiResults);
     expect(previews).toHaveLength(1);
     expect(previews[0]!.alreadyExists).toBe(true);
     expect(previews[0]!.existingCard).toEqual({
       word: 'বাজার',
       definition: 'bazaar, market',
+      banglaDefinition: 'হাট',
       exampleSentence: 'সে <b>বাজারে</b> গেছে।',
       sentenceTranslation: 'He went to the market.',
     });
@@ -88,6 +84,7 @@ describe('buildCardPreviews', () => {
     const existingNote = makeNote({
       Bangla: 'বাজার',
       Eng_trans: 'market',
+      Bangla_definition: '',
       'example sentence': '',
       'sentence-trans': '',
     });
@@ -96,18 +93,14 @@ describe('buildCardPreviews', () => {
       ['যাওয়া', null],
     ]);
     const cards: CardResponse[] = [
-      {
-        word: 'বাজার',
-        definition: 'market',
-        exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
-        sentenceTranslation: 'I am going to the market.',
-      },
-      {
+      makeCard(),
+      makeCard({
         word: 'যাওয়া',
         definition: 'to go',
+        banglaDefinition: 'এক জায়গা থেকে অন্য জায়গায় চলা',
         exampleSentence: 'আমি স্কুলে **যাচ্ছি**।',
         sentenceTranslation: 'I am going to school.',
-      },
+      }),
     ];
 
     const previews = await buildCardPreviews(cards, 'Bangla', ankiResults);
@@ -118,20 +111,10 @@ describe('buildCardPreviews', () => {
     expect(previews[1]!.existingCard).toBeUndefined();
   });
 
-  it('rootWord and spellingCorrection fields passed through', async () => {
-    const cards: CardResponse[] = [
-      {
-        word: 'বাজার',
-        definition: 'market',
-        exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
-        sentenceTranslation: 'I am going to the market.',
-        rootWord: 'বাজ — hawk',
-        spellingCorrection: 'বাজর → বাজার',
-      },
-    ];
+  it('spellingCorrection field passed through', async () => {
+    const cards = [makeCard({ spellingCorrection: 'বাজর → বাজার' })];
 
     const previews = await buildCardPreviews(cards, 'Bangla', new Map());
-    expect(previews[0]!.rootWord).toBe('বাজ — hawk');
     expect(previews[0]!.spellingCorrection).toBe('বাজর → বাজার');
   });
 
@@ -139,18 +122,20 @@ describe('buildCardPreviews', () => {
     const note = makeNote({
       Bangla: 'খাওয়া',
       Eng_trans: 'to eat',
+      Bangla_definition: '',
       'example sentence': '',
       'sentence-trans': '',
     });
     mockSearchWord.mockResolvedValue(note);
 
-    const cards: CardResponse[] = [
-      {
+    const cards = [
+      makeCard({
         word: 'খাওয়া',
         definition: 'to eat',
+        banglaDefinition: 'খাবার গ্রহণ করা',
         exampleSentence: 'সে ভাত **খাচ্ছে**।',
         sentenceTranslation: 'He is eating rice.',
-      },
+      }),
     ];
 
     const previews = await buildCardPreviews(cards, 'Bangla', new Map());
@@ -160,14 +145,15 @@ describe('buildCardPreviews', () => {
   });
 
   it('spelling correction is applied to exampleSentence', async () => {
-    const cards: CardResponse[] = [
-      {
+    const cards = [
+      makeCard({
         word: 'কাঁদা',
         definition: 'to cry',
+        banglaDefinition: 'চোখ থেকে জল পড়া',
         exampleSentence: 'বাচ্চাটা **কাদছে** কারণ সে পড়ে গেছে।',
         sentenceTranslation: 'The child is crying because he fell.',
         spellingCorrection: 'কাদছে → কাঁদছে',
-      },
+      }),
     ];
 
     const previews = await buildCardPreviews(cards, 'Bangla', new Map());
@@ -183,16 +169,8 @@ describe('buildCardPreviews', () => {
       fields: {},
     };
     const ankiResults = new Map<string, AnkiNote | null>([['বাজার', cachedNote]]);
-    const cards: CardResponse[] = [
-      {
-        word: 'বাজার',
-        definition: 'market',
-        exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
-        sentenceTranslation: 'I am going to the market.',
-      },
-    ];
 
-    const previews = await buildCardPreviews(cards, 'Bangla', ankiResults);
+    const previews = await buildCardPreviews([makeCard()], 'Bangla', ankiResults);
     expect(previews[0]!.alreadyExists).toBe(true);
     expect(previews[0]!.existingCard).toBeUndefined();
   });
