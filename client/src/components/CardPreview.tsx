@@ -328,7 +328,18 @@ export function CardPreview({
       )}
       {preview.banglaDefinition && (
         <div className="px-3 sm:px-6 pt-0 pb-0.5">
-          <p className="text-xs sm:text-sm text-muted-foreground">{preview.banglaDefinition}</p>
+          <button
+            type="button"
+            className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
+            onClick={() =>
+              window.dispatchEvent(
+                new globalThis.CustomEvent('setInput', { detail: preview.banglaDefinition })
+              )
+            }
+            title="Use as input"
+          >
+            {preview.banglaDefinition}
+          </button>
         </div>
       )}
       {preview.exampleSentence && (

@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
 import { Crosshair, Send } from 'lucide-react';
 import {
@@ -25,6 +25,19 @@ export function MessageInput({
   const [cursorPos, setCursorPos] = useState(0);
   const [hasSelection, setHasSelection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Listen for external "set input" events (e.g. clicking a Bangla definition)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as globalThis.CustomEvent<string>).detail;
+      if (text) {
+        setValue(text);
+        textareaRef.current?.focus();
+      }
+    };
+    window.addEventListener('setInput', handler);
+    return () => window.removeEventListener('setInput', handler);
+  }, []);
 
   const handleSubmit = () => {
     const trimmed = value.trim();
