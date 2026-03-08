@@ -3,6 +3,7 @@ import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckSelector';
 import { SessionCardsPanel } from './components/SessionCardsPanel';
+import { RetryUxDemo } from './components/RetryUxDemo';
 import { SettingsIcon, X, Layers, RefreshCw } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards } from './hooks/useSessionCards';
@@ -10,7 +11,18 @@ import { useTokenUsage } from './hooks/useTokenUsage';
 import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
 import { usePlatform } from './hooks/usePlatform';
 
+// Check for demo mode via URL search params
+const demoParam = new URLSearchParams(window.location.search).get('demo');
+
 export default function App() {
+  if (demoParam === 'retry') {
+    return <RetryUxDemo />;
+  }
+
+  return <MainApp />;
+}
+
+function MainApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const { cards, pendingQueue } = useSessionCards();
