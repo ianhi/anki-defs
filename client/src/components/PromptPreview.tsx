@@ -173,6 +173,48 @@ const TEST_CASES: TestCase[] = [
       ];
     },
   },
+  {
+    label: 'Wrong দ/ড',
+    value: 'দৌরানো',
+    description: 'দৌরানো with dental দ — should correct to ডৌরানো or দৌড়ানো (to run)',
+    checks: (cards) => {
+      const card = cards[0];
+      return [
+        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        {
+          label: 'Has definition related to running',
+          pass: !!card && card.definition.length > 0,
+          detail: card ? `${card.word} — ${card.definition}` : undefined,
+        },
+        {
+          label: 'spellingCorrection notes the fix',
+          pass: !!card && !!card.spellingCorrection,
+          detail: card?.spellingCorrection ?? '(missing)',
+        },
+      ];
+    },
+  },
+  {
+    label: 'Broken conjunct',
+    value: 'বিদ্যালয',
+    description: 'Missing final া — should still recognize as বিদ্যালয় (school)',
+    checks: (cards) => {
+      const card = cards[0];
+      return [
+        { label: 'Returns exactly 1 card', pass: cards.length === 1 },
+        {
+          label: 'Recognized as school/বিদ্যালয়',
+          pass: !!card && (card.word === 'বিদ্যালয়' || card.word === 'বিদ্যালয'),
+          detail: card ? `${card.word} — ${card.definition}` : undefined,
+        },
+        {
+          label: 'spellingCorrection if corrected',
+          pass: !!card && (!!card.spellingCorrection || card.word === 'বিদ্যালয়'),
+          detail: card?.spellingCorrection ?? `word: ${card?.word}`,
+        },
+      ];
+    },
+  },
 ];
 
 interface LLMResult {
