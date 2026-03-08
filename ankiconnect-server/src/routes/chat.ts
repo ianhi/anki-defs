@@ -47,14 +47,14 @@ chatRouter.post('/stream', async (req, res) => {
   const targetDeck = deck || settings.defaultDeck;
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
-  // Classify input
-  const trimmedMessage = newMessage.trim();
-  const isEnglishToBangla = mode === 'english-to-bangla';
-  const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
-  const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
+  // Select prompt and build user message
+  const selection = aiService.selectPrompt(prompts, newMessage, {
+    highlightedWords,
+    userContext,
+    mode,
+  });
 
-  // Sentence without highlights is blocked (unless English→Bangla mode)
-  if (!isEnglishToBangla && !isSingleWord && !hasHighlightedWords) {
+  if (selection.mode === 'sentence-blocked') {
     sendSSE(res, {
       type: 'error',
       data: 'Sentence mode without highlighted words is not supported. Please highlight the words you want to learn.',
@@ -64,49 +64,10 @@ chatRouter.post('/stream', async (req, res) => {
     return;
   }
 
-  // Select prompt and build user message
-  let systemPrompt: string;
-  let userMessage: string;
-
-  if (isEnglishToBangla && hasHighlightedWords) {
-    // English sentence with highlighted words → disambiguated EN→BN lookup
-    systemPrompt = prompts.englishToBanglaFocused;
-    const rendered = aiService.renderUserTemplate(
-      'englishToBangla',
-      {
-        sentence: newMessage,
-        highlightedWords: highlightedWords.join(', '),
-      },
-      'focused'
-    );
-    userMessage =
-      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
-    console.log('[Chat] Using English→Bangla focused prompt for:', highlightedWords);
-  } else if (isEnglishToBangla) {
-    systemPrompt = prompts.englishToBangla;
-    const rendered = aiService.renderUserTemplate('englishToBangla', {
-      word: newMessage,
-      userContext,
-    });
-    userMessage = rendered || newMessage;
-    console.log('[Chat] Using English→Bangla prompt for:', newMessage);
-  } else if (hasHighlightedWords) {
-    systemPrompt = prompts.focusedWords;
-    const rendered = aiService.renderUserTemplate('focusedWords', {
-      sentence: newMessage,
-      highlightedWords: highlightedWords.join(', '),
-    });
-    userMessage =
-      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
-    console.log('[Chat] Using focused words prompt for:', highlightedWords);
-  } else {
-    systemPrompt = prompts.word;
-    const rendered = aiService.renderUserTemplate('word', {
-      word: newMessage,
-      userContext,
-    });
-    userMessage = rendered || newMessage;
-  }
+  const { systemPrompt, userMessage } = selection;
+  const isEnglishToBangla = selection.mode.startsWith('english-to-bangla');
+  const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
+  console.log('[Chat] Mode:', selection.mode);
 
   // Pre-check Anki for input words (store full note for comparison UI)
   // For English→Bangla, we can't pre-check since we don't know the Bangla word yet
@@ -179,7 +140,10 @@ chatRouter.post('/stream', async (req, res) => {
     res.end();
   } catch (error) {
     console.error('[Chat] Unexpected error:', error);
-    sendSSE(res, { type: 'error', data: String(error) });
+    sendSSE(res, {
+      type: 'error',
+      data: error instanceof Error ? error.message : 'An unexpected error occurred',
+    });
     sendSSE(res, { type: 'done', data: null });
     res.end();
   }

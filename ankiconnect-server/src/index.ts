@@ -64,7 +64,8 @@ app.use('/api', async (req, res, next) => {
   }
 
   const authHeader = req.headers.authorization;
-  if (!authHeader || authHeader !== `Bearer ${settings.apiToken}`) {
+  const [scheme, token] = authHeader?.split(' ') ?? [];
+  if (!scheme || scheme.toLowerCase() !== 'bearer' || token !== settings.apiToken) {
     res.status(401).json({ error: 'Invalid or missing API token' });
     return;
   }
@@ -111,8 +112,13 @@ async function ensureApiToken() {
   }
 }
 
-ensureApiToken().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+ensureApiToken()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[Server] Failed to start:', err);
+    process.exit(1);
   });
-});

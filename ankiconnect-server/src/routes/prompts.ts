@@ -26,56 +26,10 @@ promptsRouter.post('/preview', async (req, res) => {
   const settings = await getSettings();
   const prompts = aiService.getSystemPrompts(settings.showTransliteration);
 
-  const trimmedMessage = newMessage.trim();
-  const isEnglishToBangla = requestMode === 'english-to-bangla';
-  const isSingleWord = !trimmedMessage.includes(' ') && trimmedMessage.length < 30;
-  const hasHighlightedWords = highlightedWords && highlightedWords.length > 0;
-
-  let mode: string;
-  let systemPrompt: string;
-  let userMessage: string;
-
-  if (isEnglishToBangla && hasHighlightedWords) {
-    mode = 'english-to-bangla-focused';
-    systemPrompt = prompts.englishToBanglaFocused;
-    const rendered = aiService.renderUserTemplate(
-      'englishToBangla',
-      {
-        sentence: newMessage,
-        highlightedWords: highlightedWords.join(', '),
-      },
-      'focused'
-    );
-    userMessage =
-      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
-  } else if (isEnglishToBangla) {
-    mode = 'english-to-bangla';
-    systemPrompt = prompts.englishToBangla;
-    const rendered = aiService.renderUserTemplate('englishToBangla', { word: newMessage });
-    userMessage = rendered || newMessage;
-  } else if (hasHighlightedWords) {
-    mode = 'focused-words';
-    systemPrompt = prompts.focusedWords;
-    const rendered = aiService.renderUserTemplate('focusedWords', {
-      sentence: newMessage,
-      highlightedWords: highlightedWords.join(', '),
-    });
-    userMessage =
-      rendered || `Sentence: ${newMessage}\n\nFocus words: ${highlightedWords.join(', ')}`;
-  } else if (isSingleWord) {
-    mode = 'single-word';
-    systemPrompt = prompts.word;
-    const rendered = aiService.renderUserTemplate('word', { word: newMessage });
-    userMessage = rendered || newMessage;
-  } else {
-    mode = 'sentence-blocked';
-    systemPrompt = '';
-    userMessage = newMessage;
-  }
-
-  res.json({
-    mode,
-    systemPrompt,
-    userMessage,
+  const { mode, systemPrompt, userMessage } = aiService.selectPrompt(prompts, newMessage, {
+    highlightedWords,
+    mode: requestMode,
   });
+
+  res.json({ mode, systemPrompt, userMessage });
 });

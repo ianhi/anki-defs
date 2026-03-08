@@ -123,19 +123,31 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
   },
 }));
 
-// Fetch server state on startup
-useSessionCards.getState().fetchState();
+// Initialization — fetch on startup, refetch on tab focus, poll as safety net
+let initialized = false;
 
-// Refetch on window focus (instant sync when switching tabs/devices)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    useSessionCards.getState().fetchState();
-  }
-});
+export function initSessionCards(): () => void {
+  if (initialized) return () => {};
+  initialized = true;
 
-// Light background poll as safety net (every 30s)
-setInterval(() => {
-  if (document.visibilityState === 'visible') {
-    useSessionCards.getState().fetchState();
-  }
-}, 30_000);
+  useSessionCards.getState().fetchState();
+
+  const handleVisibility = () => {
+    if (document.visibilityState === 'visible') {
+      useSessionCards.getState().fetchState();
+    }
+  };
+  document.addEventListener('visibilitychange', handleVisibility);
+
+  const intervalId = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      useSessionCards.getState().fetchState();
+    }
+  }, 30_000);
+
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibility);
+    clearInterval(intervalId);
+    initialized = false;
+  };
+}

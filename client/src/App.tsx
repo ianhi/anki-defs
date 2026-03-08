@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckSelector';
@@ -9,7 +9,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { SettingsIcon, X, Layers, RefreshCw, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
-import { useSessionCards } from './hooks/useSessionCards';
+import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
 import { useTokenUsage } from './hooks/useTokenUsage';
 import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
 import { usePlatform } from './hooks/usePlatform';
@@ -29,6 +29,8 @@ export default function App() {
 }
 
 function MainApp() {
+  useEffect(() => initSessionCards(), []);
+
   const [showSettings, setShowSettings] = useState(false);
   const [showCards, setShowCards] = useState(false);
   const [showHistory, setShowHistory] = useState(false);

@@ -13,7 +13,11 @@
   "fieldMapping": {
     "Word": "Bangla",
     "Definition": "Eng_trans",
+    "BanglaDefinition": "bangla-def",
     "Example": "example sentence",
     "Translation": "sentence-trans"
-  }
+  },
+  "apiToken": "",
+  "englishToBanglaPrefix": "bn:",
+  "autoDetectEnglish": true
 }

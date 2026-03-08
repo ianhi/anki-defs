@@ -171,6 +171,90 @@ export function renderUserTemplate(
   return result;
 }
 
+export type SystemPrompts = ReturnType<typeof getSystemPrompts>;
+
+export interface PromptSelection {
+  mode: string;
+  systemPrompt: string;
+  userMessage: string;
+}
+
+/**
+ * Classify input and select the appropriate prompt + user message.
+ * Shared by chat.ts and prompts.ts to avoid duplicating selection logic.
+ */
+export function selectPrompt(
+  prompts: SystemPrompts,
+  newMessage: string,
+  opts: {
+    highlightedWords?: string[];
+    userContext?: string;
+    mode?: string;
+  }
+): PromptSelection {
+  const trimmed = newMessage.trim();
+  const isEnglishToBangla = opts.mode === 'english-to-bangla';
+  const isSingleWord = !trimmed.includes(' ') && trimmed.length < 30;
+  const hasHighlights = opts.highlightedWords && opts.highlightedWords.length > 0;
+
+  if (isEnglishToBangla && hasHighlights) {
+    const rendered = renderUserTemplate(
+      'englishToBangla',
+      { sentence: newMessage, highlightedWords: opts.highlightedWords!.join(', ') },
+      'focused'
+    );
+    return {
+      mode: 'english-to-bangla-focused',
+      systemPrompt: prompts.englishToBanglaFocused,
+      userMessage:
+        rendered || `Sentence: ${newMessage}\n\nFocus words: ${opts.highlightedWords!.join(', ')}`,
+    };
+  }
+
+  if (isEnglishToBangla) {
+    const rendered = renderUserTemplate('englishToBangla', {
+      word: newMessage,
+      userContext: opts.userContext,
+    });
+    return {
+      mode: 'english-to-bangla',
+      systemPrompt: prompts.englishToBangla,
+      userMessage: rendered || newMessage,
+    };
+  }
+
+  if (hasHighlights) {
+    const rendered = renderUserTemplate('focusedWords', {
+      sentence: newMessage,
+      highlightedWords: opts.highlightedWords!.join(', '),
+    });
+    return {
+      mode: 'focused-words',
+      systemPrompt: prompts.focusedWords,
+      userMessage:
+        rendered || `Sentence: ${newMessage}\n\nFocus words: ${opts.highlightedWords!.join(', ')}`,
+    };
+  }
+
+  if (isSingleWord) {
+    const rendered = renderUserTemplate('word', {
+      word: newMessage,
+      userContext: opts.userContext,
+    });
+    return {
+      mode: 'single-word',
+      systemPrompt: prompts.word,
+      userMessage: rendered || newMessage,
+    };
+  }
+
+  return {
+    mode: 'sentence-blocked',
+    systemPrompt: '',
+    userMessage: newMessage,
+  };
+}
+
 // Relemmatize prompt is special -- it has word/context placeholders, not transliteration
 export function getRelemmatizePrompt(word: string, sentence?: string): string {
   const context = sentence ? `\nContext sentence: ${sentence}` : '';

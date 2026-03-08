@@ -205,9 +205,8 @@ export function useChat() {
       incrementStreams();
       activeRequestsRef.current.add(requestId);
 
-      const { settings } = await import('@/hooks/useSettings').then((m) => ({
-        settings: m.useSettingsStore.getState().settings,
-      }));
+      const { useSettingsStore } = await import('@/hooks/useSettings');
+      const settings = useSettingsStore.getState().settings;
 
       try {
         for await (const event of chatApi.stream(

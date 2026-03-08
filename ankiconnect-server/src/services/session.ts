@@ -16,6 +16,10 @@ const db = new Database(DB_FILE);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Close DB cleanly on shutdown
+process.on('SIGINT', () => db.close());
+process.on('SIGTERM', () => db.close());
+
 // Create tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS cards (
@@ -191,6 +195,16 @@ export interface HistoryResult {
   total: number;
 }
 
+// Cached prepared statements for search
+const searchWhere =
+  'WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ? OR sentenceTranslation LIKE ?';
+const searchCountStmt = db.prepare(`SELECT COUNT(*) as total FROM cards ${searchWhere}`);
+const searchSelectStmt = db.prepare(
+  `SELECT * FROM cards ${searchWhere} ORDER BY createdAt DESC LIMIT ? OFFSET ?`
+);
+const allCountStmt = db.prepare('SELECT COUNT(*) as total FROM cards');
+const allSelectStmt = db.prepare('SELECT * FROM cards ORDER BY createdAt DESC LIMIT ? OFFSET ?');
+
 export function searchHistory(
   query?: string,
   limit: number = 50,
@@ -198,14 +212,10 @@ export function searchHistory(
 ): HistoryResult {
   if (query && query.trim()) {
     const pattern = `%${query.trim()}%`;
-    const where =
-      'WHERE word LIKE ? OR definition LIKE ? OR banglaDefinition LIKE ? OR sentenceTranslation LIKE ?';
-    const countStmt = db.prepare(`SELECT COUNT(*) as total FROM cards ${where}`);
-    const selectStmt = db.prepare(
-      `SELECT * FROM cards ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`
-    );
-    const { total } = countStmt.get(pattern, pattern, pattern, pattern) as { total: number };
-    const items = selectStmt.all(
+    const { total } = searchCountStmt.get(pattern, pattern, pattern, pattern) as {
+      total: number;
+    };
+    const items = searchSelectStmt.all(
       pattern,
       pattern,
       pattern,
@@ -215,10 +225,8 @@ export function searchHistory(
     ) as SessionCard[];
     return { items, total };
   } else {
-    const countStmt = db.prepare('SELECT COUNT(*) as total FROM cards');
-    const selectStmt = db.prepare('SELECT * FROM cards ORDER BY createdAt DESC LIMIT ? OFFSET ?');
-    const { total } = countStmt.get() as { total: number };
-    const items = selectStmt.all(limit, offset) as SessionCard[];
+    const { total } = allCountStmt.get() as { total: number };
+    const items = allSelectStmt.all(limit, offset) as SessionCard[];
     return { items, total };
   }
 }

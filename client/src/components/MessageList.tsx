@@ -71,16 +71,9 @@ function CardPreviewList({
 
   const dismissedCount = dismissed.size;
 
-  // Count how many cards haven't been added yet
-  const unadded = previews.filter(
-    (p) =>
-      !sessionCards.cards.find(
-        (c) => c.word.toLowerCase().trim() === p.word.toLowerCase().trim()
-      ) &&
-      !sessionCards.pendingQueue.find(
-        (c) => c.word.toLowerCase().trim() === p.word.toLowerCase().trim()
-      )
-  );
+  // Count how many cards haven't been added yet (O(n) via Set lookup)
+  const addedWords = sessionCards.getWordsByLemma();
+  const unadded = previews.filter((p) => !addedWords.has(p.word.toLowerCase().trim()));
   const showAddAll = previews.length > 1 && unadded.length > 1;
 
   const handleAddAll = async () => {
