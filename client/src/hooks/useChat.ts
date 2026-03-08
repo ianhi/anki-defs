@@ -73,6 +73,7 @@ export function useChat() {
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
+        originalQuery: content,
       };
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
@@ -82,6 +83,127 @@ export function useChat() {
         for await (const event of chatApi.stream(content, deck, highlightedWords)) {
           if (currentRequestRef.current !== requestId) {
             console.log('[Chat] Request cancelled, stopping stream');
+            return;
+          }
+
+          switch (event.type) {
+            case 'text':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, content: msg.content + event.data } : msg
+                )
+              );
+              break;
+            case 'card_preview':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        cardPreviews: [...(msg.cardPreviews || []), event.data],
+                      }
+                    : msg
+                )
+              );
+              break;
+            case 'usage':
+              useTokenUsage.getState().addUsage(event.data);
+              setMessages((prev) =>
+                prev.map((msg) => {
+                  if (msg.id !== assistantMsgId) return msg;
+                  const existing = msg.tokenUsage;
+                  if (existing) {
+                    return {
+                      ...msg,
+                      tokenUsage: {
+                        ...existing,
+                        inputTokens: existing.inputTokens + event.data.inputTokens,
+                        outputTokens: existing.outputTokens + event.data.outputTokens,
+                      },
+                    };
+                  }
+                  return { ...msg, tokenUsage: event.data };
+                })
+              );
+              break;
+            case 'error':
+              setError(event.data);
+              break;
+          }
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        if (currentRequestRef.current === requestId) {
+          setIsStreaming(false);
+          currentRequestRef.current = null;
+        }
+      }
+    },
+    [setMessages, setIsStreaming, setError]
+  );
+
+  const retryWithContext = useCallback(
+    async (assistantMsgId: string, context: string) => {
+      if (currentRequestRef.current !== null) {
+        console.log('[Chat] Ignoring retry, already streaming');
+        return;
+      }
+
+      const requestId = generateId();
+      currentRequestRef.current = requestId;
+      setError(null);
+
+      // Find the assistant message and the preceding user message
+      const msgs = useChatStore.getState().messages;
+      const assistantMsg = msgs.find((m) => m.id === assistantMsgId);
+      if (!assistantMsg) return;
+
+      // Find preceding user message to get original query
+      let originalQuery = assistantMsg.originalQuery;
+      if (!originalQuery) {
+        const assistantIdx = msgs.indexOf(assistantMsg);
+        for (let i = assistantIdx - 1; i >= 0; i--) {
+          const m = msgs[i];
+          if (m && m.role === 'user') {
+            originalQuery = m.content;
+            break;
+          }
+        }
+      }
+      if (!originalQuery) return;
+
+      const refinements = [...(assistantMsg.refinements || []), context];
+
+      // Build the re-query with all accumulated context
+      const contextLines = refinements.map((r) => `(Context: ${r})`).join('\n');
+      const reQuery = `${originalQuery}\n${contextLines}`;
+
+      // Reset the assistant message and add refinement
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId
+            ? {
+                ...msg,
+                content: '',
+                cardPreviews: undefined,
+                tokenUsage: undefined,
+                refinements,
+                originalQuery,
+              }
+            : msg
+        )
+      );
+      setIsStreaming(true);
+
+      const { settings } = await import('@/hooks/useSettings').then((m) => ({
+        settings: m.useSettingsStore.getState().settings,
+      }));
+
+      try {
+        for await (const event of chatApi.stream(reQuery, settings.defaultDeck)) {
+          if (currentRequestRef.current !== requestId) {
+            console.log('[Chat] Retry cancelled, stopping stream');
             return;
           }
 
@@ -152,6 +274,7 @@ export function useChat() {
     isStreaming,
     error,
     sendMessage,
+    retryWithContext,
     clearMessages: clearChat,
   };
 }

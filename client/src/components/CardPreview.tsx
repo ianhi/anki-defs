@@ -19,12 +19,15 @@ import {
   Undo2,
   Pencil,
   RefreshCw,
+  MessageSquare,
 } from 'lucide-react';
 
 interface CardPreviewProps {
   preview: CardPreviewType;
   isDismissed?: boolean;
   onDismiss?: () => void;
+  assistantMsgId?: string;
+  onRetryWithContext?: (assistantMsgId: string, context: string) => void;
 }
 
 // Highlight the word in the example sentence
@@ -53,7 +56,13 @@ function highlightWord(sentence: string, word: string): React.ReactNode {
   );
 }
 
-export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProps) {
+export function CardPreview({
+  preview,
+  isDismissed,
+  onDismiss,
+  assistantMsgId,
+  onRetryWithContext,
+}: CardPreviewProps) {
   const [isAdded, setIsAdded] = useState(false);
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const [isQueued, setIsQueued] = useState(false);
@@ -66,6 +75,8 @@ export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProp
   const [editedDefinition, setEditedDefinition] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isRelemmatizing, setIsRelemmatizing] = useState(false);
+  const [showRetryInput, setShowRetryInput] = useState(false);
+  const [retryContext, setRetryContext] = useState('');
 
   const { settings } = useSettingsStore();
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } =
@@ -376,6 +387,53 @@ export function CardPreview({ preview, isDismissed, onDismiss }: CardPreviewProp
           </>
         )}
       </CardFooter>
+      {!isAdded && !isQueued && onRetryWithContext && assistantMsgId && (
+        <div className="px-3 pb-2.5 sm:px-6 sm:pb-3">
+          {showRetryInput ? (
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={retryContext}
+                onChange={(e) => setRetryContext(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && retryContext.trim()) {
+                    onRetryWithContext(assistantMsgId, retryContext.trim());
+                    setRetryContext('');
+                    setShowRetryInput(false);
+                  }
+                }}
+                placeholder="Add context (e.g. 'colloquial for snatching')"
+                className="flex-1 text-sm bg-muted border border-input rounded px-2.5 py-1.5 min-w-0"
+                autoFocus
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs flex-shrink-0"
+                disabled={!retryContext.trim()}
+                onClick={() => {
+                  if (retryContext.trim()) {
+                    onRetryWithContext(assistantMsgId, retryContext.trim());
+                    setRetryContext('');
+                    setShowRetryInput(false);
+                  }
+                }}
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Re-ask
+              </Button>
+            </div>
+          ) : (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              onClick={() => setShowRetryInput(true)}
+            >
+              <MessageSquare className="h-3 w-3" />
+              Not right? Add context...
+            </button>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

@@ -4,7 +4,7 @@ import { MODEL_PRICING } from 'shared';
 import ReactMarkdown from 'react-markdown';
 import { CardPreview } from './CardPreview';
 import { cn } from '@/lib/utils';
-import { User, Bot, Eye } from 'lucide-react';
+import { User, Bot, Eye, MessageSquare } from 'lucide-react';
 
 function HighlightedText({ text, words }: { text: string; words: string[] }) {
   // Build a regex that matches any of the highlighted words
@@ -42,6 +42,7 @@ function formatCost(usage: TokenUsage): string {
 interface MessageListProps {
   messages: Message[];
   isStreaming: boolean;
+  retryWithContext?: (assistantMsgId: string, context: string) => void;
 }
 
 // Render assistant message - use markdown only when not streaming
@@ -62,9 +63,11 @@ function AssistantMessage({ content, isStreaming }: { content: string; isStreami
 function CardPreviewList({
   messageId,
   previews,
+  retryWithContext,
 }: {
   messageId: string;
   previews: NonNullable<Message['cardPreviews']>;
+  retryWithContext?: (assistantMsgId: string, context: string) => void;
 }) {
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [showDismissed, setShowDismissed] = useState(false);
@@ -83,6 +86,8 @@ function CardPreviewList({
           preview={preview}
           isDismissed={dismissed.has(idx) && !showDismissed}
           onDismiss={() => handleDismiss(idx)}
+          assistantMsgId={messageId}
+          onRetryWithContext={retryWithContext}
         />
       ))}
       {dismissedCount > 0 && (
@@ -98,7 +103,7 @@ function CardPreviewList({
   );
 }
 
-export function MessageList({ messages, isStreaming }: MessageListProps) {
+export function MessageList({ messages, isStreaming, retryWithContext }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -166,6 +171,19 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
                 </div>
               ) : (
                 <>
+                  {message.refinements && message.refinements.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {message.refinements.map((r, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 text-xs bg-background/50 text-muted-foreground border border-border rounded-full px-2 py-0.5"
+                        >
+                          <MessageSquare className="h-2.5 w-2.5" />
+                          &quot;{r}&quot;
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <AssistantMessage
                     content={message.content}
                     isStreaming={showStreamingIndicator}
@@ -187,7 +205,11 @@ export function MessageList({ messages, isStreaming }: MessageListProps) {
               )}
 
               {message.cardPreviews && message.cardPreviews.length > 0 && (
-                <CardPreviewList messageId={message.id} previews={message.cardPreviews} />
+                <CardPreviewList
+                  messageId={message.id}
+                  previews={message.cardPreviews}
+                  retryWithContext={retryWithContext}
+                />
               )}
 
               {message.role === 'assistant' && message.tokenUsage && !showStreamingIndicator && (

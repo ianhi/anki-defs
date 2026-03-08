@@ -9,6 +9,8 @@ export interface Message {
   wordAnalysis?: WordAnalysis;
   sentenceAnalysis?: SentenceAnalysis;
   tokenUsage?: TokenUsage;
+  refinements?: string[];
+  originalQuery?: string;
 }
 
 // Core card content (what makes up a flashcard)
