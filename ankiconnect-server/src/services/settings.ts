@@ -66,7 +66,7 @@ export async function getSettings(): Promise<Settings> {
     const envOverrides = getEnvOverrides();
     return { ...DEFAULT_SETTINGS, ...fileSettings, ...envOverrides };
   } catch (error) {
-    console.error('Error reading settings:', error);
+    console.error('[Settings] Error reading settings:', error);
     return { ...DEFAULT_SETTINGS, ...getEnvOverrides() };
   }
 }

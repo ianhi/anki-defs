@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings: { ...state.settings, defaultDeck: deck },
     }));
     settingsApi.update({ defaultDeck: deck }).catch((err) => {
-      console.error('Failed to persist deck selection:', err);
+      console.error('[Settings] Failed to persist deck selection:', err);
     });
   },
 
@@ -31,7 +31,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings: { ...state.settings, defaultModel: model },
     }));
     settingsApi.update({ defaultModel: model }).catch((err) => {
-      console.error('Failed to persist model selection:', err);
+      console.error('[Settings] Failed to persist model selection:', err);
     });
   },
 
@@ -48,7 +48,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await settingsApi.update(updates);
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      console.error('[Settings] Failed to save settings:', error);
     }
   },
 
@@ -57,7 +57,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       const settings = await settingsApi.get();
       set({ settings, isLoaded: true });
     } catch (error) {
-      console.error('Failed to fetch settings:', error);
+      console.error('[Settings] Failed to fetch settings:', error);
       set({ isLoaded: true });
     }
   },

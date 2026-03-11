@@ -99,22 +99,14 @@ export async function createCard(params: CreateCardParams): Promise<number> {
   const mapping = settings.fieldMapping || {};
 
   // Map standard field names to model-specific field names
-  const fields: Record<string, string> = {};
-  if (params.word) {
-    fields[mapping.Word || 'Word'] = params.word;
-  }
-  if (params.definition) {
-    fields[mapping.Definition || 'Definition'] = params.definition;
-  }
-  if (params.banglaDefinition) {
-    fields[mapping.BanglaDefinition || 'BanglaDefinition'] = params.banglaDefinition;
-  }
-  if (params.exampleSentence) {
-    fields[mapping.Example || 'Example'] = params.exampleSentence;
-  }
-  if (params.sentenceTranslation) {
-    fields[mapping.Translation || 'Translation'] = params.sentenceTranslation;
-  }
+  // Always set all fields (even empty strings) to avoid Anki errors
+  const fields: Record<string, string> = {
+    [mapping.Word || 'Word']: params.word,
+    [mapping.Definition || 'Definition']: params.definition,
+    [mapping.BanglaDefinition || 'BanglaDefinition']: params.banglaDefinition,
+    [mapping.Example || 'Example']: params.exampleSentence,
+    [mapping.Translation || 'Translation']: params.sentenceTranslation,
+  };
 
   console.log('[Anki] Creating card with model:', params.model);
   console.log('[Anki] Field mapping:', mapping);
