@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildCardPreviews, type CardResponse } from './cardExtraction.js';
+import { buildCardPreviews, validateCardResponses, type CardResponse } from './cardExtraction.js';
 import type { AnkiNote } from 'shared';
 
 // Mock anki service
@@ -45,6 +45,74 @@ const makeCard = (overrides?: Partial<CardResponse>): CardResponse => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockSearchWord.mockResolvedValue(null);
+});
+
+describe('validateCardResponses', () => {
+  it('accepts a valid single object and wraps in array', () => {
+    const result = validateCardResponses({
+      word: 'বাজার',
+      definition: 'market',
+      banglaDefinition: 'হাট',
+      exampleSentence: 'আমি বাজারে যাচ্ছি।',
+      sentenceTranslation: 'I am going to the market.',
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]!.word).toBe('বাজার');
+  });
+
+  it('accepts a valid array', () => {
+    const result = validateCardResponses([
+      { word: 'বাজার', definition: 'market' },
+      { word: 'যাওয়া', definition: 'to go' },
+    ]);
+    expect(result).toHaveLength(2);
+  });
+
+  it('coerces missing optional fields to empty strings', () => {
+    const result = validateCardResponses({ word: 'বাজার' });
+    expect(result[0]).toEqual({
+      word: 'বাজার',
+      definition: '',
+      banglaDefinition: '',
+      exampleSentence: '',
+      sentenceTranslation: '',
+      spellingCorrection: undefined,
+    });
+  });
+
+  it('trims whitespace from word', () => {
+    const result = validateCardResponses({ word: '  বাজার  ' });
+    expect(result[0]!.word).toBe('বাজার');
+  });
+
+  it('throws on missing word field', () => {
+    expect(() => validateCardResponses({ definition: 'market' })).toThrow('missing "word"');
+  });
+
+  it('throws on empty word field', () => {
+    expect(() => validateCardResponses({ word: '  ' })).toThrow('missing "word"');
+  });
+
+  it('throws on non-object item', () => {
+    expect(() => validateCardResponses('not an object')).toThrow('expected object');
+  });
+
+  it('throws on null item in array', () => {
+    expect(() => validateCardResponses([null])).toThrow('expected object');
+  });
+
+  it('preserves spellingCorrection when present', () => {
+    const result = validateCardResponses({
+      word: 'কাঁদা',
+      spellingCorrection: 'কাদছে → কাঁদছে',
+    });
+    expect(result[0]!.spellingCorrection).toBe('কাদছে → কাঁদছে');
+  });
+
+  it('coerces numeric fields to strings', () => {
+    const result = validateCardResponses({ word: 'test', definition: 42 });
+    expect(result[0]!.definition).toBe('42');
+  });
 });
 
 describe('buildCardPreviews', () => {
