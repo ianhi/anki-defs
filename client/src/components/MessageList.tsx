@@ -3,7 +3,7 @@ import type { Message, TokenUsage } from 'shared';
 import { MODEL_PRICING } from 'shared';
 import { CardPreview } from './CardPreview';
 import { Button } from './ui/Button';
-import { cn, markdownBoldToHtml } from '@/lib/utils';
+import { cn, buildNoteFields } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
@@ -90,13 +90,7 @@ function CardPreviewList({
         const noteId = await createNote.mutateAsync({
           deckName: targetDeck,
           modelName: targetModel,
-          fields: {
-            Word: preview.word,
-            Definition: preview.definition,
-            BanglaDefinition: preview.banglaDefinition,
-            Example: markdownBoldToHtml(preview.exampleSentence),
-            Translation: preview.sentenceTranslation,
-          },
+          fields: buildNoteFields(preview),
           tags: ['auto-generated'],
         });
         sessionCards.addCard(preview, targetDeck, targetModel, noteId);

@@ -20,7 +20,7 @@ settingsRouter.get('/', async (_req, res) => {
     };
     res.json(sanitized);
   } catch (error) {
-    console.error('Error fetching settings:', error);
+    console.error('[Settings] Error fetching settings:', error);
     res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
@@ -65,7 +65,7 @@ settingsRouter.put('/', async (req, res) => {
 
     res.json(sanitized);
   } catch (error) {
-    console.error('Error updating settings:', error);
+    console.error('[Settings] Error updating settings:', error);
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });

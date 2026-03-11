@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
-import { markdownBoldToHtml } from '@/lib/utils';
+import { buildNoteFields } from '@/lib/utils';
 import { sessionApi } from '@/lib/api';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -128,12 +128,7 @@ export function SessionCardsPanel() {
       const noteId = await createNote.mutateAsync({
         deckName: card.deckName,
         modelName: card.modelName,
-        fields: {
-          Word: card.word,
-          Definition: card.definition,
-          Example: markdownBoldToHtml(card.exampleSentence),
-          Translation: card.sentenceTranslation,
-        },
+        fields: buildNoteFields(card),
         tags: ['auto-generated'],
       });
       await sessionApi.promotePending(card.id, noteId);

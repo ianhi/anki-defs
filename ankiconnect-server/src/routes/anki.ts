@@ -10,7 +10,7 @@ ankiRouter.get('/decks', async (_req, res) => {
     const decks = await ankiService.getDecks();
     res.json({ decks });
   } catch (error) {
-    console.error('Error fetching decks:', error);
+    console.error('[Anki] Error fetching decks:', error);
     res.status(500).json({ error: 'Failed to fetch decks. Is Anki running?' });
   }
 });
@@ -21,7 +21,7 @@ ankiRouter.get('/models', async (_req, res) => {
     const models = await ankiService.getModels();
     res.json({ models });
   } catch (error) {
-    console.error('Error fetching models:', error);
+    console.error('[Anki] Error fetching models:', error);
     res.status(500).json({ error: 'Failed to fetch models. Is Anki running?' });
   }
 });
@@ -32,7 +32,7 @@ ankiRouter.get('/models/:name/fields', async (req, res) => {
     const fields = await ankiService.getModelFields(req.params.name);
     res.json({ fields });
   } catch (error) {
-    console.error('Error fetching model fields:', error);
+    console.error('[Anki] Error fetching model fields:', error);
     res.status(500).json({ error: 'Failed to fetch model fields' });
   }
 });
@@ -48,7 +48,7 @@ ankiRouter.post('/search', async (req, res) => {
     const notes = await ankiService.searchNotes(query);
     res.json({ notes });
   } catch (error) {
-    console.error('Error searching notes:', error);
+    console.error('[Anki] Error searching notes:', error);
     res.status(500).json({ error: 'Failed to search notes' });
   }
 });
@@ -76,7 +76,7 @@ ankiRouter.post('/notes', async (req, res) => {
 
     res.json({ noteId });
   } catch (error) {
-    console.error('Error creating note:', error);
+    console.error('[Anki] Error creating note:', error);
     res.status(500).json({ error: 'Failed to create note' });
   }
 });
@@ -98,7 +98,7 @@ ankiRouter.get('/notes/:id', async (req, res) => {
 
     res.json({ note });
   } catch (error) {
-    console.error('Error fetching note:', error);
+    console.error('[Anki] Error fetching note:', error);
     res.status(500).json({ error: 'Failed to fetch note' });
   }
 });
@@ -126,7 +126,7 @@ ankiRouter.delete('/notes/:id', async (req, res) => {
     await ankiService.deleteNote(noteId);
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting note:', error);
+    console.error('[Anki] Error deleting note:', error);
     res.status(500).json({ error: 'Failed to delete note' });
   }
 });
@@ -137,7 +137,7 @@ ankiRouter.post('/sync', async (_req, res) => {
     await ankiService.sync();
     res.json({ success: true });
   } catch (error) {
-    console.error('Error syncing Anki:', error);
+    console.error('[Anki] Error syncing Anki:', error);
     res.status(500).json({ error: 'Failed to sync. Is Anki running?' });
   }
 });

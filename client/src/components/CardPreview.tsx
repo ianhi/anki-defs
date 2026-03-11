@@ -7,7 +7,7 @@ import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { markdownBoldToHtml } from '@/lib/utils';
+import { buildNoteFields } from '@/lib/utils';
 import { chatApi } from '@/lib/api';
 import {
   Check,
@@ -148,13 +148,10 @@ export function CardPreview({
       const noteId = await createNote.mutateAsync({
         deckName: targetDeck,
         modelName: targetModel,
-        fields: {
-          Word: currentWord,
-          Definition: currentDefinition,
-          BanglaDefinition: preview.banglaDefinition,
-          Example: markdownBoldToHtml(preview.exampleSentence),
-          Translation: preview.sentenceTranslation,
-        },
+        fields: buildNoteFields(preview, {
+          word: currentWord,
+          definition: currentDefinition,
+        }),
         tags: ['auto-generated'],
       });
       addCard(cardPreview, targetDeck, targetModel, noteId);

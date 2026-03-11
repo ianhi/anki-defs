@@ -7,6 +7,7 @@ import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsIcon, X, Layers, RefreshCw, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
@@ -112,7 +113,9 @@ function MainApp() {
             </Button>
           </div>
         </header>
-        <Chat />
+        <ErrorBoundary>
+          <Chat />
+        </ErrorBoundary>
       </div>
 
       {/* Cards Sidebar - overlay on mobile, sidebar on desktop */}
