@@ -43,7 +43,7 @@ export async function streamCompletion(
     const openai = await getClient();
 
     const stream = await openai.chat.completions.create({
-      model: settings.openRouterModel,
+      model: settings.openRouterModel || 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -63,7 +63,7 @@ export async function streamCompletion(
           inputTokens: chunk.usage.prompt_tokens ?? 0,
           outputTokens: chunk.usage.completion_tokens ?? 0,
           provider: 'openrouter',
-          model: settings.openRouterModel,
+          model: settings.openRouterModel || 'google/gemini-2.5-flash',
         });
       }
     }
@@ -81,7 +81,7 @@ export async function getCompletion(systemPrompt: string, userMessage: string): 
     const openai = await getClient();
 
     const response = await openai.chat.completions.create({
-      model: settings.openRouterModel,
+      model: settings.openRouterModel || 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -105,7 +105,7 @@ export async function getJsonCompletion(
     const openai = await getClient();
 
     const response = await openai.chat.completions.create({
-      model: settings.openRouterModel,
+      model: settings.openRouterModel || 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
@@ -118,7 +118,7 @@ export async function getJsonCompletion(
           inputTokens: response.usage.prompt_tokens ?? 0,
           outputTokens: response.usage.completion_tokens ?? 0,
           provider: 'openrouter',
-          model: settings.openRouterModel,
+          model: settings.openRouterModel || 'google/gemini-2.5-flash',
         }
       : undefined;
 

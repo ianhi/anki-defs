@@ -4,12 +4,15 @@ import type { TokenUsage } from 'shared';
 
 let client: Anthropic | null = null;
 
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+
 async function getClient(): Promise<Anthropic> {
   const settings = await getSettings();
   if (!settings.claudeApiKey) {
     throw new Error('Claude API key not configured');
   }
   if (!client) {
+    console.log('[Claude] Creating client (key: ...%s)', settings.claudeApiKey.slice(-4));
     client = new Anthropic({ apiKey: settings.claudeApiKey });
   }
   return client;
@@ -31,74 +34,89 @@ export async function streamCompletion(
   userMessage: string,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const anthropic = await getClient();
+  try {
+    const anthropic = await getClient();
 
-  const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
-
-  stream.on('text', (text) => {
-    callbacks.onText(text);
-  });
-
-  stream.on('error', (error) => {
-    callbacks.onError(error);
-  });
-
-  stream.on('end', () => {
-    callbacks.onDone();
-  });
-
-  const finalMessage = await stream.finalMessage();
-  if (finalMessage.usage) {
-    callbacks.onUsage({
-      inputTokens: finalMessage.usage.input_tokens,
-      outputTokens: finalMessage.usage.output_tokens,
-      provider: 'claude',
-      model: finalMessage.model,
+    const stream = anthropic.messages.stream({
+      model: CLAUDE_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
     });
+
+    stream.on('text', (text) => {
+      callbacks.onText(text);
+    });
+
+    stream.on('error', (error) => {
+      callbacks.onError(error);
+    });
+
+    stream.on('end', () => {
+      callbacks.onDone();
+    });
+
+    const finalMessage = await stream.finalMessage();
+    if (finalMessage.usage) {
+      callbacks.onUsage({
+        inputTokens: finalMessage.usage.input_tokens,
+        outputTokens: finalMessage.usage.output_tokens,
+        provider: 'claude',
+        model: finalMessage.model,
+      });
+    }
+  } catch (error) {
+    console.error('[Claude] streamCompletion error:', error);
+    callbacks.onError(error instanceof Error ? error : new Error(String(error)));
   }
 }
 
 export async function getCompletion(systemPrompt: string, userMessage: string): Promise<string> {
-  const anthropic = await getClient();
+  try {
+    const anthropic = await getClient();
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
 
-  const textBlock = response.content.find((block) => block.type === 'text');
-  return textBlock ? textBlock.text : '';
+    const textBlock = response.content.find((block) => block.type === 'text');
+    return textBlock ? textBlock.text : '';
+  } catch (error) {
+    console.error('[Claude] getCompletion error:', error);
+    throw error;
+  }
 }
 
 export async function getJsonCompletion(
   systemPrompt: string,
   userMessage: string
 ): Promise<{ text: string; usage?: TokenUsage }> {
-  const anthropic = await getClient();
+  try {
+    const anthropic = await getClient();
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userMessage }],
-  });
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
 
-  const textBlock = response.content.find((block) => block.type === 'text');
-  const usage: TokenUsage | undefined = response.usage
-    ? {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-        provider: 'claude',
-        model: response.model,
-      }
-    : undefined;
+    const textBlock = response.content.find((block) => block.type === 'text');
+    const usage: TokenUsage | undefined = response.usage
+      ? {
+          inputTokens: response.usage.input_tokens,
+          outputTokens: response.usage.output_tokens,
+          provider: 'claude',
+          model: response.model,
+        }
+      : undefined;
 
-  return { text: textBlock ? textBlock.text : '', usage };
+    return { text: textBlock ? textBlock.text : '', usage };
+  } catch (error) {
+    console.error('[Claude] getJsonCompletion error:', error);
+    throw error;
+  }
 }
