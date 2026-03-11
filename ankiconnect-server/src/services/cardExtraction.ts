@@ -11,6 +11,29 @@ export interface CardResponse {
   spellingCorrection?: string;
 }
 
+/** Validate and coerce a parsed AI response into CardResponse[]. Throws if unrecoverable. */
+export function validateCardResponses(parsed: unknown): CardResponse[] {
+  const items = Array.isArray(parsed) ? parsed : [parsed];
+  return items.map((item, i) => {
+    if (!item || typeof item !== 'object') {
+      throw new Error(`Card ${i}: expected object, got ${typeof item}`);
+    }
+    const obj = item as Record<string, unknown>;
+    const word = String(obj.word ?? '').trim();
+    if (!word) {
+      throw new Error(`Card ${i}: missing "word" field`);
+    }
+    return {
+      word,
+      definition: String(obj.definition ?? ''),
+      banglaDefinition: String(obj.banglaDefinition ?? ''),
+      exampleSentence: String(obj.exampleSentence ?? ''),
+      sentenceTranslation: String(obj.sentenceTranslation ?? ''),
+      spellingCorrection: obj.spellingCorrection ? String(obj.spellingCorrection) : undefined,
+    };
+  });
+}
+
 /**
  * Search Anki for a word, storing the full note (or null).
  * Silently stores null on errors (Anki may be offline).

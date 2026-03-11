@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type React from 'react';
 import type { CardPreview as CardPreviewType } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
@@ -85,11 +85,15 @@ export function CardPreview({
 }: CardPreviewProps) {
   // Derive "added" state reactively from session store (survives page refresh)
   const sessionCards = useSessionCards();
-  const sessionMatch = sessionCards.cards.find(
-    (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
+  const wordKey = preview.word.toLowerCase().trim();
+
+  const sessionMatch = useMemo(
+    () => sessionCards.cards.find((c) => c.word.toLowerCase().trim() === wordKey),
+    [sessionCards.cards, wordKey]
   );
-  const pendingMatch = sessionCards.pendingQueue.find(
-    (c) => c.word.toLowerCase().trim() === preview.word.toLowerCase().trim()
+  const pendingMatch = useMemo(
+    () => sessionCards.pendingQueue.find((c) => c.word.toLowerCase().trim() === wordKey),
+    [sessionCards.pendingQueue, wordKey]
   );
 
   const isAdded = !!sessionMatch;

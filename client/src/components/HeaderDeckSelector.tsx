@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useDecks, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { ChevronDown, Database, AlertCircle, Check, X, Search } from 'lucide-react';
@@ -24,7 +24,10 @@ export function HeaderDeckSelector() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const filtered = decks?.filter((d) => (filter ? fuzzyMatch(filter, d) : true)) ?? [];
+  const filtered = useMemo(
+    () => decks?.filter((d) => (filter ? fuzzyMatch(filter, d) : true)) ?? [],
+    [decks, filter]
+  );
 
   // Focus input when dropdown opens
   useEffect(() => {
@@ -133,7 +136,10 @@ export function MobileDeckSelector() {
   const { data: decks, isLoading } = useDecks();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filtered = decks?.filter((d) => (filter ? fuzzyMatch(filter, d) : true)) ?? [];
+  const filtered = useMemo(
+    () => decks?.filter((d) => (filter ? fuzzyMatch(filter, d) : true)) ?? [],
+    [decks, filter]
+  );
 
   useEffect(() => {
     if (open) {

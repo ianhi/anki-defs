@@ -2,7 +2,11 @@ import { Router, type Response } from 'express';
 import * as aiService from '../services/ai.js';
 import * as ankiService from '../services/anki.js';
 import { getSettings } from '../services/settings.js';
-import { buildCardPreviews, type CardResponse } from '../services/cardExtraction.js';
+import {
+  buildCardPreviews,
+  validateCardResponses,
+  type CardResponse,
+} from '../services/cardExtraction.js';
 import type { AnkiNote, ChatStreamRequest, RelemmatizeRequest, SSEEvent } from 'shared';
 import { computeCost } from 'shared';
 import { recordUsage } from '../services/session.js';
@@ -101,12 +105,11 @@ chatRouter.post('/stream', async (req, res) => {
       recordUsage(usage, computeCost(usage));
     }
 
-    // Parse JSON response
+    // Parse and validate JSON response
     let cards: CardResponse[];
     try {
       const parsed = parseJsonResponse(rawResponse);
-      // Single word returns an object, focused words returns an array
-      cards = Array.isArray(parsed) ? (parsed as CardResponse[]) : [parsed as CardResponse];
+      cards = validateCardResponses(parsed);
     } catch {
       // Retry with healing prompt
       console.warn('[Chat] JSON parse failed, retrying with healing prompt');
@@ -120,7 +123,7 @@ chatRouter.post('/stream', async (req, res) => {
           recordUsage(retryUsage, computeCost(retryUsage));
         }
         const parsed = parseJsonResponse(retryResponse);
-        cards = Array.isArray(parsed) ? (parsed as CardResponse[]) : [parsed as CardResponse];
+        cards = validateCardResponses(parsed);
       } catch {
         sendSSE(res, { type: 'error', data: 'Failed to parse AI response as JSON' });
         sendSSE(res, { type: 'done', data: null });
