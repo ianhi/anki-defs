@@ -49,6 +49,8 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_cards_word ON cards(word);
   CREATE INDEX IF NOT EXISTS idx_cards_definition ON cards(definition);
+  CREATE INDEX IF NOT EXISTS idx_cards_bangla_def ON cards(banglaDefinition);
+  CREATE INDEX IF NOT EXISTS idx_cards_sentence_trans ON cards(sentenceTranslation);
 
   CREATE TABLE IF NOT EXISTS usage_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

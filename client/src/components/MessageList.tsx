@@ -181,6 +181,8 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
     <div
       ref={scrollContainerRef}
       className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6"
+      role="log"
+      aria-label="Chat messages"
     >
       {messages.map((message, index) => {
         const isLastMessage = index === messages.length - 1;
@@ -189,13 +191,18 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
         return (
           <div
             key={message.id}
+            role="article"
+            aria-label={`${message.role === 'user' ? 'You' : 'Assistant'}`}
             className={cn(
               'flex gap-2 sm:gap-3',
               message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
           >
             {message.role === 'assistant' && (
-              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+              <div
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"
+                aria-hidden="true"
+              >
                 <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
               </div>
             )}
@@ -232,7 +239,7 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
                     </div>
                   )}
                   {showStreamingIndicator && !message.cardPreviews?.length && (
-                    <div className="flex gap-1 py-2">
+                    <div className="flex gap-1 py-2" role="status" aria-label="Loading response">
                       <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                       <span
                         className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
@@ -270,7 +277,10 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
             </div>
 
             {message.role === 'user' && (
-              <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1">
+              <div
+                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1"
+                aria-hidden="true"
+              >
                 <User className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
               </div>
             )}
