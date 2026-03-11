@@ -50,6 +50,8 @@ export default [
         URL: 'readonly',
         URLSearchParams: 'readonly',
         AbortController: 'readonly',
+        AbortSignal: 'readonly',
+        DOMException: 'readonly',
         ReadableStream: 'readonly',
         TextDecoder: 'readonly',
         // Built-in types

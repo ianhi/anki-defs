@@ -64,13 +64,13 @@ db.exec(`
 // Migration: add banglaDefinition column to existing tables
 try {
   db.exec("ALTER TABLE cards ADD COLUMN banglaDefinition TEXT NOT NULL DEFAULT ''");
-} catch {
-  /* column already exists */
+} catch (e: unknown) {
+  if (!(e instanceof Error && e.message.includes('duplicate column'))) throw e;
 }
 try {
   db.exec("ALTER TABLE pending ADD COLUMN banglaDefinition TEXT NOT NULL DEFAULT ''");
-} catch {
-  /* column already exists */
+} catch (e: unknown) {
+  if (!(e instanceof Error && e.message.includes('duplicate column'))) throw e;
 }
 
 // Prepared statements

@@ -18,8 +18,6 @@ interface SessionCardsState {
 
   addToPendingQueue: (card: CardContent, deckName: string, modelName: string) => string;
   removeFromPendingQueue: (id: string) => void;
-  clearPendingQueue: () => void;
-
   hasWord: (word: string) => boolean;
   getWordsByLemma: () => Set<string>;
 }
@@ -97,12 +95,6 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
     sessionApi.removePending(id).catch((err) => {
       console.error('[Session] Failed to remove pending card from server:', err);
     });
-  },
-
-  clearPendingQueue: () => {
-    set({ pendingQueue: [] });
-    // No dedicated endpoint for clearing just pending — use clear all
-    // This is fine since clearPendingQueue is not used standalone
   },
 
   hasWord: (word) => {

@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { chatApi } from '@/lib/api';
 import { generateId } from '@/lib/utils';
 import { parseHighlightedWords, getCleanText } from '@/lib/focus';
+import { useSettingsStore } from '@/hooks/useSettings';
 import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
 
@@ -59,12 +60,12 @@ export function useChat() {
 
   const isStreaming = activeStreamCount > 0;
 
-  // Track active request IDs for cancellation on clear
-  const activeRequestsRef = useRef(new Set<string>());
+  // Track active AbortControllers for cancellation on clear
+  const activeControllersRef = useRef(new Set<AbortController>());
 
   const sendMessage = useCallback(
     async (content: string, deck?: string, userContext?: string, mode?: 'english-to-bangla') => {
-      const requestId = generateId();
+      const controller = new AbortController();
 
       setError(null);
 
@@ -92,7 +93,7 @@ export function useChat() {
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
       incrementStreams();
-      activeRequestsRef.current.add(requestId);
+      activeControllersRef.current.add(controller);
 
       try {
         // Send clean text + extracted words to API
@@ -102,13 +103,9 @@ export function useChat() {
           deck,
           apiHighlightedWords,
           userContext,
-          mode
+          mode,
+          controller.signal
         )) {
-          if (!activeRequestsRef.current.has(requestId)) {
-            console.log('[Chat] Request cancelled, stopping stream');
-            return;
-          }
-
           switch (event.type) {
             case 'card_preview':
               setMessages((prev) =>
@@ -148,9 +145,10 @@ export function useChat() {
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        activeRequestsRef.current.delete(requestId);
+        activeControllersRef.current.delete(controller);
         decrementStreams();
       }
     },
@@ -159,7 +157,7 @@ export function useChat() {
 
   const retryWithContext = useCallback(
     async (assistantMsgId: string, context: string) => {
-      const requestId = generateId();
+      const controller = new AbortController();
       setError(null);
 
       // Find the assistant message and the preceding user message
@@ -203,9 +201,8 @@ export function useChat() {
         )
       );
       incrementStreams();
-      activeRequestsRef.current.add(requestId);
+      activeControllersRef.current.add(controller);
 
-      const { useSettingsStore } = await import('@/hooks/useSettings');
       const settings = useSettingsStore.getState().settings;
 
       try {
@@ -213,13 +210,10 @@ export function useChat() {
           originalQuery,
           settings.defaultDeck,
           retryHighlightedWords,
-          userContext
+          userContext,
+          undefined,
+          controller.signal
         )) {
-          if (!activeRequestsRef.current.has(requestId)) {
-            console.log('[Chat] Retry cancelled, stopping stream');
-            return;
-          }
-
           switch (event.type) {
             case 'card_preview':
               setMessages((prev) =>
@@ -259,9 +253,10 @@ export function useChat() {
           }
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
-        activeRequestsRef.current.delete(requestId);
+        activeControllersRef.current.delete(controller);
         decrementStreams();
       }
     },
@@ -269,8 +264,11 @@ export function useChat() {
   );
 
   const clearChat = useCallback(() => {
-    // Cancel all active requests
-    activeRequestsRef.current.clear();
+    // Abort all active streams
+    for (const controller of activeControllersRef.current) {
+      controller.abort();
+    }
+    activeControllersRef.current.clear();
     clearMessages();
   }, [clearMessages]);
 
