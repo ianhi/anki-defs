@@ -185,7 +185,6 @@ export function computeCost(usage: TokenUsage): number {
 
 // API request/response types
 export interface ChatStreamRequest {
-  messages: Message[];
   newMessage: string;
   deck?: string;
   highlightedWords?: string[];
