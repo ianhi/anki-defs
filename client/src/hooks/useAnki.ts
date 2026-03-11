@@ -32,14 +32,6 @@ export function useModelFields(modelName: string | undefined) {
   });
 }
 
-export function useSearchNotes(query: string) {
-  return useQuery({
-    queryKey: ['anki', 'notes', 'search', query],
-    queryFn: () => ankiApi.search(query),
-    enabled: query.length > 0,
-  });
-}
-
 export function useCreateNote() {
   const queryClient = useQueryClient();
 
@@ -66,13 +58,5 @@ export function useDeleteNote() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['anki', 'notes', 'search'] });
     },
-  });
-}
-
-export function useNote(noteId: number | undefined) {
-  return useQuery({
-    queryKey: ['anki', 'notes', noteId],
-    queryFn: () => (noteId ? ankiApi.getNote(noteId) : Promise.resolve(null)),
-    enabled: !!noteId,
   });
 }

@@ -77,28 +77,6 @@ export async function searchWord(word: string, deckName: string): Promise<AnkiNo
   return notes[0] ?? null;
 }
 
-export async function searchWords(
-  words: string[],
-  deckName: string
-): Promise<Map<string, AnkiNote>> {
-  const results = new Map<string, AnkiNote>();
-
-  const entries = await Promise.all(
-    words.map(async (word) => {
-      const note = await searchWord(word, deckName);
-      return [word, note] as const;
-    })
-  );
-
-  for (const [word, note] of entries) {
-    if (note) {
-      results.set(word, note);
-    }
-  }
-
-  return results;
-}
-
 export async function getNoteById(noteId: number): Promise<AnkiNote | null> {
   const ankiClient = await getClient();
   const notesInfo = await ankiClient.note.notesInfo({ notes: [noteId] });
@@ -247,28 +225,6 @@ export async function searchWordCached(word: string, deckName: string): Promise<
     }
     return null;
   }
-}
-
-/**
- * Batch version of searchWordCached.
- */
-export async function searchWordsCached(
-  words: string[],
-  deckName: string
-): Promise<Map<string, AnkiNote>> {
-  const results = new Map<string, AnkiNote>();
-  const entries = await Promise.all(
-    words.map(async (word) => {
-      const note = await searchWordCached(word, deckName);
-      return [word, note] as const;
-    })
-  );
-  for (const [word, note] of entries) {
-    if (note) {
-      results.set(word, note);
-    }
-  }
-  return results;
 }
 
 /** Add a word to the cache after successful card creation. */

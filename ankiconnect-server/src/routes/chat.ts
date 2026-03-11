@@ -41,16 +41,6 @@ chatRouter.post('/stream', async (req, res) => {
     return;
   }
 
-  if (newMessage.length > 5000) {
-    res.status(400).json({ error: 'Message too long (max 5000 characters)' });
-    return;
-  }
-
-  if (userContext && userContext.length > 1000) {
-    res.status(400).json({ error: 'User context too long (max 1000 characters)' });
-    return;
-  }
-
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
