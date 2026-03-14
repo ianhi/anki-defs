@@ -1,6 +1,7 @@
 import { useSessionCards } from '@/hooks/useSessionCards';
 import type { PendingCard } from 'shared';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
+import { createLogger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
@@ -8,6 +9,8 @@ import { Button } from './ui/Button';
 import { buildNoteFields } from '@/lib/utils';
 import { sessionApi } from '@/lib/api';
 import { useCallback, useEffect, useState } from 'react';
+
+const log = createLogger('SessionCards');
 
 interface SyncAllState {
   active: boolean;
@@ -135,7 +138,7 @@ export function SessionCardsPanel() {
       await useSessionCards.getState().fetchState();
       return true;
     } catch (error) {
-      console.error('Failed to sync card:', error);
+      log.error('Failed to sync card:', error);
       return false;
     } finally {
       setSyncingIds((prev) => {

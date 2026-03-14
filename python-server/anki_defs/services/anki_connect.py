@@ -6,6 +6,7 @@ Includes an SQLite-backed word cache for offline duplicate detection.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -14,6 +15,8 @@ import httpx
 from .session import add_word_to_db_cache, load_word_cache, replace_deck_cache
 from .settings import get_settings
 
+log = logging.getLogger(__name__)
+
 _client: httpx.Client | None = None
 _client_url: str | None = None
 
@@ -21,7 +24,7 @@ _client_url: str | None = None
 _word_cache: dict[str, set[str]] = load_word_cache()
 if _word_cache:
     for deck, words in _word_cache.items():
-        print(f'[Anki] Loaded {len(words)} cached words for "{deck}" from disk')
+        log.info('Loaded %d cached words for "%s" from disk', len(words), deck)
 
 _last_cache_refresh = 0
 _CACHE_TTL_MS = 5 * 60 * 1000  # 5 minutes
@@ -144,9 +147,9 @@ def create_card(
         mapping.get("Translation", "Translation"): sentence_translation,
     }
 
-    print(f"[Anki] Creating card with model: {model}")
-    print(f"[Anki] Field mapping: {mapping}")
-    print(f"[Anki] Fields: {fields}")
+    log.info("Creating card with model: %s", model)
+    log.debug("Field mapping: %s", mapping)
+    log.debug("Fields: %s", fields)
 
     note_id = _invoke(
         "addNote",
@@ -186,7 +189,7 @@ def test_connection() -> bool:
         try:
             _refresh_word_cache()
         except (httpx.HTTPError, RuntimeError) as e:
-            print(f"[Anki] Word cache refresh failed: {e}")
+            log.warning("Word cache refresh failed: %s", e)
         return True
     except (httpx.HTTPError, RuntimeError):
         return False
@@ -232,7 +235,7 @@ def _refresh_word_cache() -> None:
 
     _word_cache[root_deck] = words
     replace_deck_cache(root_deck, words)
-    print(f'[Anki] Word cache refreshed for "{root_deck}": {len(words)} words')
+    log.info('Word cache refreshed for "%s": %d words', root_deck, len(words))
 
 
 def search_word_cached(word: str, deck_name: str) -> dict[str, Any] | None:

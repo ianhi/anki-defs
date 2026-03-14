@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -16,6 +18,8 @@ from ..services.settings import (
     set_insecure_consent,
     strip_masked_keys,
 )
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/settings")
 
@@ -34,7 +38,7 @@ async def get() -> JSONResponse:
         settings = get_settings()
         return JSONResponse(_response_settings(settings))
     except RuntimeError as e:
-        print(f"[Settings] Error fetching settings: {e}")
+        log.error("Error fetching settings: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -63,7 +67,7 @@ async def put(request: Request) -> JSONResponse:
     try:
         updated = save_settings(updates)
     except RuntimeError as e:
-        print(f"[Settings] Error updating settings: {e}")
+        log.error("Error updating settings: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
     # Reset AI clients if provider or keys changed

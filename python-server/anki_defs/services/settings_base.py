@@ -9,9 +9,12 @@ This module MUST NOT import aqt, fastapi, or any platform-specific packages.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from typing import Any, Callable
+
+log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -78,9 +81,9 @@ def _probe_keyring() -> bool:
 _keyring_available = _probe_keyring()
 
 if _keyring_available:
-    print(f"[Settings] Keyring backend: {type(keyring.get_keyring()).__name__}")
+    log.info("Keyring backend: %s", type(keyring.get_keyring()).__name__)
 else:
-    print("[Settings] No system keyring — will use fallback storage")
+    log.info("No system keyring — will use fallback storage")
 
 # ---------------------------------------------------------------------------
 # Public API

@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import httpx
 
 from ..settings import get_settings
+
+log = logging.getLogger(__name__)
 
 _BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -22,7 +25,7 @@ def _get_config() -> tuple[httpx.Client, str, str]:
         raise ValueError("Gemini API key not configured")
     model = settings.get("geminiModel", "gemini-2.5-flash-lite")
     if _client is None:
-        print(f"[Gemini] Creating client (key ends ...{key[-4:]})")
+        log.debug("Creating client (key ends ...%s)", key[-4:])
         _client = httpx.Client(timeout=60.0)
     return _client, key, model
 
@@ -98,7 +101,7 @@ def stream_completion(
             )
         on_done()
     except Exception as e:
-        print(f"[Gemini] Stream error: {e}")
+        log.error("Stream error: %s", e, exc_info=True)
         on_error(str(e))
 
 

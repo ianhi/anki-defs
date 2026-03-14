@@ -7,12 +7,15 @@ logic matching Express ai.ts, plus provider dispatch to Claude/Gemini/OpenRouter
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 from ..config import PROMPTS_DIR
 from . import providers
 from .settings import get_settings
+
+log = logging.getLogger(__name__)
 
 # --- Prompt loading and rendering ---
 
@@ -229,19 +232,19 @@ def stream_completion(
     on_done: Any,
     on_error: Any,
 ) -> None:
-    print(f"[AI] streamCompletion using provider: {_provider_name()}")
+    log.debug("streamCompletion using provider: %s", _provider_name())
     provider = _get_provider_module()
     provider.stream_completion(system_prompt, user_message, on_text, on_usage, on_done, on_error)
 
 
 def get_completion(system_prompt: str, user_message: str) -> str:
-    print(f"[AI] getCompletion using provider: {_provider_name()}")
+    log.debug("getCompletion using provider: %s", _provider_name())
     provider = _get_provider_module()
     return provider.get_completion(system_prompt, user_message)
 
 
 def get_json_completion(system_prompt: str, user_message: str) -> dict[str, Any]:
-    print(f"[AI] getJsonCompletion using provider: {_provider_name()}")
+    log.debug("getJsonCompletion using provider: %s", _provider_name())
     provider = _get_provider_module()
     return provider.get_json_completion(system_prompt, user_message)
 

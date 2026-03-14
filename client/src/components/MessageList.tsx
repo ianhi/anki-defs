@@ -1,7 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
 import { computeCost } from 'shared';
+import { createLogger } from '@/lib/logger';
 import { CardPreview } from './CardPreview';
+
+const log = createLogger('MessageList');
 import { Button } from './ui/Button';
 import { cn, buildNoteFields } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
@@ -92,7 +95,7 @@ function CardPreviewList({
         });
         sessionCards.addCard(preview, targetDeck, targetModel, noteId);
       } catch (error) {
-        console.error('Failed to create card, adding to queue:', error);
+        log.error('Failed to create card, adding to queue:', error);
         sessionCards.addToPendingQueue(preview, targetDeck, targetModel);
       }
     }

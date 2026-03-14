@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import httpx
 
 from ..settings import get_settings
+
+log = logging.getLogger(__name__)
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
@@ -22,7 +25,7 @@ def _get_config() -> tuple[httpx.Client, str, str]:
         raise ValueError("OpenRouter API key not configured")
     model = settings.get("openRouterModel", "google/gemini-2.5-flash")
     if _client is None:
-        print(f"[OpenRouter] Creating client (key ends ...{key[-4:]})")
+        log.debug("Creating client (key ends ...%s)", key[-4:])
         _client = httpx.Client(timeout=60.0)
     return _client, key, model
 
@@ -106,7 +109,7 @@ def stream_completion(
             )
         on_done()
     except Exception as e:
-        print(f"[OpenRouter] Stream error: {e}")
+        log.error("Stream error: %s", e, exc_info=True)
         on_error(str(e))
 
 

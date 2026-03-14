@@ -124,7 +124,7 @@ export const chatApi = {
           try {
             yield JSON.parse(data) as SSEEvent;
           } catch {
-            console.warn('[API] Failed to parse SSE event:', data);
+            // SSE parse failure — usually trailing whitespace, not worth logging
           }
         }
       }

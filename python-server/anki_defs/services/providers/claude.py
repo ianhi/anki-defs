@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 import httpx
 
 from ..settings import get_settings
+
+log = logging.getLogger(__name__)
 
 CLAUDE_MODEL = "claude-sonnet-4-20250514"
 API_URL = "https://api.anthropic.com/v1/messages"
@@ -22,7 +25,7 @@ def _get_client() -> tuple[httpx.Client, str]:
     if not key:
         raise ValueError("Claude API key not configured")
     if _client is None:
-        print(f"[Claude] Creating client (key: ...{key[-4:]})")
+        log.debug("Creating client (key: ...%s)", key[-4:])
         _client = httpx.Client(timeout=60.0)
     return _client, key
 
@@ -102,7 +105,7 @@ def stream_completion(
             )
         on_done()
     except Exception as e:
-        print(f"[Claude] streamCompletion error: {e}")
+        log.error("streamCompletion error: %s", e, exc_info=True)
         on_error(str(e))
 
 

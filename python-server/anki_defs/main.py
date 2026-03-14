@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -16,6 +17,9 @@ from .middleware.auth import AuthMiddleware
 from .routes import anki, chat, prompts, session, settings
 from .services.settings import get_settings, save_settings
 
+logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s: %(message)s")
+log = logging.getLogger(__name__)
+
 # Load .env files before anything else
 load_dotenv()
 
@@ -27,9 +31,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if not current.get("apiToken"):
         token = str(uuid.uuid4())
         save_settings({"apiToken": token})
-        print(f"[Server] Generated API token: {token}")
+        log.info("Generated API token: %s", token)
     else:
-        print(f"[Server] API token: {current['apiToken']}")
+        log.info("API token: %s", current["apiToken"])
     yield
 
 

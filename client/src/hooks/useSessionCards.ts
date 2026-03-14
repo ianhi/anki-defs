@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { CardContent, SessionCard, PendingCard } from 'shared';
 import { generateId } from '@/lib/utils';
 import { sessionApi } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Session');
 
 interface SessionCardsState {
   cards: SessionCard[];
@@ -32,7 +35,7 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
       const state = await sessionApi.getState();
       set({ cards: state.cards, pendingQueue: state.pendingQueue, loaded: true });
     } catch (err) {
-      console.error('[Session] Failed to fetch state from server:', err);
+      log.error('Failed to fetch state from server:', err);
       set({ loaded: true });
     }
   },
@@ -52,21 +55,21 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
     };
     set((state) => ({ cards: [...state.cards, sessionCard] }));
     sessionApi.addCard(sessionCard).catch((err) => {
-      console.error('[Session] Failed to persist card to server:', err);
+      log.error('Failed to persist card to server:', err);
     });
   },
 
   removeCard: (id) => {
     set((state) => ({ cards: state.cards.filter((c) => c.id !== id) }));
     sessionApi.removeCard(id).catch((err) => {
-      console.error('[Session] Failed to remove card from server:', err);
+      log.error('Failed to remove card from server:', err);
     });
   },
 
   clearCards: () => {
     set({ cards: [], pendingQueue: [] });
     sessionApi.clear().catch((err) => {
-      console.error('[Session] Failed to clear session on server:', err);
+      log.error('Failed to clear session on server:', err);
     });
   },
 
@@ -85,7 +88,7 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
     };
     set((state) => ({ pendingQueue: [...state.pendingQueue, pendingCard] }));
     sessionApi.addPending(pendingCard).catch((err) => {
-      console.error('[Session] Failed to persist pending card to server:', err);
+      log.error('Failed to persist pending card to server:', err);
     });
     return id;
   },
@@ -93,7 +96,7 @@ export const useSessionCards = create<SessionCardsState>()((set, get) => ({
   removeFromPendingQueue: (id) => {
     set((state) => ({ pendingQueue: state.pendingQueue.filter((c) => c.id !== id) }));
     sessionApi.removePending(id).catch((err) => {
-      console.error('[Session] Failed to remove pending card from server:', err);
+      log.error('Failed to remove pending card from server:', err);
     });
   },
 

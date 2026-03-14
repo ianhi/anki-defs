@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from ..services import anki_connect
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/anki")
 
@@ -19,12 +22,12 @@ async def get_decks() -> JSONResponse:
         decks = await asyncio.to_thread(anki_connect.get_decks)
         return JSONResponse({"decks": decks})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error fetching decks: {e}")
+        log.error("Error fetching decks: %s", e)
         return JSONResponse(
             {"error": "Failed to fetch decks. Is Anki running?"}, status_code=500
         )
     except RuntimeError as e:
-        print(f"[Anki] Error fetching decks: {e}")
+        log.error("Error fetching decks: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -34,12 +37,12 @@ async def get_models() -> JSONResponse:
         models = await asyncio.to_thread(anki_connect.get_models)
         return JSONResponse({"models": models})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error fetching models: {e}")
+        log.error("Error fetching models: %s", e)
         return JSONResponse(
             {"error": "Failed to fetch models. Is Anki running?"}, status_code=500
         )
     except RuntimeError as e:
-        print(f"[Anki] Error fetching models: {e}")
+        log.error("Error fetching models: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -49,12 +52,12 @@ async def get_model_fields(name: str) -> JSONResponse:
         fields = await asyncio.to_thread(anki_connect.get_model_fields, name)
         return JSONResponse({"fields": fields})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error fetching model fields: {e}")
+        log.error("Error fetching model fields: %s", e)
         return JSONResponse(
             {"error": "Failed to fetch model fields. Is Anki running?"}, status_code=500
         )
     except RuntimeError as e:
-        print(f"[Anki] Error fetching model fields: {e}")
+        log.error("Error fetching model fields: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -68,12 +71,12 @@ async def search_notes(request: Request) -> JSONResponse:
         notes = await asyncio.to_thread(anki_connect.search_notes, query)
         return JSONResponse({"notes": notes})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error searching notes: {e}")
+        log.error("Error searching notes: %s", e)
         return JSONResponse(
             {"error": "Failed to search notes. Is Anki running?"}, status_code=500
         )
     except RuntimeError as e:
-        print(f"[Anki] Error searching notes: {e}")
+        log.error("Error searching notes: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -104,12 +107,12 @@ async def create_note(request: Request) -> JSONResponse:
         )
         return JSONResponse({"noteId": note_id})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error creating note: {e}")
+        log.error("Error creating note: %s", e)
         return JSONResponse(
             {"error": "Could not connect to Anki. Is Anki running?"}, status_code=503
         )
     except RuntimeError as e:
-        print(f"[Anki] Error creating note: {e}")
+        log.error("Error creating note: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -121,12 +124,12 @@ async def get_note(note_id: int) -> JSONResponse:
             return JSONResponse({"error": "Note not found"}, status_code=404)
         return JSONResponse({"note": note})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error fetching note: {e}")
+        log.error("Error fetching note: %s", e)
         return JSONResponse(
             {"error": "Could not connect to Anki. Is Anki running?"}, status_code=503
         )
     except RuntimeError as e:
-        print(f"[Anki] Error fetching note: {e}")
+        log.error("Error fetching note: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -143,12 +146,12 @@ async def delete_note(note_id: int) -> JSONResponse:
         await asyncio.to_thread(anki_connect.delete_note, note_id)
         return JSONResponse({"success": True})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error deleting note: {e}")
+        log.error("Error deleting note: %s", e)
         return JSONResponse(
             {"error": "Could not connect to Anki. Is Anki running?"}, status_code=503
         )
     except RuntimeError as e:
-        print(f"[Anki] Error deleting note: {e}")
+        log.error("Error deleting note: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
@@ -158,12 +161,12 @@ async def sync_anki() -> JSONResponse:
         await asyncio.to_thread(anki_connect.sync)
         return JSONResponse({"success": True})
     except httpx.HTTPError as e:
-        print(f"[Anki] Error syncing Anki: {e}")
+        log.error("Error syncing Anki: %s", e)
         return JSONResponse(
             {"error": "Failed to sync. Is Anki running?"}, status_code=500
         )
     except RuntimeError as e:
-        print(f"[Anki] Error syncing Anki: {e}")
+        log.error("Error syncing Anki: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
 
 

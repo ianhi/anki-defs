@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { TokenUsage } from 'shared';
 import { computeCost } from 'shared';
 import { sessionApi } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Usage');
 
 interface TokenUsageState {
   totalInputTokens: number;
@@ -32,7 +35,7 @@ export const useTokenUsage = create<TokenUsageState>()((set) => ({
   reset: () => {
     set({ totalInputTokens: 0, totalOutputTokens: 0, totalCost: 0, requestCount: 0 });
     sessionApi.resetUsage().catch((err) => {
-      console.error('[Usage] Failed to reset server usage:', err);
+      log.error('Failed to reset server usage:', err);
     });
   },
 
@@ -41,7 +44,7 @@ export const useTokenUsage = create<TokenUsageState>()((set) => ({
       const totals = await sessionApi.getUsage();
       set({ ...totals, loaded: true });
     } catch (err) {
-      console.error('[Usage] Failed to fetch usage from server:', err);
+      log.error('Failed to fetch usage from server:', err);
       set({ loaded: true });
     }
   },

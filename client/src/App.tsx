@@ -8,6 +8,7 @@ import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ErrorModal } from './components/ErrorModal';
 import { SettingsIcon, X, Layers, RefreshCw, History } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
@@ -178,6 +179,7 @@ function MainApp() {
           </div>
         </div>
       )}
+      <ErrorModal />
     </div>
   );
 }

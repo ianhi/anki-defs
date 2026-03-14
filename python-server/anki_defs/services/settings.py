@@ -8,6 +8,7 @@ fallback to the JSON file if keyring is unavailable).
 from __future__ import annotations
 
 import json
+import logging
 import os
 import stat
 from typing import Any
@@ -24,6 +25,8 @@ from .settings_base import (
     mask_key,
     strip_masked_keys,
 )
+
+log = logging.getLogger(__name__)
 
 # Re-export for consumers
 __all__ = [
@@ -177,7 +180,7 @@ def get_settings() -> dict[str, Any]:
                 with open(SETTINGS_FILE, encoding="utf-8") as f:
                     file_settings = json.load(f)
             except (json.JSONDecodeError, OSError) as e:
-                print(f"[Settings] Error reading settings: {e}")
+                log.error("Error reading settings: %s", e)
         # Strip secrets that may have leaked into the file (migration)
         if keyring_available():
             for field in SECRET_FIELDS:

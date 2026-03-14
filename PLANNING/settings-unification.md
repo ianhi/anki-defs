@@ -21,20 +21,23 @@ Parts 2a-2c (error modal, logging, settings tabs) are follow-up tasks.
 - D-Bus fix removed from `config.py` and `__init__.py` (lives in `settings_base.py`)
 - Build/install scripts automatically copy `settings_base.py` to `_services/`
 
-## Follow-up tasks (separate PRs)
+## Follow-up tasks — DONE
 
-### Error Modal Component
+### Error Modal Component — DONE
 
-- New `ErrorModal.tsx` with copyable debug info
-- Global error state (Zustand store)
-- Replace inline error text throughout
+- `ErrorModal.tsx` with copyable debug info (JSON with error, timestamp, URL, userAgent)
+- `useErrorModal.ts` Zustand store for global error state
+- Mounted in App.tsx at z-60 (above settings modal)
 
-### Logging Strategy
+### Logging Strategy — DONE
 
-- Python: replace `print()` with `logging` module, logger per module
-- Frontend: `logger.ts` wrapper with configurable levels
+- Python: all `print()` replaced with `logging` module across 12 files (53 statements)
+- `logging.basicConfig()` in `main.py` for python-server
+- Frontend: `logger.ts` with `createLogger(name)` factory, level-aware
+- All `console.error('[Tag]')` replaced with `log.error()` across 8 files
 
-### Settings Tabs
+### Settings Tabs — DONE
 
 - Three tabs: AI Provider | Anki | Preferences
-- Tab state in component, save footer spans all tabs
+- Tab bar with active indicator (border-b-2 border-primary)
+- Save/Discard footer spans all tabs, always visible

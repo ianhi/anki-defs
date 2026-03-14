@@ -7,10 +7,11 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
-
 import type { AIProvider, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Loader2 } from 'lucide-react';
+
+type SettingsTab = 'ai' | 'anki' | 'preferences';
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -19,6 +20,7 @@ export function Settings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [keyringAvailable, setKeyringAvailable] = useState(true);
   const [showInsecureWarning, setShowInsecureWarning] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('ai');
 
   const { data: serverSettings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -32,8 +34,6 @@ export function Settings() {
         setKeyringAvailable(data._keyringAvailable as boolean);
       }
       loadSettings(data);
-      // Preserve locally-entered API keys — the server returns masked values
-      // which would blank out the input fields
       setLocalSettings((prev) => ({
         ...data,
         claudeApiKey: prev.claudeApiKey,
@@ -45,7 +45,6 @@ export function Settings() {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },
     onError: (error) => {
-      // 409 = keyring unavailable, needs consent
       if (error.message.includes('plain text') || error.message.includes('insecure')) {
         setShowInsecureWarning(true);
       }
@@ -94,321 +93,334 @@ export function Settings() {
     );
   }
 
-  const showFooter = true;
+  const tabs: { id: SettingsTab; label: string }[] = [
+    { id: 'ai', label: 'AI Provider' },
+    { id: 'anki', label: 'Anki' },
+    { id: 'preferences', label: 'Preferences' },
+  ];
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="p-4 space-y-6 overflow-y-auto flex-1 min-h-0">
-        {/* AI Provider */}
-        <div className="space-y-2">
-          <Label htmlFor="ai-provider">AI Provider</Label>
-          <Select
-            id="ai-provider"
-            value={localSettings.aiProvider}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              handleChange('aiProvider', e.target.value as AIProvider)
-            }
+      {/* Tab bar */}
+      <div className="flex border-b border-border flex-shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'border-b-2 border-primary text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            onClick={() => setActiveTab(tab.id)}
           >
-            <option value="claude">Claude</option>
-            <option value="gemini">Gemini</option>
-            <option value="openrouter">OpenRouter</option>
-          </Select>
-        </div>
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Claude API Key */}
-        {localSettings.aiProvider === 'claude' && (
-          <div className="space-y-2">
-            <Label htmlFor="claude-key">Claude API Key</Label>
-            <Input
-              id="claude-key"
-              type="password"
-              value={localSettings.claudeApiKey}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                handleChange('claudeApiKey', e.target.value)
-              }
-              placeholder="sk-ant-..."
-            />
-          </div>
-        )}
-
-        {/* Gemini API Key + Model */}
-        {localSettings.aiProvider === 'gemini' && (
+      {/* Tab content — scrollable */}
+      <div className="p-4 space-y-5 overflow-y-auto flex-1 min-h-0">
+        {activeTab === 'ai' && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="gemini-key">Gemini API Key</Label>
-              <Input
-                id="gemini-key"
-                type="password"
-                value={localSettings.geminiApiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handleChange('geminiApiKey', e.target.value)
-                }
-                placeholder="AI..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gemini-model">Gemini Model</Label>
+              <Label htmlFor="ai-provider">Provider</Label>
               <Select
-                id="gemini-model"
-                value={localSettings.geminiModel}
+                id="ai-provider"
+                value={localSettings.aiProvider}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  handleChange('geminiModel', e.target.value)
+                  handleChange('aiProvider', e.target.value as AIProvider)
                 }
               >
-                {GEMINI_MODELS.map((m) => {
-                  const p = MODEL_PRICING[m.value];
-                  return (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                      {p ? ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})` : ''}
-                    </option>
-                  );
-                })}
+                <option value="claude">Claude</option>
+                <option value="gemini">Gemini</option>
+                <option value="openrouter">OpenRouter</option>
               </Select>
             </div>
-          </>
-        )}
 
-        {/* OpenRouter API Key */}
-        {localSettings.aiProvider === 'openrouter' && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="openrouter-key">OpenRouter API Key</Label>
-              <Input
-                id="openrouter-key"
-                type="password"
-                value={localSettings.openRouterApiKey}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handleChange('openRouterApiKey', e.target.value)
-                }
-                placeholder="sk-or-..."
-              />
-            </div>
+            {localSettings.aiProvider === 'claude' && (
+              <div className="space-y-2">
+                <Label htmlFor="claude-key">API Key</Label>
+                <Input
+                  id="claude-key"
+                  type="password"
+                  value={localSettings.claudeApiKey}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    handleChange('claudeApiKey', e.target.value)
+                  }
+                  placeholder="sk-ant-..."
+                />
+              </div>
+            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="openrouter-model">OpenRouter Model</Label>
-              <Select
-                id="openrouter-model"
-                value={localSettings.openRouterModel}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  handleChange('openRouterModel', e.target.value)
-                }
-              >
-                {OPENROUTER_MODELS.map((m) => {
-                  const p = MODEL_PRICING[m.value];
-                  return (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                      {p
-                        ? p.input === 0
-                          ? ' (Free)'
-                          : ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})`
-                        : ''}
-                    </option>
-                  );
-                })}
-              </Select>
-            </div>
-          </>
-        )}
-
-        {/* Transliteration Toggle */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="transliteration">Show transliteration</Label>
-          <input
-            id="transliteration"
-            type="checkbox"
-            checked={localSettings.showTransliteration}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange('showTransliteration', e.target.checked)
-            }
-            className="h-4 w-4 rounded border-input"
-          />
-        </div>
-
-        {/* Left-handed Mode */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="left-handed">Left-handed mode</Label>
-          <input
-            id="left-handed"
-            type="checkbox"
-            checked={localSettings.leftHanded}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange('leftHanded', e.target.checked)
-            }
-            className="h-4 w-4 rounded border-input"
-          />
-        </div>
-
-        {/* English→Bangla Settings */}
-        <div className="flex items-center justify-between">
-          <Label htmlFor="auto-detect-english">Auto-detect English input</Label>
-          <input
-            id="auto-detect-english"
-            type="checkbox"
-            checked={localSettings.autoDetectEnglish}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange('autoDetectEnglish', e.target.checked)
-            }
-            className="h-4 w-4 rounded border-input"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="en-bn-prefix">English→Bangla prefix</Label>
-          <Input
-            id="en-bn-prefix"
-            value={localSettings.englishToBanglaPrefix}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              handleChange('englishToBanglaPrefix', e.target.value)
-            }
-            placeholder="bn:"
-            className="w-24"
-          />
-        </div>
-
-        {/* Default Deck */}
-        <div className="space-y-2">
-          <Label htmlFor="default-deck">Default Deck</Label>
-          <Select
-            id="default-deck"
-            value={localSettings.defaultDeck}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              handleChange('defaultDeck', e.target.value)
-            }
-            disabled={!decks || decks.length === 0}
-          >
-            {decks?.map((deck) => (
-              <option key={deck} value={deck}>
-                {deck}
-              </option>
-            )) ?? <option>No decks available</option>}
-          </Select>
-        </div>
-
-        {/* Default Model */}
-        <div className="space-y-2">
-          <Label htmlFor="default-model">Default Note Type</Label>
-          <Select
-            id="default-model"
-            value={localSettings.defaultModel}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              handleChange('defaultModel', e.target.value)
-            }
-            disabled={!models || models.length === 0}
-          >
-            {models?.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            )) ?? <option>No models available</option>}
-          </Select>
-        </div>
-
-        {/* Field Mapping */}
-        {modelFields && modelFields.length > 0 && (
-          <div className="space-y-2">
-            <Label>Field Mapping</Label>
-            <p className="text-xs text-muted-foreground">Map card data to note type fields</p>
-            <div className="space-y-1.5">
-              {CARD_DATA_FIELDS.map((cardField) => (
-                <div key={cardField} className="flex items-center gap-2">
-                  <span className="text-sm w-24 flex-shrink-0">{cardField}</span>
-                  <span className="text-muted-foreground text-sm">&rarr;</span>
+            {localSettings.aiProvider === 'gemini' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="gemini-key">API Key</Label>
+                  <Input
+                    id="gemini-key"
+                    type="password"
+                    value={localSettings.geminiApiKey}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      handleChange('geminiApiKey', e.target.value)
+                    }
+                    placeholder="AI..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gemini-model">Model</Label>
                   <Select
-                    value={localSettings.fieldMapping?.[cardField] || ''}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                      const newMapping = {
-                        ...localSettings.fieldMapping,
-                        [cardField]: e.target.value,
-                      };
-                      handleChange('fieldMapping', newMapping);
-                    }}
-                    className="flex-1"
+                    id="gemini-model"
+                    value={localSettings.geminiModel}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                      handleChange('geminiModel', e.target.value)
+                    }
                   >
-                    <option value="">-- not mapped --</option>
-                    {modelFields.map((field) => (
-                      <option key={field} value={field}>
-                        {field}
-                      </option>
-                    ))}
+                    {GEMINI_MODELS.map((m) => {
+                      const p = MODEL_PRICING[m.value];
+                      return (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                          {p ? ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})` : ''}
+                        </option>
+                      );
+                    })}
                   </Select>
                 </div>
-              ))}
-            </div>
-          </div>
+              </>
+            )}
+
+            {localSettings.aiProvider === 'openrouter' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="openrouter-key">API Key</Label>
+                  <Input
+                    id="openrouter-key"
+                    type="password"
+                    value={localSettings.openRouterApiKey}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      handleChange('openRouterApiKey', e.target.value)
+                    }
+                    placeholder="sk-or-..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="openrouter-model">Model</Label>
+                  <Select
+                    id="openrouter-model"
+                    value={localSettings.openRouterModel}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                      handleChange('openRouterModel', e.target.value)
+                    }
+                  >
+                    {OPENROUTER_MODELS.map((m) => {
+                      const p = MODEL_PRICING[m.value];
+                      return (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                          {p
+                            ? p.input === 0
+                              ? ' (Free)'
+                              : ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})`
+                            : ''}
+                        </option>
+                      );
+                    })}
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {!keyringAvailable && (
+              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                No system keyring detected — API keys stored in local config file (your user only).
+              </p>
+            )}
+          </>
         )}
 
-        {/* Keyring status indicator */}
-        {!keyringAvailable && !showInsecureWarning && (
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">
-            No system keyring detected — API keys stored in Anki config (local file, your user
-            only).
-          </p>
+        {activeTab === 'anki' && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="default-deck">Default Deck</Label>
+              <Select
+                id="default-deck"
+                value={localSettings.defaultDeck}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  handleChange('defaultDeck', e.target.value)
+                }
+                disabled={!decks || decks.length === 0}
+              >
+                {decks?.map((deck) => (
+                  <option key={deck} value={deck}>
+                    {deck}
+                  </option>
+                )) ?? <option>No decks available</option>}
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="default-model">Default Note Type</Label>
+              <Select
+                id="default-model"
+                value={localSettings.defaultModel}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  handleChange('defaultModel', e.target.value)
+                }
+                disabled={!models || models.length === 0}
+              >
+                {models?.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                )) ?? <option>No models available</option>}
+              </Select>
+            </div>
+
+            {modelFields && modelFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>Field Mapping</Label>
+                <p className="text-xs text-muted-foreground">Map card data to note type fields</p>
+                <div className="space-y-1.5">
+                  {CARD_DATA_FIELDS.map((cardField) => (
+                    <div key={cardField} className="flex items-center gap-2">
+                      <span className="text-sm w-24 flex-shrink-0">{cardField}</span>
+                      <span className="text-muted-foreground text-sm">&rarr;</span>
+                      <Select
+                        value={localSettings.fieldMapping?.[cardField] || ''}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                          const newMapping = {
+                            ...localSettings.fieldMapping,
+                            [cardField]: e.target.value,
+                          };
+                          handleChange('fieldMapping', newMapping);
+                        }}
+                        className="flex-1"
+                      >
+                        <option value="">-- not mapped --</option>
+                        {modelFields.map((field) => (
+                          <option key={field} value={field}>
+                            {field}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'preferences' && (
+          <>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="transliteration">Show transliteration</Label>
+              <input
+                id="transliteration"
+                type="checkbox"
+                checked={localSettings.showTransliteration}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange('showTransliteration', e.target.checked)
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="left-handed">Left-handed mode</Label>
+              <input
+                id="left-handed"
+                type="checkbox"
+                checked={localSettings.leftHanded}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange('leftHanded', e.target.checked)
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="auto-detect-english">Auto-detect English input</Label>
+              <input
+                id="auto-detect-english"
+                type="checkbox"
+                checked={localSettings.autoDetectEnglish}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange('autoDetectEnglish', e.target.checked)
+                }
+                className="h-4 w-4 rounded border-input"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="en-bn-prefix">English-to-Bangla prefix</Label>
+              <Input
+                id="en-bn-prefix"
+                value={localSettings.englishToBanglaPrefix}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  handleChange('englishToBanglaPrefix', e.target.value)
+                }
+                placeholder="bn:"
+                className="w-24"
+              />
+            </div>
+          </>
         )}
       </div>
 
-      {/* Sticky footer for save/warnings — always visible */}
-      {showFooter && (
-        <div className="border-t border-border p-4 flex-shrink-0 space-y-3">
-          {/* Insecure storage warning */}
-          {showInsecureWarning && (
-            <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950 space-y-2">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Store API key in Anki config?
-              </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                No system keyring (GNOME Keyring, macOS Keychain) was detected, so your API key will
-                be saved in Anki&apos;s addon config file. The file is only readable by your OS user
-                account, so this is safe for personal machines. Avoid this on shared computers.
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => handleSave(true)}
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'OK, save'
-                  )}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowInsecureWarning(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Save/Reset Buttons */}
-          {!showInsecureWarning && (
+      {/* Sticky footer — always visible */}
+      <div className="border-t border-border p-4 flex-shrink-0 space-y-3">
+        {showInsecureWarning && (
+          <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950 space-y-2">
+            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              Store API key in local config?
+            </p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              No system keyring (GNOME Keyring, macOS Keychain) was detected, so your API key will
+              be saved in a local config file. The file is only readable by your OS user account, so
+              this is safe for personal machines. Avoid this on shared computers.
+            </p>
             <div className="flex gap-2">
               <Button
-                onClick={() => handleSave()}
-                disabled={!hasChanges || updateMutation.isPending}
+                size="sm"
+                onClick={() => handleSave(true)}
+                disabled={updateMutation.isPending}
               >
                 {updateMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  'Save Changes'
+                  'OK, save'
                 )}
               </Button>
-              <Button variant="outline" onClick={handleReset} disabled={!hasChanges}>
-                Discard changes
+              <Button size="sm" variant="outline" onClick={() => setShowInsecureWarning(false)}>
+                Cancel
               </Button>
             </div>
-          )}
+          </div>
+        )}
 
-          {updateMutation.isError && !showInsecureWarning && (
-            <p className="text-sm text-destructive">Failed to save settings. Please try again.</p>
-          )}
-        </div>
-      )}
+        {!showInsecureWarning && (
+          <div className="flex gap-2">
+            <Button onClick={() => handleSave()} disabled={!hasChanges || updateMutation.isPending}>
+              {updateMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+            <Button variant="outline" onClick={handleReset} disabled={!hasChanges}>
+              Discard changes
+            </Button>
+          </div>
+        )}
+
+        {updateMutation.isError && !showInsecureWarning && (
+          <p className="text-sm text-destructive">Failed to save settings. Please try again.</p>
+        )}
+      </div>
     </div>
   );
 }

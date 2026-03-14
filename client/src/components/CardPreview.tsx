@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createLogger } from '@/lib/logger';
 import type React from 'react';
 import type { CardPreview as CardPreviewType } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
@@ -22,6 +23,8 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+
+const log = createLogger('CardPreview');
 
 interface CardPreviewProps {
   preview: CardPreviewType;
@@ -180,7 +183,7 @@ export function CardPreview({
       await deleteNote.mutateAsync(addedNoteId);
       removeCard(sessionMatch.id);
     } catch (error) {
-      console.error('Failed to undo card:', error);
+      log.error('Failed to undo card:', error);
     }
   };
 
@@ -202,7 +205,7 @@ export function CardPreview({
       }
       setIsEditing(false);
     } catch (error) {
-      console.error('Failed to relemmatize:', error);
+      log.error('Failed to relemmatize:', error);
     } finally {
       setIsRelemmatizing(false);
     }

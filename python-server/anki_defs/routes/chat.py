@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from typing import Any
 
@@ -13,6 +14,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from ..config import SHARED_DIR
 from ..services import ai, anki_connect, card_extraction, session
 from ..services.settings import get_settings
+
+log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat")
 
@@ -76,7 +79,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
         user_message = selection.user_message
         is_english_to_bangla = selection.mode.startswith("english-to-bangla")
         has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
-        print(f"[Chat] Mode: {selection.mode}")
+        log.info("Mode: %s", selection.mode)
 
         # Pre-check Anki for input words
         words_to_check: list[str] = []
@@ -92,7 +95,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
                 )
                 anki_results[word] = note
             except Exception as e:
-                print(f"[Chat] Anki search failed: {e}")
+                log.error("Anki search failed: %s", e)
                 anki_results[word] = None
 
         if words_to_check:
@@ -119,7 +122,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
                 cards = card_extraction.validate_card_responses(parsed)
             except Exception:
                 # Retry with healing prompt
-                print("[Chat] JSON parse failed, retrying with healing prompt")
+                log.warning("JSON parse failed, retrying with healing prompt")
                 try:
                     retry_result = await asyncio.to_thread(
                         ai.get_json_completion,
@@ -161,7 +164,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
             yield _sse_event({"type": "done", "data": None})
 
         except Exception as e:
-            print(f"[Chat] Unexpected error: {e}")
+            log.error("Unexpected error: %s", e, exc_info=True)
             yield _sse_event({
                 "type": "error",
                 "data": str(e),
@@ -197,5 +200,5 @@ async def relemmatize(request: Request) -> JSONResponse:
             "definition": parsed.get("definition", ""),
         })
     except Exception as e:
-        print(f"[Chat] Error relemmatizing word: {e}")
+        log.error("Error relemmatizing word: %s", e)
         return JSONResponse({"error": "Failed to relemmatize word"}, status_code=500)

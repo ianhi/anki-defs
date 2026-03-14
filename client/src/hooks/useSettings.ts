@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import type { Settings } from 'shared';
 import { DEFAULT_SETTINGS } from 'shared';
 import { settingsApi } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Settings');
 
 interface SettingsState {
   settings: Settings;
@@ -22,7 +25,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings: { ...state.settings, defaultDeck: deck },
     }));
     settingsApi.update({ defaultDeck: deck }).catch((err) => {
-      console.error('[Settings] Failed to persist deck selection:', err);
+      log.error('Failed to persist deck selection:', err);
     });
   },
 
@@ -31,7 +34,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       settings: { ...state.settings, defaultModel: model },
     }));
     settingsApi.update({ defaultModel: model }).catch((err) => {
-      console.error('[Settings] Failed to persist model selection:', err);
+      log.error('Failed to persist model selection:', err);
     });
   },
 
@@ -48,7 +51,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     try {
       await settingsApi.update(updates);
     } catch (error) {
-      console.error('[Settings] Failed to save settings:', error);
+      log.error('Failed to save settings:', error);
     }
   },
 
@@ -57,7 +60,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       const settings = await settingsApi.get();
       set({ settings, isLoaded: true });
     } catch (error) {
-      console.error('[Settings] Failed to fetch settings:', error);
+      log.error('Failed to fetch settings:', error);
       set({ isLoaded: true });
     }
   },
