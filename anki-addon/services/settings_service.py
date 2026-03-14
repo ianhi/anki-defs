@@ -15,18 +15,6 @@ import keyring
 import keyring.errors
 from aqt import mw
 
-# Probe whether a usable keyring backend exists (not the fail.Keyring stub)
-try:
-    _backend = keyring.get_keyring()
-    _KEYRING_AVAILABLE = not type(_backend).__name__.startswith("Fail")
-except RuntimeError:
-    _KEYRING_AVAILABLE = False
-
-if _KEYRING_AVAILABLE:
-    print("[anki-defs] Keyring backend: {}".format(type(_backend).__name__))
-else:
-    print("[anki-defs] No system keyring available — API keys will require user consent to store")
-
 # Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
 # Resolve symlinks so dev installs (symlinked into Anki addons dir) find the repo.
 _ADDON_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
@@ -43,6 +31,26 @@ _KEYRING_SERVICE = "anki-defs"
 
 # Fields that contain secrets — stored in keyring, never in Anki config
 _SECRET_FIELDS = ("claudeApiKey", "geminiApiKey", "openRouterApiKey", "apiToken")
+
+# Probe whether a usable keyring backend exists by doing a real read test
+_KEYRING_AVAILABLE = False
+try:
+    _backend = keyring.get_keyring()
+    _backend_name = type(_backend).__name__
+    if not _backend_name.startswith("Fail"):
+        # Actually test that the backend works (priority check alone is not enough)
+        keyring.get_password(_KEYRING_SERVICE, "_probe")
+        _KEYRING_AVAILABLE = True
+except (RuntimeError, keyring.errors.KeyringError):
+    pass
+
+if _KEYRING_AVAILABLE:
+    print("[anki-defs] Keyring backend: {}".format(type(keyring.get_keyring()).__name__))
+else:
+    print("[anki-defs] No system keyring available — API keys will require user consent to store")
+
+# __name__ resolves to the add-on package name when loaded by Anki
+_addon_name = __name__.split(".")[0]
 
 
 def keyring_available():
@@ -104,8 +112,20 @@ def _get_secrets():
     return {field: _read_secret(field) for field in _SECRET_FIELDS}
 
 
-# __name__ resolves to the add-on package name when loaded by Anki
-_addon_name = __name__.split(".")[0]
+def has_insecure_consent():
+    """Check if user previously consented to insecure (plain text) storage."""
+    config = mw.addonManager.getConfig(_addon_name) or {}
+    return config.get("_insecureStorageConsent", False)
+
+
+def set_insecure_consent(value):
+    """Store the user's consent for insecure storage."""
+    config = mw.addonManager.getConfig(_addon_name) or {}
+    if value:
+        config["_insecureStorageConsent"] = True
+    else:
+        config.pop("_insecureStorageConsent", None)
+    mw.addonManager.writeConfig(_addon_name, config)
 
 
 def get_settings():
@@ -117,9 +137,7 @@ def get_settings():
             config.pop(field, None)
     result = _load_defaults()
     result.update(config)
-    if _KEYRING_AVAILABLE:
-        result.update(_get_secrets())
-    # When not using keyring, secrets are already in config from fallback reads
+    result.update(_get_secrets())
     return result
 
 
@@ -146,22 +164,6 @@ def save_settings(updates):
     mw.addonManager.writeConfig(_addon_name, config)
 
     return get_settings()
-
-
-def has_insecure_consent():
-    """Check if user previously consented to insecure (plain text) storage."""
-    config = mw.addonManager.getConfig(_addon_name) or {}
-    return config.get("_insecureStorageConsent", False)
-
-
-def set_insecure_consent(value):
-    """Store the user's consent for insecure storage."""
-    config = mw.addonManager.getConfig(_addon_name) or {}
-    if value:
-        config["_insecureStorageConsent"] = True
-    else:
-        config.pop("_insecureStorageConsent", None)
-    mw.addonManager.writeConfig(_addon_name, config)
 
 
 def get_masked_settings():
