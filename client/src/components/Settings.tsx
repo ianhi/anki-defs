@@ -402,24 +402,16 @@ export function Settings() {
       {showInsecureWarning && (
         <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950 space-y-2">
           <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-            No system keyring available
+            Store API key in Anki config?
           </p>
           <p className="text-xs text-yellow-700 dark:text-yellow-300">
-            API keys will be stored in plain text in Anki&apos;s addon config file. This is less
-            secure than using a system keyring (GNOME Keyring, KWallet, macOS Keychain).
+            No system keyring (GNOME Keyring, macOS Keychain) was detected, so your API key will be
+            saved in Anki&apos;s addon config file. The file is only readable by your OS user
+            account, so this is safe for personal machines. Avoid this on shared computers.
           </p>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleSave(true)}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Save anyway'
-              )}
+            <Button size="sm" onClick={() => handleSave(true)} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'OK, save'}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowInsecureWarning(false)}>
               Cancel
@@ -450,7 +442,7 @@ export function Settings() {
       {/* Keyring status indicator */}
       {!keyringAvailable && !showInsecureWarning && (
         <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          System keyring unavailable — API keys will require confirmation to save.
+          No system keyring detected — API keys stored in Anki config (local file, your user only).
         </p>
       )}
 
