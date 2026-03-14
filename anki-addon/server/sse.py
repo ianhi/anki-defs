@@ -15,5 +15,5 @@ def send_sse(sock, event_type, data):
     try:
         sock.sendall(msg.encode("utf-8"))
         return True
-    except Exception:
+    except OSError:
         return False

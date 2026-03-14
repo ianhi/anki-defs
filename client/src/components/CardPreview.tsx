@@ -103,6 +103,7 @@ export function CardPreview({
   const pendingQueueId = pendingMatch?.id ?? null;
 
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   // Editable word and definition
   const [editedWord, setEditedWord] = useState<string | null>(null);
   const [editedDefinition, setEditedDefinition] = useState<string | null>(null);
@@ -144,6 +145,7 @@ export function CardPreview({
       return;
     }
 
+    setAddError(null);
     try {
       const noteId = await createNote.mutateAsync({
         deckName: targetDeck,
@@ -156,9 +158,18 @@ export function CardPreview({
       });
       addCard(cardPreview, targetDeck, targetModel, noteId);
     } catch (error) {
-      console.error('Failed to create card, adding to queue:', error);
-      // If Anki fails, add to pending queue
-      addToPendingQueue(cardPreview, targetDeck, targetModel);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      // Connection errors (503, network failure) → queue for later
+      if (
+        !ankiConnected ||
+        message.includes('Could not connect') ||
+        message.includes('Request failed')
+      ) {
+        addToPendingQueue(cardPreview, targetDeck, targetModel);
+      } else {
+        // Application errors (wrong model, missing fields) → show to user
+        setAddError(message);
+      }
     }
   };
 
@@ -404,6 +415,11 @@ export function CardPreview({
           </>
         )}
       </CardFooter>
+      {addError && (
+        <div className="px-3 pb-2 sm:px-6">
+          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">{addError}</p>
+        </div>
+      )}
       {!isAdded && !isQueued && onRetryWithContext && assistantMsgId && (
         <div className="px-3 pb-2.5 sm:px-6 sm:pb-3">
           {showRetryInput ? (

@@ -68,7 +68,7 @@ def _read_secret(field: str) -> str:
     try:
         value = keyring.get_password(_KEYRING_SERVICE, field)
         return value or ""
-    except Exception as e:
+    except keyring.errors.KeyringError as e:
         raise RuntimeError(
             f"Failed to read '{field}' from system keyring: {e}\n"
             "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).\n"
@@ -86,7 +86,7 @@ def _write_secret(field: str, value: str) -> None:
                 keyring.delete_password(_KEYRING_SERVICE, field)
             except keyring.errors.PasswordDeleteError:
                 pass  # Key didn't exist, that's fine
-    except Exception as e:
+    except keyring.errors.KeyringError as e:
         raise RuntimeError(
             f"Failed to write '{field}' to system keyring: {e}\n"
             "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet)."

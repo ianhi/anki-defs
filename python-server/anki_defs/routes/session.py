@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -17,7 +18,7 @@ async def get_session() -> JSONResponse:
     try:
         state = await asyncio.to_thread(session_service.get_state)
         return JSONResponse(state)
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error getting state: {e}")
         return JSONResponse({"error": "Failed to get session state"}, status_code=500)
 
@@ -30,7 +31,7 @@ async def add_card(request: Request) -> JSONResponse:
     try:
         await asyncio.to_thread(session_service.add_card, card)
         return JSONResponse({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error adding card: {e}")
         return JSONResponse({"error": "Failed to add card"}, status_code=500)
 
@@ -40,7 +41,7 @@ async def remove_card(card_id: str) -> JSONResponse:
     try:
         removed = await asyncio.to_thread(session_service.remove_card, card_id)
         return JSONResponse({"success": removed})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error removing card: {e}")
         return JSONResponse({"error": "Failed to remove card"}, status_code=500)
 
@@ -53,7 +54,7 @@ async def add_pending(request: Request) -> JSONResponse:
     try:
         await asyncio.to_thread(session_service.add_pending, card)
         return JSONResponse({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error adding pending card: {e}")
         return JSONResponse({"error": "Failed to add pending card"}, status_code=500)
 
@@ -63,7 +64,7 @@ async def remove_pending(card_id: str) -> JSONResponse:
     try:
         removed = await asyncio.to_thread(session_service.remove_pending, card_id)
         return JSONResponse({"success": removed})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error removing pending card: {e}")
         return JSONResponse({"error": "Failed to remove pending card"}, status_code=500)
 
@@ -79,7 +80,7 @@ async def promote_pending(pending_id: str, request: Request) -> JSONResponse:
         if card is None:
             return JSONResponse({"error": "Pending card not found"}, status_code=404)
         return JSONResponse({"success": True, "card": card})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error promoting pending card: {e}")
         return JSONResponse({"error": "Failed to promote pending card"}, status_code=500)
 
@@ -89,7 +90,7 @@ async def clear_session() -> JSONResponse:
     try:
         await asyncio.to_thread(session_service.clear_all)
         return JSONResponse({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error clearing session: {e}")
         return JSONResponse({"error": "Failed to clear session"}, status_code=500)
 
@@ -99,7 +100,7 @@ async def get_usage() -> JSONResponse:
     try:
         totals = await asyncio.to_thread(session_service.get_usage_totals)
         return JSONResponse(totals)
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error getting usage: {e}")
         return JSONResponse({"error": "Failed to get usage"}, status_code=500)
 
@@ -109,7 +110,7 @@ async def reset_usage() -> JSONResponse:
     try:
         await asyncio.to_thread(session_service.clear_usage)
         return JSONResponse({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error resetting usage: {e}")
         return JSONResponse({"error": "Failed to reset usage"}, status_code=500)
 
@@ -121,6 +122,6 @@ async def search_history(q: str | None = None, limit: int = 50, offset: int = 0)
         offset = max(offset, 0)
         result = await asyncio.to_thread(session_service.search_history, q, limit, offset)
         return JSONResponse(result)
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"[Session] Error searching history: {e}")
         return JSONResponse({"error": "Failed to search history"}, status_code=500)

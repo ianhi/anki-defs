@@ -1,6 +1,7 @@
 """Session API handlers."""
 
 import json
+import sqlite3
 
 from ..server.web import Response
 from ..services import session_service
@@ -10,7 +11,7 @@ def handle_get_session(_params, _headers, _body):
     try:
         state = session_service.get_state()
         return Response.json(state)
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to get session state: {}".format(e))
 
 
@@ -21,7 +22,7 @@ def handle_add_card(_params, _headers, body):
     try:
         session_service.add_card(data)
         return Response.json({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to add card: {}".format(e))
 
 
@@ -29,7 +30,7 @@ def handle_remove_card(params, _headers, _body):
     try:
         removed = session_service.remove_card(params["id"])
         return Response.json({"success": removed})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to remove card: {}".format(e))
 
 
@@ -40,7 +41,7 @@ def handle_add_pending(_params, _headers, body):
     try:
         session_service.add_pending(data)
         return Response.json({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to add pending card: {}".format(e))
 
 
@@ -48,7 +49,7 @@ def handle_remove_pending(params, _headers, _body):
     try:
         removed = session_service.remove_pending(params["id"])
         return Response.json({"success": removed})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to remove pending card: {}".format(e))
 
 
@@ -62,7 +63,7 @@ def handle_promote_pending(params, _headers, body):
         if card is None:
             return Response.error("Pending card not found", 404)
         return Response.json({"success": True, "card": card})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to promote pending card: {}".format(e))
 
 
@@ -70,7 +71,7 @@ def handle_clear_session(_params, _headers, _body):
     try:
         session_service.clear_all()
         return Response.json({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to clear session: {}".format(e))
 
 
@@ -81,7 +82,7 @@ def handle_get_usage(_params, _headers, _body):
     try:
         totals = session_service.get_usage_totals()
         return Response.json(totals)
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to get usage: {}".format(e))
 
 
@@ -89,7 +90,7 @@ def handle_reset_usage(_params, _headers, _body):
     try:
         session_service.clear_usage()
         return Response.json({"success": True})
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to reset usage: {}".format(e))
 
 
@@ -98,7 +99,6 @@ def handle_reset_usage(_params, _headers, _body):
 
 def handle_search_history(_params, headers, body):
     try:
-        # Parse query params from URL (passed via headers dict in our server)
         import urllib.parse
 
         query_string = headers.get("query_string", "")
@@ -108,5 +108,7 @@ def handle_search_history(_params, headers, body):
         offset = max(int(params.get("offset", ["0"])[0]), 0)
         result = session_service.search_history(q, limit, offset)
         return Response.json(result)
-    except Exception as e:
+    except sqlite3.Error as e:
         return Response.error("Failed to search history: {}".format(e))
+    except ValueError as e:
+        return Response.error("Invalid parameter: {}".format(e), 400)

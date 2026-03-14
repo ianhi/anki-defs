@@ -159,7 +159,10 @@ def create_card(
     )
 
     if note_id is None:
-        raise RuntimeError("Failed to create note - duplicate or invalid")
+        raise RuntimeError(
+            f"Cannot create note. The note may be a duplicate, "
+            f"or the first field of note type '{model}' is empty."
+        )
 
     # Add to word cache
     if word:
@@ -182,10 +185,10 @@ def test_connection() -> bool:
         # Refresh word cache on successful connection
         try:
             _refresh_word_cache()
-        except Exception as e:
+        except (httpx.HTTPError, RuntimeError) as e:
             print(f"[Anki] Word cache refresh failed: {e}")
         return True
-    except Exception:
+    except (httpx.HTTPError, RuntimeError):
         return False
 
 
@@ -236,7 +239,7 @@ def search_word_cached(word: str, deck_name: str) -> dict[str, Any] | None:
     """Search for a word with fallback to in-memory cache when Anki is offline."""
     try:
         return search_word(word, deck_name)
-    except Exception:
+    except (httpx.HTTPError, RuntimeError):
         cached = _word_cache.get(_get_root_deck(deck_name))
         if cached and word.lower() in cached:
             return {"noteId": 0, "modelName": "", "tags": [], "fields": {}}

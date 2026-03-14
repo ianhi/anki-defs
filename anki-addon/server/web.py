@@ -43,12 +43,12 @@ class WebServer:
         for client_sock in list(self.clients.keys()):
             try:
                 client_sock.close()
-            except Exception:
+            except OSError:
                 pass
         self.clients.clear()
         try:
             self.sock.close()
-        except Exception:
+        except OSError:
             pass
 
     def advance(self):
@@ -61,7 +61,7 @@ class WebServer:
                 client_sock.setblocking(False)
                 self.clients[client_sock] = ClientBuffer()
                 self.client_addrs[client_sock] = addr
-        except Exception:
+        except OSError:
             pass
 
         # Process existing clients
@@ -72,7 +72,7 @@ class WebServer:
             readable, _, errored = select.select(
                 list(self.clients.keys()), [], list(self.clients.keys()), 0
             )
-        except Exception:
+        except (OSError, ValueError):
             return
 
         for sock in errored:
@@ -94,7 +94,7 @@ class WebServer:
                 self._close_client(sock)
             except BlockingIOError:
                 pass
-            except Exception:
+            except OSError:
                 self._close_client(sock)
 
     def _check_auth(self, sock, headers):
@@ -155,7 +155,7 @@ class WebServer:
         raw = (status_line + headers + "\r\n").encode("utf-8") + body_bytes
         try:
             sock.sendall(raw)
-        except Exception:
+        except OSError:
             pass
         self._close_client(sock)
 
@@ -171,7 +171,7 @@ class WebServer:
         ).encode("utf-8")
         try:
             sock.sendall(raw)
-        except Exception:
+        except OSError:
             pass
 
     def _serve_static(self, sock, path):
@@ -202,7 +202,7 @@ class WebServer:
         try:
             with open(filepath, "rb") as f:
                 body = f.read()
-        except Exception:
+        except OSError:
             self._send_response(sock, Response(500, "Internal Server Error"))
             return
 
@@ -215,14 +215,14 @@ class WebServer:
         raw = (status_line + headers + "\r\n").encode("utf-8") + body
         try:
             sock.sendall(raw)
-        except Exception:
+        except OSError:
             pass
         self._close_client(sock)
 
     def _close_client(self, sock):
         try:
             sock.close()
-        except Exception:
+        except OSError:
             pass
         self.clients.pop(sock, None)
         self.client_addrs.pop(sock, None)

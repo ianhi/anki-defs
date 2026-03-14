@@ -49,7 +49,7 @@ class Router:
             if match:
                 try:
                     return handler(match.groupdict(), headers, body)
-                except Exception as e:
+                except (RuntimeError, ValueError, OSError, KeyError) as e:
                     return Response.error(str(e))
 
         # No route matched -- return None to fall through to static file serving

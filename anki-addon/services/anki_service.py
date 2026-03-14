@@ -77,7 +77,7 @@ def get_note(note_id):
     col = _col()
     try:
         note = col.get_note(note_id)
-    except Exception:
+    except (ValueError, KeyError):
         return None
     return _note_to_dict(col, note)
 
@@ -118,7 +118,7 @@ def delete_note(note_id):
     col = _col()
     try:
         note = col.get_note(note_id)
-    except Exception:
+    except (ValueError, KeyError):
         raise ValueError("Note not found: {}".format(note_id))
     if "auto-generated" not in note.tags:
         raise ValueError("Cannot delete note without 'auto-generated' tag")

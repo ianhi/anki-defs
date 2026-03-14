@@ -53,7 +53,7 @@ def handle_stream(_params, _headers, body):
             send_sse(sock, "done", None)
             try:
                 sock.close()
-            except Exception:
+            except OSError:
                 pass
 
         return Response.sse(sse_handler)
@@ -74,7 +74,7 @@ def handle_stream(_params, _headers, body):
         try:
             existing = anki_service.search_word(word, target_deck, field_mapping)
             anki_results[word] = existing
-        except Exception:
+        except (RuntimeError, ValueError):
             anki_results[word] = None
 
     # Return SSE response -- the worker runs in a daemon thread
@@ -124,7 +124,7 @@ def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_r
                 send_sse(sock, "done", None)
                 try:
                     sock.close()
-                except Exception:
+                except OSError:
                     pass
                 return
 
@@ -144,14 +144,14 @@ def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_r
                                 word, target_deck, field_mapping
                             )
                             anki_results[word] = existing
-                        except Exception:
+                        except (RuntimeError, ValueError):
                             anki_results[word] = None
 
                 previews = build_card_previews(
                     cards, target_deck, anki_results, field_mapping
                 )
                 future.set_result(previews)
-            except Exception as e:
+            except (RuntimeError, ValueError, KeyError) as e:
                 future.set_exception(e)
 
         mw.taskman.run_on_main(_build_on_main)
@@ -160,13 +160,14 @@ def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_r
         for preview in previews:
             send_sse(sock, "card_preview", preview)
 
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, OSError, json.JSONDecodeError,
+            concurrent.futures.TimeoutError) as e:
         send_sse(sock, "error", str(e))
 
     send_sse(sock, "done", None)
     try:
         sock.close()
-    except Exception:
+    except OSError:
         pass
 
 
@@ -219,5 +220,5 @@ def handle_relemmatize(_params, _headers, body):
             "lemma": parsed.get("lemma", word),
             "definition": parsed.get("definition", ""),
         })
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError) as e:
         return Response.error("Failed to relemmatize word: {}".format(e))

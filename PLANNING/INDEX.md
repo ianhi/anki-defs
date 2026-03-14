@@ -8,7 +8,7 @@ All backends use JSON-first pipeline (single LLM call). Python server is the pri
 | -------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------- |
 | Web app (`client/` + `python-server/`) | Working                          | FastAPI + React, 3 AI providers, bearer auth, mobile UX, EN→BN mode          |
 | Android (`android/`)                   | Working                          | WebView + NanoHTTPd, still uses old two-call pipeline                        |
-| Anki add-on (`anki-addon/`)            | Needs hardening                  | Shares service layer with python-server, see addon-hardening.md              |
+| Anki add-on (`anki-addon/`)            | Working                          | Hardened: specific exceptions, descriptive errors, keyring validated          |
 | Shared prompts (`shared/prompts/`)     | Working                          | JSON-format templates incl. english-to-bangla, all backends load from shared |
 | Tests                                  | 65 vitest + 67 pytest + 46 addon | TypeScript + Python full coverage                                            |
 | CI                                     | Working                          | `.github/workflows/ci.yml` — web checks + python-server checks               |
@@ -18,7 +18,7 @@ All backends use JSON-first pipeline (single LLM call). Python server is the pri
 
 | Doc                                      | Summary                         | What's left                                         |
 | ---------------------------------------- | ------------------------------- | --------------------------------------------------- |
-| [addon-hardening.md](addon-hardening.md) | Post-migration cleanup & polish | Keyring validation, bare exceptions, error handling |
+| [addon-hardening.md](addon-hardening.md) | Post-migration cleanup & polish | DONE — all 6 tasks complete                         |
 | [next-steps.md](next-steps.md)           | Feature roadmap                 | Prioritized TODO list                               |
 
 ## Reference (keep, don't modify)
