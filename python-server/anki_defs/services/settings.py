@@ -64,20 +64,26 @@ def _get_env_overrides() -> dict[str, Any]:
 
 
 def _read_secret(field: str) -> str:
-    """Read a secret from the system keyring."""
+    """Read a secret from the system keyring, falling back to settings file."""
     try:
         value = keyring.get_password(_KEYRING_SERVICE, field)
-        return value or ""
-    except keyring.errors.KeyringError as e:
-        raise RuntimeError(
-            f"Failed to read '{field}' from system keyring: {e}\n"
-            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).\n"
-            "Alternatively, set the key via environment variable."
-        ) from e
+        if value:
+            return value
+    except keyring.errors.KeyringError:
+        pass
+    # Fallback: read from settings file
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get(field, "")
+        except (json.JSONDecodeError, OSError):
+            pass
+    return ""
 
 
 def _write_secret(field: str, value: str) -> None:
-    """Write a secret to the system keyring."""
+    """Write a secret to the system keyring, falling back to settings file."""
     try:
         if value:
             keyring.set_password(_KEYRING_SERVICE, field, value)
@@ -85,12 +91,26 @@ def _write_secret(field: str, value: str) -> None:
             try:
                 keyring.delete_password(_KEYRING_SERVICE, field)
             except keyring.errors.PasswordDeleteError:
-                pass  # Key didn't exist, that's fine
-    except keyring.errors.KeyringError as e:
-        raise RuntimeError(
-            f"Failed to write '{field}' to system keyring: {e}\n"
-            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet)."
-        ) from e
+                pass
+        return
+    except keyring.errors.KeyringError:
+        pass
+    # Fallback: store in settings file
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    file_settings: dict = {}
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, encoding="utf-8") as f:
+                file_settings = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    if value:
+        file_settings[field] = value
+    else:
+        file_settings.pop(field, None)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(file_settings, f, indent=2)
+    os.chmod(SETTINGS_FILE, stat.S_IRUSR | stat.S_IWUSR)
 
 
 def _get_secrets() -> dict[str, str]:

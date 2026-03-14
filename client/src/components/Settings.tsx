@@ -2,16 +2,15 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useAnkiStatus, useDecks, useModels, useModelFields } from '@/hooks/useAnki';
+import { useDecks, useModels, useModelFields } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
-import { Badge } from './ui/Badge';
+
 import type { AIProvider, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
-import { Check, X, Loader2 } from 'lucide-react';
-import { usePlatform } from '@/hooks/usePlatform';
+import { Loader2 } from 'lucide-react';
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -53,8 +52,6 @@ export function Settings() {
     },
   });
 
-  const platform = usePlatform();
-  const { data: ankiConnected } = useAnkiStatus();
   const { data: decks } = useDecks();
   const { data: models } = useModels();
   const { data: modelFields } = useModelFields(localSettings.defaultModel);
@@ -102,29 +99,6 @@ export function Settings() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="p-4 space-y-6 overflow-y-auto flex-1 min-h-0">
-        {/* Anki Connection Status — only for standalone server (not addon or Android) */}
-        {platform.platform === 'web' && (
-          <div className="space-y-2">
-            <Label>AnkiConnect Status</Label>
-            <div className="flex items-center gap-2">
-              {ankiConnected ? (
-                <Badge variant="success" className="flex items-center gap-1">
-                  <Check className="h-3 w-3" />
-                  Connected
-                </Badge>
-              ) : (
-                <>
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <X className="h-3 w-3" />
-                    Disconnected
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">Is Anki running?</span>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* AI Provider */}
         <div className="space-y-2">
           <Label htmlFor="ai-provider">AI Provider</Label>

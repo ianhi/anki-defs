@@ -157,7 +157,7 @@ function MainApp() {
       {/* Settings Modal */}
       {showSettings && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 sm:p-8 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowSettings(false);
           }}

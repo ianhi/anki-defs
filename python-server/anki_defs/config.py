@@ -3,7 +3,16 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+
+# Ensure D-Bus session address is set so the keyring SecretService backend
+# can connect. Desktop sessions always have this socket but some environments
+# (e.g. SSH, cron, systemd services) don't export the env var.
+if sys.platform == "linux" and not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
+    _bus = f"/run/user/{os.getuid()}/bus"
+    if os.path.exists(_bus):
+        os.environ["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={_bus}"
 
 # Project root is two levels up from this file (python-server/anki_defs/config.py)
 _THIS_DIR = Path(__file__).parent
