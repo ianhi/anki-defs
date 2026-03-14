@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "npm run dev --workspace=ankiconnect-server & npm run dev --workspace=client",
     "dev:server": "npm run dev --workspace=ankiconnect-server",
+    "dev:pyserver": "cd python-server && ANKI_DEFS_DEV=1 uv run uvicorn anki_defs.main:app --host 0.0.0.0 --port 3001 --reload",
     "dev:client": "npm run dev --workspace=client",
     "build": "npm run build --workspaces",
     "build:server": "npm run build --workspace=ankiconnect-server",
