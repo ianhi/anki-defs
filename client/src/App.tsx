@@ -154,22 +154,31 @@ function MainApp() {
         </aside>
       )}
 
-      {/* Settings Sidebar - overlay on mobile, sidebar on desktop */}
+      {/* Settings Modal */}
       {showSettings && (
-        <aside className="fixed inset-0 z-40 bg-card overflow-y-auto sm:static sm:inset-auto sm:w-80 sm:border-l sm:border-border">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border sm:hidden">
-            <h2 className="font-medium">Settings</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setShowSettings(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 sm:p-8 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSettings(false);
+          }}
+        >
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-lg border border-border">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h2 className="font-medium">Settings</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowSettings(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="max-h-[80vh] overflow-y-auto">
+              <Settings />
+            </div>
           </div>
-          <Settings />
-        </aside>
+        </div>
       )}
     </div>
   );
