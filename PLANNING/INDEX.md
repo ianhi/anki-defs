@@ -16,10 +16,11 @@ All backends use JSON-first pipeline (single LLM call). Python server is the pri
 
 ## Active Plans
 
-| Doc                                      | Summary                         | What's left                 |
-| ---------------------------------------- | ------------------------------- | --------------------------- |
-| [addon-hardening.md](addon-hardening.md) | Post-migration cleanup & polish | DONE — all 6 tasks complete |
-| [next-steps.md](next-steps.md)           | Feature roadmap                 | Prioritized TODO list       |
+| Doc                                                | Summary                         | What's left                          |
+| -------------------------------------------------- | ------------------------------- | ------------------------------------ |
+| [addon-hardening.md](addon-hardening.md)           | Post-migration cleanup & polish | DONE — all 6 tasks complete          |
+| [settings-unification.md](settings-unification.md) | Shared keyring/consent/settings | Unify python-server + addon settings |
+| [next-steps.md](next-steps.md)                     | Feature roadmap                 | Prioritized TODO list                |
 
 ## Reference (keep, don't modify)
 
