@@ -44,11 +44,11 @@ rm -f "$ADDON_DIR/_services/anki_connect.py"
 find "$ADDON_DIR/_services" -name '*.py' -exec \
     sed -i 's/from \.\.config import/from anki_defs.config import/' {} +
 
-echo "==> Bundling httpx and dependencies..."
+echo "==> Bundling httpx, keyring, and dependencies..."
 rm -rf "$ADDON_DIR/_vendor"
-pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2>/dev/null || \
-    uv pip install httpx --target "$ADDON_DIR/_vendor" --quiet 2>/dev/null || \
-    python3 -m pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir
+pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2>/dev/null || \
+    uv pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet 2>/dev/null || \
+    python3 -m pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir
 # Clean up unnecessary files from vendor
 find "$ADDON_DIR/_vendor" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 find "$ADDON_DIR/_vendor" -name '*.dist-info' -exec rm -rf {} + 2>/dev/null || true

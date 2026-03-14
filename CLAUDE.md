@@ -78,8 +78,9 @@ files outside your stated scope.
 
 - `prek.toml` configures hooks: `detect-private-key`, `check-api-keys`, `block-sensitive-files`
 - Blocked files: `meta.json`, `session.db*`, `.env*`, `credentials.json`, `settings.json`
-- API keys live in `~/.config/bangla-anki/settings.json` (standalone server) or Anki's
-  addon config (addon). They are NEVER checked into the repo.
+- API keys are stored in the **system keyring** (GNOME Keyring, KWallet, macOS Keychain),
+  NEVER in plain text files or the repo. Non-secret settings live in
+  `~/.config/bangla-anki/settings.json` (standalone) or Anki's addon config (addon).
 - When staging files, use `git add <specific files>` -- never `git add -A` or `git add .`
 - If a pre-commit hook blocks your commit, **fix the issue** -- do not skip the hook.
 - The Anki addon's `meta.json` and `user_files/` are gitignored. If git tries to stage

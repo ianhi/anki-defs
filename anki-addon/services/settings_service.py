@@ -1,12 +1,15 @@
-"""Settings management using Anki's add-on config system.
+"""Settings management using Anki's add-on config + system keyring for secrets.
 
-Defaults are loaded from shared/defaults/settings.json (the cross-backend
-source of truth). Add-on-specific settings (port) are added on top.
+Non-secret settings stored in Anki's addon config (meta.json).
+API keys and tokens stored in the system keyring (GNOME Keyring, KWallet, etc.).
+Defaults loaded from shared/defaults/settings.json.
 """
 
 import json
 import os
 
+import keyring
+import keyring.errors
 from aqt import mw
 
 # Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
@@ -19,6 +22,12 @@ _SHARED_DEFAULTS_PATH = _PACKAGED_PATH if os.path.isfile(_PACKAGED_PATH) else _R
 _ADDON_DEFAULTS = {
     "port": 28735,
 }
+
+# Service name for keyring storage (shared with python-server)
+_KEYRING_SERVICE = "anki-defs"
+
+# Fields that contain secrets — stored in keyring, never in Anki config
+_SECRET_FIELDS = ("claudeApiKey", "geminiApiKey", "openRouterApiKey", "apiToken")
 
 
 def _load_defaults():
@@ -33,25 +42,81 @@ def _load_defaults():
     return defaults
 
 
+def _read_secret(field):
+    """Read a secret from the system keyring."""
+    try:
+        value = keyring.get_password(_KEYRING_SERVICE, field)
+        return value or ""
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to read '{}' from system keyring: {}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).".format(field, e)
+        ) from e
+
+
+def _write_secret(field, value):
+    """Write a secret to the system keyring."""
+    try:
+        if value:
+            keyring.set_password(_KEYRING_SERVICE, field, value)
+        else:
+            try:
+                keyring.delete_password(_KEYRING_SERVICE, field)
+            except keyring.errors.PasswordDeleteError:
+                pass
+    except Exception as e:
+        raise RuntimeError(
+            "Failed to write '{}' to system keyring: {}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).".format(field, e)
+        ) from e
+
+
+def _get_secrets():
+    """Read all secret fields from the keyring."""
+    return {field: _read_secret(field) for field in _SECRET_FIELDS}
+
+
 # __name__ resolves to the add-on package name when loaded by Anki
 _addon_name = __name__.split(".")[0]
 
 
 def get_settings():
-    """Get current settings (merged with defaults)."""
+    """Get current settings (defaults < anki config < keyring secrets)."""
     config = mw.addonManager.getConfig(_addon_name) or {}
+    # Strip any secrets from config (migration from plain text)
+    for field in _SECRET_FIELDS:
+        config.pop(field, None)
     result = _load_defaults()
     result.update(config)
+    result.update(_get_secrets())
     return result
 
 
 def save_settings(updates):
-    """Save partial settings update. Returns the full merged settings."""
+    """Save partial settings update. Secrets go to keyring, rest to Anki config."""
+    secret_updates = {}
+    config_updates = {}
+    for key, value in updates.items():
+        if key in _SECRET_FIELDS:
+            secret_updates[key] = value
+        else:
+            config_updates[key] = value
+
+    # Write secrets to keyring
+    for field, value in secret_updates.items():
+        _write_secret(field, value)
+
+    # Write non-secret settings to Anki config
     config = mw.addonManager.getConfig(_addon_name) or {}
-    config.update(updates)
+    # Strip any secrets from config (migration cleanup)
+    for field in _SECRET_FIELDS:
+        config.pop(field, None)
+    config.update(config_updates)
     mw.addonManager.writeConfig(_addon_name, config)
+
     result = _load_defaults()
     result.update(config)
+    result.update(_get_secrets())
     return result
 
 
@@ -62,7 +127,7 @@ def get_masked_settings():
     for key in ("claudeApiKey", "geminiApiKey", "openRouterApiKey"):
         val = masked.get(key, "")
         if val:
-            masked[key] = "--------" + val[-4:]
+            masked[key] = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" + val[-4:]
         else:
             masked[key] = ""
     return masked

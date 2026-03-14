@@ -1,4 +1,4 @@
-"""File-based settings with env var overrides. Matches Express settings.ts."""
+"""File-based settings with API keys stored in system keyring."""
 
 from __future__ import annotations
 
@@ -7,12 +7,21 @@ import os
 import stat
 from typing import Any
 
+import keyring
+import keyring.errors
+
 from ..config import CONFIG_DIR, DEFAULTS_DIR, SETTINGS_FILE
+
+# Service name for keyring storage
+_KEYRING_SERVICE = "anki-defs"
+
+# Fields that contain secrets — stored in keyring, never in the JSON file
+_SECRET_FIELDS = ("claudeApiKey", "geminiApiKey", "openRouterApiKey", "apiToken")
 
 # Load defaults from shared/defaults/settings.json
 _defaults: dict[str, Any] | None = None
 
-# Cached file settings (before env overrides) + mtime for invalidation
+# Cached file settings (before env/keyring overrides) + mtime for invalidation
 _cached_file_settings: dict[str, Any] | None = None
 _cached_mtime: float = 0
 
@@ -27,7 +36,7 @@ def _get_defaults() -> dict[str, Any]:
 
 
 def _get_env_overrides() -> dict[str, Any]:
-    """Environment variable keys override file-based settings."""
+    """Environment variable keys override all other sources."""
     overrides: dict[str, Any] = {}
 
     if os.environ.get("ANTHROPIC_API_KEY"):
@@ -54,8 +63,46 @@ def _get_env_overrides() -> dict[str, Any]:
     return overrides
 
 
+def _read_secret(field: str) -> str:
+    """Read a secret from the system keyring."""
+    try:
+        value = keyring.get_password(_KEYRING_SERVICE, field)
+        return value or ""
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to read '{field}' from system keyring: {e}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).\n"
+            "Alternatively, set the key via environment variable."
+        ) from e
+
+
+def _write_secret(field: str, value: str) -> None:
+    """Write a secret to the system keyring."""
+    try:
+        if value:
+            keyring.set_password(_KEYRING_SERVICE, field, value)
+        else:
+            try:
+                keyring.delete_password(_KEYRING_SERVICE, field)
+            except keyring.errors.PasswordDeleteError:
+                pass  # Key didn't exist, that's fine
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to write '{field}' to system keyring: {e}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet)."
+        ) from e
+
+
+def _get_secrets() -> dict[str, str]:
+    """Read all secret fields from the keyring."""
+    secrets: dict[str, str] = {}
+    for field in _SECRET_FIELDS:
+        secrets[field] = _read_secret(field)
+    return secrets
+
+
 def get_settings() -> dict[str, Any]:
-    """Get merged settings: defaults < file < env overrides. File read cached by mtime."""
+    """Get merged settings: defaults < file < keyring secrets < env overrides."""
     global _cached_file_settings, _cached_mtime
 
     try:
@@ -71,18 +118,35 @@ def get_settings() -> dict[str, Any]:
                     file_settings = json.load(f)
             except (json.JSONDecodeError, OSError) as e:
                 print(f"[Settings] Error reading settings: {e}")
+        # Strip any secrets that may have leaked into the file (migration)
+        for field in _SECRET_FIELDS:
+            file_settings.pop(field, None)
         _cached_file_settings = {**_get_defaults(), **file_settings}
         _cached_mtime = mtime
 
-    return {**_cached_file_settings, **_get_env_overrides()}
+    return {**_cached_file_settings, **_get_secrets(), **_get_env_overrides()}
 
 
 def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
-    """Save settings updates to file. Returns merged settings with env overrides."""
+    """Save settings. Secrets go to keyring, everything else to JSON file."""
     global _cached_file_settings, _cached_mtime
 
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Separate secrets from non-secret settings
+    secret_updates: dict[str, str] = {}
+    file_updates: dict[str, Any] = {}
+    for key, value in updates.items():
+        if key in _SECRET_FIELDS:
+            secret_updates[key] = value
+        else:
+            file_updates[key] = value
+
+    # Write secrets to keyring
+    for field, value in secret_updates.items():
+        _write_secret(field, value)
+
+    # Write non-secret settings to file
     file_settings: dict[str, Any] = {}
     if SETTINGS_FILE.exists():
         try:
@@ -91,14 +155,18 @@ def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             pass
 
-    updated = {**file_settings, **updates}
+    # Strip any secrets from the file (migration cleanup)
+    for field in _SECRET_FIELDS:
+        file_settings.pop(field, None)
+
+    file_settings.update(file_updates)
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-        json.dump(updated, f, indent=2)
+        json.dump(file_settings, f, indent=2)
     os.chmod(SETTINGS_FILE, stat.S_IRUSR | stat.S_IWUSR)
 
-    _cached_file_settings = {**_get_defaults(), **updated}
+    _cached_file_settings = {**_get_defaults(), **file_settings}
     _cached_mtime = SETTINGS_FILE.stat().st_mtime
-    return {**_cached_file_settings, **_get_env_overrides()}
+    return {**_cached_file_settings, **_get_secrets(), **_get_env_overrides()}
 
 
 def mask_key(key: str) -> str:

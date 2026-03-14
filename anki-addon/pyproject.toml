@@ -14,6 +14,7 @@ dev = [
     "ruff>=0.11",
     "pyright>=1.1",
     "httpx>=0.28.1",
+    "keyring>=25.7.0",
 ]
 # Anki type stubs for development type checking.
 # Install aqt[qt6] to get anki + aqt + PyQt6 type information.
