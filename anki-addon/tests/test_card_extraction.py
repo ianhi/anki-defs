@@ -4,9 +4,9 @@ import json
 
 import pytest
 
-from _services.card_extraction import _note_to_card_content
-from services.ai_service import parse_json_response
-from services.card_extraction import apply_spelling_correction
+from anki_defs._services.card_extraction import _note_to_card_content
+from anki_defs.services.ai_service import parse_json_response
+from anki_defs.services.card_extraction import apply_spelling_correction
 
 
 class TestApplySpellingCorrection:

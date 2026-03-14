@@ -19,14 +19,14 @@ vendor_dir = os.path.join(addon_dir, "_vendor")
 if os.path.isdir(vendor_dir) and vendor_dir not in sys.path:
     sys.path.insert(0, vendor_dir)
 
-# Register addon dir as a package so relative imports in _services/ work
-# (_services/ai.py does `from ..config import PROMPTS_DIR`)
-_addon_pkg_name = os.path.basename(addon_dir)
-if _addon_pkg_name not in sys.modules:
-    _pkg = types.ModuleType(_addon_pkg_name)
+# Register addon dir as `anki_defs` package so absolute imports like
+# `from anki_defs.config import ...` and `from anki_defs._services.ai import ...` work.
+# This is the same package name Anki uses when loading the addon.
+if "anki_defs" not in sys.modules:
+    _pkg = types.ModuleType("anki_defs")
     _pkg.__path__ = [addon_dir]  # type: ignore[attr-defined]
-    _pkg.__package__ = _addon_pkg_name
-    sys.modules[_addon_pkg_name] = _pkg
+    _pkg.__package__ = "anki_defs"
+    sys.modules["anki_defs"] = _pkg
 
 # Mock aqt before anything tries to import it (prevents segfault from Qt init)
 

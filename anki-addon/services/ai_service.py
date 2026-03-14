@@ -4,29 +4,15 @@ All prompt loading, selection, rendering, and provider dispatch is handled
 by the shared service layer (copied from python-server at build time).
 """
 
-try:
-    from .._services.ai import (  # noqa: F401
-        get_completion,
-        get_json_completion,
-        get_relemmatize_prompt,
-        get_system_prompts,
-        parse_json_response,
-        reload_prompts,
-        render_user_template,
-        reset_clients,
-        select_prompt,
-        stream_completion,
-    )
-except ImportError:
-    from _services.ai import (  # type: ignore[no-redef]  # noqa: F401
-        get_completion,
-        get_json_completion,
-        get_relemmatize_prompt,
-        get_system_prompts,
-        parse_json_response,
-        reload_prompts,
-        render_user_template,
-        reset_clients,
-        select_prompt,
-        stream_completion,
-    )
+from anki_defs._services.ai import (  # noqa: F401
+    get_completion,
+    get_json_completion,
+    get_relemmatize_prompt,
+    get_system_prompts,
+    parse_json_response,
+    reload_prompts,
+    render_user_template,
+    reset_clients,
+    select_prompt,
+    stream_completion,
+)

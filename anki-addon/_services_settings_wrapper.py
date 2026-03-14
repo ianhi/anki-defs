@@ -9,19 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-
-def get_settings() -> dict[str, Any]:
-    """Delegate to addon's settings service (Anki config system)."""
-    from ..services.settings_service import get_settings as _get
-
-    return _get()
-
-
-def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
-    """Delegate to addon's settings service."""
-    from ..services.settings_service import save_settings as _save
-
-    return _save(updates)
+from anki_defs.services.settings_service import get_settings, save_settings  # noqa: F401
 
 
 def mask_key(key: str) -> str:

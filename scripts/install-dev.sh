@@ -41,9 +41,9 @@ rm -rf "$ADDON_DIR/_services"
 cp -r "$ROOT/python-server/anki_defs/services" "$ADDON_DIR/_services"
 cp "$ADDON_DIR/_services_settings_wrapper.py" "$ADDON_DIR/_services/settings.py"
 rm -f "$ADDON_DIR/_services/anki_connect.py"
-# Rewrite `from ..config import` to `from config import` (addon's config.py is at package root)
+# Rewrite relative parent imports to absolute package imports.
 find "$ADDON_DIR/_services" -name '*.py' -exec \
-    sed -i 's/from \.\.config import/from config import/' {} +
+    sed -i 's/from \.\.config import/from anki_defs.config import/' {} +
 
 echo "==> Installing httpx into _vendor/..."
 rm -rf "$ADDON_DIR/_vendor"
