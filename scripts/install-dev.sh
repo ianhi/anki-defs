@@ -22,6 +22,9 @@ ADDONS_DIR="${ANKI_ADDONS_DIR:-$HOME/.local/share/Anki2/addons21}"
 LINK_NAME="anki_defs"
 LINK_PATH="$ADDONS_DIR/$LINK_NAME"
 
+# Detect repo owner so files stay owned by the dev user, not the runner
+REPO_OWNER="$(stat -c '%U:%G' "$ROOT")"
+
 if [ ! -d "$ADDONS_DIR" ]; then
     echo "Error: Anki addons directory not found: $ADDONS_DIR"
     echo "Set ANKI_ADDONS_DIR if your Anki data is in a non-standard location."
@@ -51,6 +54,13 @@ pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2
     uv pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet 2>/dev/null || \
     python3 -m pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir
 find "$ADDON_DIR/_vendor" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+
+# Fix ownership: generated dirs should be owned by the repo owner so the dev
+# user can manage them (e.g. git stash). Needs sudo when running as another user.
+if [ "$(whoami)" != "$(stat -c '%U' "$ROOT")" ]; then
+    echo "==> Fixing ownership of generated files..."
+    sudo chown -R "$REPO_OWNER" "$ADDON_DIR/web" "$ADDON_DIR/_services" "$ADDON_DIR/_vendor"
+fi
 
 echo "==> Symlinking addon into Anki..."
 if [ -L "$LINK_PATH" ]; then
