@@ -54,8 +54,6 @@ export function Settings() {
   });
 
   const platform = usePlatform();
-  const isAndroid = platform.platform === 'android';
-
   const { data: ankiConnected } = useAnkiStatus();
   const { data: decks } = useDecks();
   const { data: models } = useModels();
@@ -104,37 +102,8 @@ export function Settings() {
   return (
     <>
       <div className="p-4 space-y-6 overflow-y-auto flex-1 min-h-0">
-        {/* Anki Connection Status */}
-        {isAndroid ? (
-          <div className="space-y-2">
-            <Label>AnkiDroid Status</Label>
-            <div className="flex items-center gap-2">
-              {platform.ankiAvailable ? (
-                <Badge variant="success" className="flex items-center gap-1">
-                  <Check className="h-3 w-3" />
-                  Installed
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="flex items-center gap-1">
-                  <X className="h-3 w-3" />
-                  Not installed
-                </Badge>
-              )}
-              {platform.ankiAvailable &&
-                (platform.hasPermission ? (
-                  <Badge variant="success" className="flex items-center gap-1">
-                    <Check className="h-3 w-3" />
-                    Permission granted
-                  </Badge>
-                ) : (
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <X className="h-3 w-3" />
-                    No permission
-                  </Badge>
-                ))}
-            </div>
-          </div>
-        ) : (
+        {/* Anki Connection Status — only for standalone server (not addon or Android) */}
+        {platform.platform === 'web' && (
           <div className="space-y-2">
             <Label>AnkiConnect Status</Label>
             <div className="flex items-center gap-2">
