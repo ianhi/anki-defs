@@ -18,6 +18,8 @@ export function Settings() {
   const { settings, loadSettings } = useSettingsStore();
   const [localSettings, setLocalSettings] = useState<SettingsType>(settings);
   const [hasChanges, setHasChanges] = useState(false);
+  const [keyringAvailable, setKeyringAvailable] = useState(true);
+  const [showInsecureWarning, setShowInsecureWarning] = useState(false);
 
   const { data: serverSettings, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -27,10 +29,20 @@ export function Settings() {
   const updateMutation = useMutation({
     mutationFn: settingsApi.update,
     onSuccess: (data) => {
+      if ('_keyringAvailable' in data) {
+        setKeyringAvailable(data._keyringAvailable as boolean);
+      }
       loadSettings(data);
       setLocalSettings(data);
       setHasChanges(false);
+      setShowInsecureWarning(false);
       queryClient.invalidateQueries({ queryKey: ['settings'] });
+    },
+    onError: (error) => {
+      // 409 = keyring unavailable, needs consent
+      if (error.message.includes('plain text') || error.message.includes('insecure')) {
+        setShowInsecureWarning(true);
+      }
     },
   });
 
@@ -44,6 +56,9 @@ export function Settings() {
 
   useEffect(() => {
     if (serverSettings) {
+      if ('_keyringAvailable' in serverSettings) {
+        setKeyringAvailable(serverSettings._keyringAvailable as boolean);
+      }
       loadSettings(serverSettings);
       setLocalSettings(serverSettings);
     }
@@ -57,8 +72,11 @@ export function Settings() {
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    updateMutation.mutate(localSettings);
+  const handleSave = (insecureConsent = false) => {
+    const payload = insecureConsent
+      ? { ...localSettings, _insecureStorageConsent: true }
+      : localSettings;
+    updateMutation.mutate(payload as Partial<SettingsType>);
   };
 
   const handleReset = () => {
@@ -373,10 +391,40 @@ export function Settings() {
         </div>
       )}
 
+      {/* Insecure storage warning */}
+      {showInsecureWarning && (
+        <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950 space-y-2">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+            No system keyring available
+          </p>
+          <p className="text-xs text-yellow-700 dark:text-yellow-300">
+            API keys will be stored in plain text in Anki&apos;s addon config file. This is less
+            secure than using a system keyring (GNOME Keyring, KWallet, macOS Keychain).
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleSave(true)}
+              disabled={updateMutation.isPending}
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Save anyway'
+              )}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowInsecureWarning(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Save/Reset Buttons */}
-      {hasChanges && (
+      {hasChanges && !showInsecureWarning && (
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          <Button onClick={() => handleSave()} disabled={updateMutation.isPending}>
             {updateMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -392,7 +440,14 @@ export function Settings() {
         </div>
       )}
 
-      {updateMutation.isError && (
+      {/* Keyring status indicator */}
+      {!keyringAvailable && !showInsecureWarning && (
+        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          System keyring unavailable — API keys will require confirmation to save.
+        </p>
+      )}
+
+      {updateMutation.isError && !showInsecureWarning && (
         <p className="text-sm text-destructive">Failed to save settings. Please try again.</p>
       )}
     </div>
