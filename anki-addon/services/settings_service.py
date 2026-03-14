@@ -1,28 +1,16 @@
 """Settings management using Anki's add-on config + system keyring for secrets.
 
 Non-secret settings stored in Anki's addon config (meta.json).
-API keys and tokens stored in the system keyring (GNOME Keyring, KWallet, etc.)
-with fallback to Anki's addon config if no keyring backend is available.
+API keys and tokens stored in the system keyring (GNOME Keyring, KWallet, etc.).
 Defaults loaded from shared/defaults/settings.json.
 """
 
 import json
 import os
 
-from aqt import mw
-
 import keyring
 import keyring.errors
-
-# Probe whether a usable backend exists (not the fail.Keyring stub)
-try:
-    _backend = keyring.get_keyring()
-    _KEYRING_AVAILABLE = not type(_backend).__name__.startswith("Fail")
-except RuntimeError:
-    _KEYRING_AVAILABLE = False
-
-if not _KEYRING_AVAILABLE:
-    print("[anki-defs] System keyring unavailable — secrets stored in Anki addon config")
+from aqt import mw
 
 # Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
 # Resolve symlinks so dev installs (symlinked into Anki addons dir) find the repo.
@@ -38,7 +26,7 @@ _ADDON_DEFAULTS = {
 # Service name for keyring storage (shared with python-server)
 _KEYRING_SERVICE = "anki-defs"
 
-# Fields that contain secrets — stored in keyring when available, else in Anki config
+# Fields that contain secrets — stored in keyring, never in Anki config
 _SECRET_FIELDS = ("claudeApiKey", "geminiApiKey", "openRouterApiKey", "apiToken")
 
 
@@ -55,44 +43,36 @@ def _load_defaults():
 
 
 def _read_secret(field):
-    """Read a secret from keyring, falling back to Anki config."""
-    if _KEYRING_AVAILABLE:
-        try:
-            value = keyring.get_password(_KEYRING_SERVICE, field)
-            if value:
-                return value
-        except keyring.errors.KeyringError:
-            pass
-    # Fallback: read from Anki addon config
-    config = mw.addonManager.getConfig(_addon_name) or {}
-    return config.get(field, "")
+    """Read a secret from the system keyring."""
+    try:
+        value = keyring.get_password(_KEYRING_SERVICE, field)
+        return value or ""
+    except keyring.errors.KeyringError as e:
+        raise RuntimeError(
+            "Failed to read '{}' from system keyring: {}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).".format(field, e)
+        ) from e
 
 
 def _write_secret(field, value):
-    """Write a secret to keyring, falling back to Anki config."""
-    if _KEYRING_AVAILABLE:
-        try:
-            if value:
-                keyring.set_password(_KEYRING_SERVICE, field, value)
-            else:
-                try:
-                    keyring.delete_password(_KEYRING_SERVICE, field)
-                except keyring.errors.PasswordDeleteError:
-                    pass
-            return
-        except keyring.errors.KeyringError:
-            pass
-    # Fallback: store in Anki addon config
-    config = mw.addonManager.getConfig(_addon_name) or {}
-    if value:
-        config[field] = value
-    else:
-        config.pop(field, None)
-    mw.addonManager.writeConfig(_addon_name, config)
+    """Write a secret to the system keyring."""
+    try:
+        if value:
+            keyring.set_password(_KEYRING_SERVICE, field, value)
+        else:
+            try:
+                keyring.delete_password(_KEYRING_SERVICE, field)
+            except keyring.errors.PasswordDeleteError:
+                pass
+    except keyring.errors.KeyringError as e:
+        raise RuntimeError(
+            "Failed to write '{}' to system keyring: {}\n"
+            "Ensure a keyring backend is available (e.g. GNOME Keyring, KWallet).".format(field, e)
+        ) from e
 
 
 def _get_secrets():
-    """Read all secret fields from the keyring (or fallback)."""
+    """Read all secret fields from the keyring."""
     return {field: _read_secret(field) for field in _SECRET_FIELDS}
 
 
@@ -101,22 +81,19 @@ _addon_name = __name__.split(".")[0]
 
 
 def get_settings():
-    """Get current settings (defaults < anki config < secrets)."""
+    """Get current settings (defaults < anki config < keyring secrets)."""
     config = mw.addonManager.getConfig(_addon_name) or {}
-    # When using keyring, strip secrets from config (migration from plain text)
-    if _KEYRING_AVAILABLE:
-        for field in _SECRET_FIELDS:
-            config.pop(field, None)
+    # Strip any secrets from config (migration from plain text)
+    for field in _SECRET_FIELDS:
+        config.pop(field, None)
     result = _load_defaults()
     result.update(config)
-    if _KEYRING_AVAILABLE:
-        result.update(_get_secrets())
-    # When not using keyring, secrets are already in config
+    result.update(_get_secrets())
     return result
 
 
 def save_settings(updates):
-    """Save partial settings update. Secrets go to keyring (or fallback), rest to Anki config."""
+    """Save partial settings update. Secrets go to keyring, rest to Anki config."""
     secret_updates = {}
     config_updates = {}
     for key, value in updates.items():
@@ -125,19 +102,22 @@ def save_settings(updates):
         else:
             config_updates[key] = value
 
-    # Write secrets
+    # Write secrets to keyring
     for field, value in secret_updates.items():
         _write_secret(field, value)
 
     # Write non-secret settings to Anki config
     config = mw.addonManager.getConfig(_addon_name) or {}
-    if _KEYRING_AVAILABLE:
-        for field in _SECRET_FIELDS:
-            config.pop(field, None)
+    # Strip any secrets from config (migration cleanup)
+    for field in _SECRET_FIELDS:
+        config.pop(field, None)
     config.update(config_updates)
     mw.addonManager.writeConfig(_addon_name, config)
 
-    return get_settings()
+    result = _load_defaults()
+    result.update(config)
+    result.update(_get_secrets())
+    return result
 
 
 def get_masked_settings():
