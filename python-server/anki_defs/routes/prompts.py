@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -13,8 +15,8 @@ router = APIRouter(prefix="/api/prompts")
 
 @router.post("/preview")
 async def preview(request: Request) -> JSONResponse:
-    # In dev mode, reload from disk so edits are picked up without restart
-    ai.reload_prompts()
+    if os.environ.get("ANKI_DEFS_DEV"):
+        ai.reload_prompts()
 
     body = await request.json()
     new_message: str = body.get("newMessage", "")

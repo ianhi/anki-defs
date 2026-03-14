@@ -12,6 +12,10 @@ from ..config import CONFIG_DIR, DEFAULTS_DIR, SETTINGS_FILE
 # Load defaults from shared/defaults/settings.json
 _defaults: dict[str, Any] | None = None
 
+# Cached file settings (before env overrides) + mtime for invalidation
+_cached_file_settings: dict[str, Any] | None = None
+_cached_mtime: float = 0
+
 
 def _get_defaults() -> dict[str, Any]:
     global _defaults
@@ -51,23 +55,32 @@ def _get_env_overrides() -> dict[str, Any]:
 
 
 def get_settings() -> dict[str, Any]:
-    """Get merged settings: defaults < file < env overrides."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    """Get merged settings: defaults < file < env overrides. File read cached by mtime."""
+    global _cached_file_settings, _cached_mtime
 
-    file_settings: dict[str, Any] = {}
-    if SETTINGS_FILE.exists():
-        try:
-            with open(SETTINGS_FILE, encoding="utf-8") as f:
-                file_settings = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"[Settings] Error reading settings: {e}")
+    try:
+        mtime = SETTINGS_FILE.stat().st_mtime
+    except OSError:
+        mtime = 0
 
-    result = {**_get_defaults(), **file_settings, **_get_env_overrides()}
-    return result
+    if _cached_file_settings is None or mtime != _cached_mtime:
+        file_settings: dict[str, Any] = {}
+        if mtime > 0:
+            try:
+                with open(SETTINGS_FILE, encoding="utf-8") as f:
+                    file_settings = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"[Settings] Error reading settings: {e}")
+        _cached_file_settings = {**_get_defaults(), **file_settings}
+        _cached_mtime = mtime
+
+    return {**_cached_file_settings, **_get_env_overrides()}
 
 
 def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
     """Save settings updates to file. Returns merged settings with env overrides."""
+    global _cached_file_settings, _cached_mtime
+
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
     file_settings: dict[str, Any] = {}
@@ -83,7 +96,9 @@ def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
         json.dump(updated, f, indent=2)
     os.chmod(SETTINGS_FILE, stat.S_IRUSR | stat.S_IWUSR)
 
-    return {**_get_defaults(), **updated, **_get_env_overrides()}
+    _cached_file_settings = {**_get_defaults(), **updated}
+    _cached_mtime = SETTINGS_FILE.stat().st_mtime
+    return {**_cached_file_settings, **_get_env_overrides()}
 
 
 def mask_key(key: str) -> str:

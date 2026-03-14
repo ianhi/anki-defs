@@ -8,6 +8,7 @@ import {
   getTokenAtCursor,
   parseHighlightedWords,
   getCleanText,
+  isEnglishToBangla as isEnglishToBanglaMode,
 } from '../lib/focus';
 import { useSettingsStore } from '@/hooks/useSettings';
 
@@ -31,9 +32,7 @@ export function MessageInput({
   // Detect English→Bangla mode
   const prefix = settings.englishToBanglaPrefix || 'bn:';
   const hasPrefix = value.trimStart().toLowerCase().startsWith(prefix.toLowerCase());
-  const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;*]+$/.test(value.trim());
-  const isEnglishToBangla =
-    value.trim().length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly));
+  const isEnglishToBangla = isEnglishToBanglaMode(value, prefix, settings.autoDetectEnglish);
 
   // Listen for external "set input" events (e.g. clicking a Bangla definition)
   useEffect(() => {

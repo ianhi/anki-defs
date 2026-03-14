@@ -31,5 +31,7 @@ def _isolated_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # Reset session DB singleton so each test gets a fresh DB
     session_mod._db = None
 
-    # Reset settings defaults cache so tests don't bleed
+    # Reset settings caches so tests don't bleed
     settings_mod._defaults = None
+    settings_mod._cached_file_settings = None
+    settings_mod._cached_mtime = 0

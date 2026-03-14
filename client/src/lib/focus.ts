@@ -86,3 +86,16 @@ export function getTokenAtCursor(
   }
   return null;
 }
+
+// --- English-to-Bangla detection ---
+
+const LATIN_ONLY_RE = /^[a-zA-Z\s.,!?'"()\-:;*]+$/;
+
+/** Detect if input should use English→Bangla mode based on prefix or Latin script. */
+export function isEnglishToBangla(text: string, prefix: string, autoDetect: boolean): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  const hasPrefix = trimmed.toLowerCase().startsWith(prefix.toLowerCase());
+  const isLatin = LATIN_ONLY_RE.test(trimmed);
+  return hasPrefix || (autoDetect && isLatin);
+}

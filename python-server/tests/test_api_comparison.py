@@ -79,9 +79,14 @@ class TestSettings:
         e = express.get("/api/settings").json()
         p = python.get("/api/settings").json()
         # Compare non-key fields (keys may differ if servers use different settings files)
-        for field in ("aiProvider", "defaultDeck", "defaultModel", "showTransliteration",
-                       "leftHanded", "ankiConnectUrl", "englishToBanglaPrefix", "autoDetectEnglish"):
-            assert e.get(field) == p.get(field), f"{field}: express={e.get(field)}, python={p.get(field)}"
+        fields = (
+            "aiProvider", "defaultDeck", "defaultModel", "showTransliteration",
+            "leftHanded", "ankiConnectUrl", "englishToBanglaPrefix", "autoDetectEnglish",
+        )
+        for field in fields:
+            assert e.get(field) == p.get(field), (
+                f"{field}: express={e.get(field)}, python={p.get(field)}"
+            )
 
     def test_settings_keys_masked(self, express: httpx.Client, python: httpx.Client):
         e = express.get("/api/settings").json()

@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/Button';
 import { CardPreview as CardPreviewComponent } from './CardPreview';
-import { parseHighlightedWords, getCleanText } from '../lib/focus';
+import {
+  parseHighlightedWords,
+  getCleanText,
+  isEnglishToBangla as isEnglishToBanglaMode,
+} from '../lib/focus';
 import { chatApi } from '../lib/api';
 import { useSettingsStore } from '../hooks/useSettings';
 import type { CardPreview, TokenUsage, AIProvider } from 'shared';
@@ -408,11 +412,9 @@ export function PromptPreview() {
         const trimmed = input.trim();
         const prefix = settings.englishToBanglaPrefix || 'bn:';
         const hasPrefix = trimmed.toLowerCase().startsWith(prefix.toLowerCase());
-        const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;*]+$/.test(trimmed);
-        const previewMode =
-          trimmed.length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly))
-            ? 'english-to-bangla'
-            : undefined;
+        const previewMode = isEnglishToBanglaMode(input, prefix, settings.autoDetectEnglish)
+          ? 'english-to-bangla'
+          : undefined;
         const previewInput = hasPrefix ? trimmed.slice(prefix.length).trim() : input;
         setResult(await fetchPreview(previewInput, previewMode));
       } catch (e) {

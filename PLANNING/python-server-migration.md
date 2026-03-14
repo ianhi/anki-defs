@@ -4,13 +4,13 @@ Replace Express backend with FastAPI. Share service layer with Anki addon.
 
 ## Status
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Shared service layer | Done |
-| 2 | FastAPI server + routes | Done |
-| 3 | API comparison testing | Done |
-| 4 | Addon integration | Not started |
-| 5 | Switchover | Not started |
+| Phase | Description             | Status      |
+| ----- | ----------------------- | ----------- |
+| 1     | Shared service layer    | Done        |
+| 2     | FastAPI server + routes | Done        |
+| 3     | API comparison testing  | Done        |
+| 4     | Addon integration       | Not started |
+| 5     | Switchover              | Not started |
 
 ## What's Done (Phases 1-2)
 
@@ -33,16 +33,19 @@ Replace Express backend with FastAPI. Share service layer with Anki addon.
 ## What's Left
 
 ### Phase 3: API Comparison Testing — Done
+
 - 20 comparison tests: health, platform, settings, anki (decks/models/fields),
   session (state/usage/history), prompt preview (all 5 modes), SSE structure, write ops
 - All passing — full structural parity confirmed
 
 ### Phase 4: Addon Integration
+
 - Update `scripts/build-addon.sh` to copy shared services
 - Replace addon's providers with `_services.providers.*`
 - Addon gets free features: EN→BN mode, usage tracking, history, word cache
 
 ### Phase 5: Switchover
+
 - Update root `package.json` dev script to use Python server
 - Update CLAUDE.md build commands
 - Update CI

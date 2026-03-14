@@ -86,11 +86,6 @@ def _init_tables(db: sqlite3.Connection) -> None:
                 raise
 
 
-def _row_to_dict(row: sqlite3.Row | None) -> dict[str, Any] | None:
-    if row is None:
-        return None
-    return dict(row)
-
 
 def _rows_to_list(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
@@ -284,8 +279,10 @@ def add_word_to_db_cache(word: str, deck: str) -> None:
 def replace_deck_cache(deck: str, words: set[str]) -> None:
     db = _get_db()
     db.execute("DELETE FROM word_cache WHERE deck = ?", (deck,))
-    for word in words:
-        db.execute("INSERT OR IGNORE INTO word_cache (word, deck) VALUES (?, ?)", (word, deck))
+    db.executemany(
+        "INSERT OR IGNORE INTO word_cache (word, deck) VALUES (?, ?)",
+        [(w, deck) for w in words],
+    )
     db.commit()
 
 
