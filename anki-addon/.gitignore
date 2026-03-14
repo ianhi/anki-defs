@@ -3,3 +3,7 @@ _services/
 _vendor/
 _shared/
 web/
+
+# Anki runtime data
+meta.json
+user_files/

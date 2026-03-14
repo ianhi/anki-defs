@@ -10,7 +10,8 @@ import os
 from aqt import mw
 
 # Packaged addon has _shared/ inside the addon dir; dev install uses repo-relative path.
-_ADDON_DIR = os.path.dirname(os.path.dirname(__file__))
+# Resolve symlinks so dev installs (symlinked into Anki addons dir) find the repo.
+_ADDON_DIR = os.path.realpath(os.path.dirname(os.path.dirname(__file__)))
 _PACKAGED_PATH = os.path.join(_ADDON_DIR, "_shared", "defaults", "settings.json")
 _REPO_PATH = os.path.join(os.path.dirname(_ADDON_DIR), "shared", "defaults", "settings.json")
 _SHARED_DEFAULTS_PATH = _PACKAGED_PATH if os.path.isfile(_PACKAGED_PATH) else _REPO_PATH
