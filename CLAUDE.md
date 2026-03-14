@@ -74,10 +74,16 @@ files outside your stated scope.
   pricing data, and types belong in `shared/`. UI components should be reused, not recreated.
   If you need the same data or logic in two places, put it in `shared/` or extract a component.
 
-## Documentation Workflow
+## Starting Work
+
+**Clean tree first**: Before starting any new task, check `git status`. If there are
+uncommitted changes, commit them first (use a subagent to save context). Never start
+work on a dirty tree — uncommitted changes cause confusion and merge conflicts.
 
 **Read first**: Before starting work, read `PLANNING/INDEX.md` for current status and
 priorities. Read the relevant plan doc for your task.
+
+## Documentation Workflow
 
 **Hard rule**: Every commit that changes code MUST also update the relevant PLANNING/ or
 DOCS/ file. If no doc update is needed, state why in the commit message.
