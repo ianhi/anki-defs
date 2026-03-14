@@ -31,7 +31,7 @@ export function MessageInput({
   // Detect English→Bangla mode
   const prefix = settings.englishToBanglaPrefix || 'bn:';
   const hasPrefix = value.trimStart().toLowerCase().startsWith(prefix.toLowerCase());
-  const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;]+$/.test(value.trim());
+  const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;*]+$/.test(value.trim());
   const isEnglishToBangla =
     value.trim().length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly));
 

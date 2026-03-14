@@ -408,7 +408,7 @@ export function PromptPreview() {
         const trimmed = input.trim();
         const prefix = settings.englishToBanglaPrefix || 'bn:';
         const hasPrefix = trimmed.toLowerCase().startsWith(prefix.toLowerCase());
-        const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;]+$/.test(trimmed);
+        const isLatinOnly = /^[a-zA-Z\s.,!?'"()\-:;*]+$/.test(trimmed);
         const previewMode =
           trimmed.length > 0 && (hasPrefix || (settings.autoDetectEnglish && isLatinOnly))
             ? 'english-to-bangla'

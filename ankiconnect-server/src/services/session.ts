@@ -52,6 +52,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_cards_bangla_def ON cards(banglaDefinition);
   CREATE INDEX IF NOT EXISTS idx_cards_sentence_trans ON cards(sentenceTranslation);
 
+  CREATE TABLE IF NOT EXISTS word_cache (
+    word TEXT NOT NULL,
+    deck TEXT NOT NULL,
+    PRIMARY KEY (word, deck)
+  );
+
   CREATE TABLE IF NOT EXISTS usage_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     inputTokens INTEGER NOT NULL,
@@ -97,6 +103,9 @@ const stmts = {
     'SELECT COALESCE(SUM(inputTokens), 0) as totalInputTokens, COALESCE(SUM(outputTokens), 0) as totalOutputTokens, COALESCE(SUM(cost), 0) as totalCost, COUNT(*) as requestCount FROM usage_log'
   ),
   clearUsage: db.prepare('DELETE FROM usage_log'),
+  loadWordCache: db.prepare('SELECT word, deck FROM word_cache'),
+  insertCacheWord: db.prepare('INSERT OR IGNORE INTO word_cache (word, deck) VALUES (?, ?)'),
+  replaceDeckCache: db.prepare('DELETE FROM word_cache WHERE deck = ?'),
 };
 
 const promoteTx = db.transaction((pendingId: string, noteId: number): SessionCard | null => {
@@ -206,6 +215,39 @@ const searchSelectStmt = db.prepare(
 );
 const allCountStmt = db.prepare('SELECT COUNT(*) as total FROM cards');
 const allSelectStmt = db.prepare('SELECT * FROM cards ORDER BY createdAt DESC LIMIT ? OFFSET ?');
+
+// --- Word cache persistence ---
+
+export function loadWordCache(): Map<string, Set<string>> {
+  const rows = stmts.loadWordCache.all() as { word: string; deck: string }[];
+  const cache = new Map<string, Set<string>>();
+  for (const row of rows) {
+    let set = cache.get(row.deck);
+    if (!set) {
+      set = new Set();
+      cache.set(row.deck, set);
+    }
+    set.add(row.word);
+  }
+  return cache;
+}
+
+export function addWordToDbCache(word: string, deck: string): void {
+  stmts.insertCacheWord.run(word, deck);
+}
+
+const replaceDeckCacheTx = db.transaction((deck: string, words: Set<string>) => {
+  stmts.replaceDeckCache.run(deck);
+  for (const word of words) {
+    stmts.insertCacheWord.run(word, deck);
+  }
+});
+
+export function replaceDeckCache(deck: string, words: Set<string>): void {
+  replaceDeckCacheTx(deck, words);
+}
+
+// --- History search ---
 
 export function searchHistory(
   query?: string,

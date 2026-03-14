@@ -1,6 +1,11 @@
 import { YankiConnect } from 'yanki-connect';
 import type { AnkiNote, CreateCardParams } from 'shared';
 import { getSettings } from './settings.js';
+import {
+  loadWordCache as loadWordCacheFromDb,
+  addWordToDbCache,
+  replaceDeckCache,
+} from './session.js';
 
 let client: YankiConnect | null = null;
 let clientUrl: string | null = null;
@@ -155,9 +160,16 @@ export async function testConnection(): Promise<boolean> {
   }
 }
 
-// --- Word cache for offline duplicate detection ---
+// --- Word cache for offline duplicate detection (SQLite-backed) ---
 
-const wordCache = new Map<string, Set<string>>();
+// Load persisted cache from SQLite on startup
+const wordCache: Map<string, Set<string>> = loadWordCacheFromDb();
+if (wordCache.size > 0) {
+  for (const [deck, words] of wordCache) {
+    console.log(`[Anki] Loaded ${words.size} cached words for "${deck}" from disk`);
+  }
+}
+
 let lastCacheRefresh = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // Refresh at most every 5 minutes
 
@@ -177,6 +189,7 @@ async function refreshWordCache(): Promise<void> {
   const noteIds = await ankiClient.note.findNotes({ query: `deck:"${escapedDeck}"` });
   if (noteIds.length === 0) {
     wordCache.set(rootDeck, new Set());
+    replaceDeckCache(rootDeck, new Set());
     return;
   }
 
@@ -194,6 +207,7 @@ async function refreshWordCache(): Promise<void> {
   }
 
   wordCache.set(rootDeck, words);
+  replaceDeckCache(rootDeck, words);
   console.log(`[Anki] Word cache refreshed for "${rootDeck}": ${words.size} words`);
 }
 
@@ -222,10 +236,12 @@ export async function searchWordCached(word: string, deckName: string): Promise<
 /** Add a word to the cache after successful card creation. */
 export function addWordToCache(word: string, deckName: string): void {
   const rootDeck = getRootDeck(deckName);
+  const lower = word.toLowerCase();
   let cached = wordCache.get(rootDeck);
   if (!cached) {
     cached = new Set();
     wordCache.set(rootDeck, cached);
   }
-  cached.add(word.toLowerCase());
+  cached.add(lower);
+  addWordToDbCache(lower, rootDeck);
 }
