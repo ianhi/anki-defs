@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useErrorModal } from '@/hooks/useErrorModal';
 import { Button } from './ui/Button';
 import { X, Copy, Check } from 'lucide-react';
@@ -7,13 +7,18 @@ export function ErrorModal() {
   const { error, clearError } = useErrorModal();
   const [copied, setCopied] = useState(false);
 
+  // Reset copied state when a new error appears
+  useEffect(() => {
+    setCopied(false);
+  }, [error]);
+
   if (!error) return null;
 
   const debugInfo = JSON.stringify(
     {
       error: error.message,
       details: error.details,
-      timestamp: new Date().toISOString(),
+      timestamp: error.timestamp,
       url: window.location.href,
       userAgent: window.navigator.userAgent,
     },
@@ -22,9 +27,13 @@ export function ErrorModal() {
   );
 
   const handleCopy = async () => {
-    await window.navigator.clipboard.writeText(debugInfo);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await window.navigator.clipboard.writeText(debugInfo);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API may fail in non-secure contexts
+    }
   };
 
   return (

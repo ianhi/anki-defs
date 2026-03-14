@@ -13,6 +13,12 @@ import { Loader2 } from 'lucide-react';
 
 type SettingsTab = 'ai' | 'anki' | 'preferences';
 
+const TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'ai', label: 'AI Provider' },
+  { id: 'anki', label: 'Anki' },
+  { id: 'preferences', label: 'Preferences' },
+];
+
 export function Settings() {
   const queryClient = useQueryClient();
   const { settings, loadSettings } = useSettingsStore();
@@ -93,17 +99,11 @@ export function Settings() {
     );
   }
 
-  const tabs: { id: SettingsTab; label: string }[] = [
-    { id: 'ai', label: 'AI Provider' },
-    { id: 'anki', label: 'Anki' },
-    { id: 'preferences', label: 'Preferences' },
-  ];
-
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Tab bar */}
       <div className="flex border-b border-border flex-shrink-0">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             className={`px-4 py-2.5 text-sm font-medium transition-colors ${

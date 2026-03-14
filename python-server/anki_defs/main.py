@@ -7,20 +7,21 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-
-from .config import CLIENT_DIST, load_dotenv
-from .middleware.auth import AuthMiddleware
-from .routes import anki, chat, prompts, session, settings
-from .services.settings import get_settings, save_settings
-
+# Configure logging before importing modules that log at import time
 logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
 
-# Load .env files before anything else
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+from .config import CLIENT_DIST, load_dotenv  # noqa: E402
+from .middleware.auth import AuthMiddleware  # noqa: E402
+from .routes import anki, chat, prompts, session, settings  # noqa: E402
+from .services.settings import get_settings, save_settings  # noqa: E402
+
+# Load .env files
 load_dotenv()
 
 

@@ -3,14 +3,14 @@ import type { Message, TokenUsage } from 'shared';
 import { computeCost } from 'shared';
 import { createLogger } from '@/lib/logger';
 import { CardPreview } from './CardPreview';
-
-const log = createLogger('MessageList');
 import { Button } from './ui/Button';
 import { cn, buildNoteFields } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
 import { User, Bot, Eye, MessageSquare, Plus, Loader2 } from 'lucide-react';
+
+const log = createLogger('MessageList');
 
 function MarkedText({ text }: { text: string }) {
   // Render **word** markers as highlighted spans, preserving exact occurrences

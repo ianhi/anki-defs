@@ -17,8 +17,7 @@ const LEVEL_PRIORITY: Record<LogLevel, number> = {
 };
 
 // Default: show warnings and errors in production, everything in dev
-const IS_DEV = typeof window !== 'undefined' && window.location.port !== '';
-const DEFAULT_LEVEL: LogLevel = IS_DEV ? 'debug' : 'warn';
+const DEFAULT_LEVEL: LogLevel = import.meta.env.DEV ? 'debug' : 'warn';
 
 let globalLevel: LogLevel = DEFAULT_LEVEL;
 
