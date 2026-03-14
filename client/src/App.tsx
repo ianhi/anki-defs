@@ -162,7 +162,7 @@ function MainApp() {
             if (e.target === e.currentTarget) setShowSettings(false);
           }}
         >
-          <div className="bg-card rounded-lg shadow-lg w-full max-w-3xl border border-border flex flex-col max-h-[85vh]">
+          <div className="bg-card rounded-lg shadow-lg w-full max-w-5xl border border-border flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
               <h2 className="font-medium">Settings</h2>
               <Button

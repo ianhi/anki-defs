@@ -94,7 +94,7 @@ export function Settings() {
     );
   }
 
-  const showFooter = hasChanges || showInsecureWarning || updateMutation.isError;
+  const showFooter = true;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -383,9 +383,12 @@ export function Settings() {
           )}
 
           {/* Save/Reset Buttons */}
-          {hasChanges && !showInsecureWarning && (
+          {!showInsecureWarning && (
             <div className="flex gap-2">
-              <Button onClick={() => handleSave()} disabled={updateMutation.isPending}>
+              <Button
+                onClick={() => handleSave()}
+                disabled={!hasChanges || updateMutation.isPending}
+              >
                 {updateMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -395,8 +398,8 @@ export function Settings() {
                   'Save Changes'
                 )}
               </Button>
-              <Button variant="outline" onClick={handleReset}>
-                Reset
+              <Button variant="outline" onClick={handleReset} disabled={!hasChanges}>
+                Discard changes
               </Button>
             </div>
           )}
