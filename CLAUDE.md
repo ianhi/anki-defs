@@ -50,6 +50,15 @@ cd docs && npm install && npm run dev  # Local dev server
 
 - **TypeScript**: All web code must pass strict mode, ESLint, and Prettier (`npm run check`).
 - **Python**: All server code must pass ruff, pyright, and pytest (`npm run check:py`).
+- **No bare exceptions**: Always catch specific exception types, never `except:` or
+  `except Exception:`. Use `ValueError`, `OSError`, `json.JSONDecodeError`,
+  `sqlite3.Error`, `keyring.errors.KeyringError`, `httpx.HTTPError`, etc.
+- **Absolute imports for cross-package boundaries**: Code in `_services/` (shared layer)
+  uses `from anki_defs.config import ...` (absolute). Code within `handlers/`, `services/`,
+  `server/` uses relative imports (they're within the same package).
+- **Secrets in keyring**: API keys and tokens are stored via the `keyring` library, never
+  in JSON files. The `_SECRET_FIELDS` list in settings modules defines which fields are
+  secrets.
 
 ## Team Coordination
 
