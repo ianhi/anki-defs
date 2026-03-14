@@ -33,7 +33,14 @@ export function Settings() {
         setKeyringAvailable(data._keyringAvailable as boolean);
       }
       loadSettings(data);
-      setLocalSettings(data);
+      // Preserve locally-entered API keys — the server returns masked values
+      // which would blank out the input fields
+      setLocalSettings((prev) => ({
+        ...data,
+        claudeApiKey: prev.claudeApiKey,
+        geminiApiKey: prev.geminiApiKey,
+        openRouterApiKey: prev.openRouterApiKey,
+      }));
       setHasChanges(false);
       setShowInsecureWarning(false);
       queryClient.invalidateQueries({ queryKey: ['settings'] });
