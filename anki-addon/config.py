@@ -8,10 +8,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-_ADDON_DIR = Path(__file__).parent
+# Resolve symlinks so dev installs (symlinked into Anki addons dir) find
+# the repo-relative shared/ directory correctly.
+_ADDON_DIR = Path(__file__).resolve().parent
 
 # Shared resources: packaged addon has _shared/ inside addon dir;
-# dev install uses repo-relative path
+# dev install uses repo-relative path (one level up from anki-addon/)
 _SHARED_PACKAGED = _ADDON_DIR / "_shared"
 _SHARED_REPO = _ADDON_DIR.parent / "shared"
 SHARED_DIR = _SHARED_PACKAGED if _SHARED_PACKAGED.is_dir() else _SHARED_REPO
