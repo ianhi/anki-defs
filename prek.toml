@@ -1,0 +1,27 @@
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v5.0.0"
+hooks = [
+  { id = "detect-private-key" },
+  { id = "check-added-large-files", args = ["--maxkb=500"] },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "block-sensitive-files",
+    name = "Block sensitive files (meta.json, session.db, .env, etc.)",
+    language = "system",
+    entry = "bash -c 'for f in \"$@\"; do case \"$(basename \"$f\")\" in meta.json|session.db|session.db-shm|session.db-wal|.env|.env.local|credentials.json) echo \"BLOCKED: $f may contain secrets or user data\"; exit 1;; esac; done' --",
+    stages = ["pre-commit"],
+  },
+  {
+    id = "check-api-keys",
+    name = "Check for API keys in staged changes",
+    language = "system",
+    entry = "bash -c 'for f in \"$@\"; do if grep -qiE \"(api[_-]?key|apikey|secret_key)\\s*[:=]\\s*[\\x27\\\"][A-Za-z0-9_\\-]{20,}\" \"$f\"; then echo \"BLOCKED: Possible API key in $f\"; exit 1; fi; done' --",
+    types = ["text"],
+    stages = ["pre-commit"],
+  },
+]

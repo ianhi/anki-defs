@@ -71,6 +71,20 @@ files outside your stated scope.
 - Note deletion requires the `auto-generated` tag -- prevents deleting hand-crafted cards.
 - See `PLANNING/security-audit.md` for the full audit and findings.
 
+## Secrets & Pre-Commit Hooks
+
+**CRITICAL**: Never commit API keys, tokens, or user data files. Pre-commit hooks
+(prek) are installed to catch this automatically -- do NOT bypass them with `--no-verify`.
+
+- `prek.toml` configures hooks: `detect-private-key`, `check-api-keys`, `block-sensitive-files`
+- Blocked files: `meta.json`, `session.db*`, `.env*`, `credentials.json`, `settings.json`
+- API keys live in `~/.config/bangla-anki/settings.json` (standalone server) or Anki's
+  addon config (addon). They are NEVER checked into the repo.
+- When staging files, use `git add <specific files>` -- never `git add -A` or `git add .`
+- If a pre-commit hook blocks your commit, **fix the issue** -- do not skip the hook.
+- The Anki addon's `meta.json` and `user_files/` are gitignored. If git tries to stage
+  them, something is wrong with the `.gitignore`.
+
 ## Cross-Cutting Rules
 
 - API contract changes must be coordinated across ALL backends.
