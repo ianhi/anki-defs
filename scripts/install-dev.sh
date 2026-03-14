@@ -56,10 +56,15 @@ pip install httpx keyring --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2
 find "$ADDON_DIR/_vendor" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 # Fix ownership: generated dirs should be owned by the repo owner so the dev
-# user can manage them (e.g. git stash). Needs sudo when running as another user.
+# user can manage them (e.g. git stash, vite rebuild). Needs sudo when running
+# as another user.
 if [ "$(whoami)" != "$(stat -c '%U' "$ROOT")" ]; then
     echo "==> Fixing ownership of generated files..."
-    sudo chown -R "$REPO_OWNER" "$ADDON_DIR/web" "$ADDON_DIR/_services" "$ADDON_DIR/_vendor"
+    sudo chown -R "$REPO_OWNER" \
+        "$ROOT/client/dist" \
+        "$ADDON_DIR/web" \
+        "$ADDON_DIR/_services" \
+        "$ADDON_DIR/_vendor"
 fi
 
 echo "==> Symlinking addon into Anki..."
