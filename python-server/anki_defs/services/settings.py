@@ -1,4 +1,9 @@
-"""File-based settings with API keys stored in system keyring."""
+"""File-based settings with API keys stored in system keyring.
+
+Platform adapter for python-server: stores non-secret settings in a JSON file
+at ~/.config/bangla-anki/settings.json, secrets in the system keyring (with
+fallback to the JSON file if keyring is unavailable).
+"""
 
 from __future__ import annotations
 
@@ -7,16 +12,32 @@ import os
 import stat
 from typing import Any
 
-import keyring
-import keyring.errors
-
 from ..config import CONFIG_DIR, DEFAULTS_DIR, SETTINGS_FILE
+from . import settings_base
+from .settings_base import (
+    SECRET_FIELDS,
+    get_masked,
+    get_secrets,
+    has_new_secrets,
+    is_masked,
+    keyring_available,
+    mask_key,
+    strip_masked_keys,
+)
 
-# Service name for keyring storage
-_KEYRING_SERVICE = "anki-defs"
-
-# Fields that contain secrets — stored in keyring, never in the JSON file
-_SECRET_FIELDS = ("claudeApiKey", "geminiApiKey", "openRouterApiKey", "apiToken")
+# Re-export for consumers
+__all__ = [
+    "get_settings",
+    "save_settings",
+    "mask_key",
+    "get_masked",
+    "keyring_available",
+    "has_insecure_consent",
+    "set_insecure_consent",
+    "has_new_secrets",
+    "is_masked",
+    "strip_masked_keys",
+]
 
 # Load defaults from shared/defaults/settings.json
 _defaults: dict[str, Any] | None = None
@@ -63,15 +84,13 @@ def _get_env_overrides() -> dict[str, Any]:
     return overrides
 
 
-def _read_secret(field: str) -> str:
-    """Read a secret from the system keyring, falling back to settings file."""
-    try:
-        value = keyring.get_password(_KEYRING_SERVICE, field)
-        if value:
-            return value
-    except keyring.errors.KeyringError:
-        pass
-    # Fallback: read from settings file
+# ---------------------------------------------------------------------------
+# Fallback callbacks (used when keyring is unavailable)
+# ---------------------------------------------------------------------------
+
+
+def _fallback_read(field: str) -> str:
+    """Read a secret from the settings JSON file."""
     if SETTINGS_FILE.exists():
         try:
             with open(SETTINGS_FILE, encoding="utf-8") as f:
@@ -82,20 +101,8 @@ def _read_secret(field: str) -> str:
     return ""
 
 
-def _write_secret(field: str, value: str) -> None:
-    """Write a secret to the system keyring, falling back to settings file."""
-    try:
-        if value:
-            keyring.set_password(_KEYRING_SERVICE, field, value)
-        else:
-            try:
-                keyring.delete_password(_KEYRING_SERVICE, field)
-            except keyring.errors.PasswordDeleteError:
-                pass
-        return
-    except keyring.errors.KeyringError:
-        pass
-    # Fallback: store in settings file
+def _fallback_write(field: str, value: str) -> None:
+    """Write a secret to the settings JSON file."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     file_settings: dict = {}
     if SETTINGS_FILE.exists():
@@ -113,12 +120,45 @@ def _write_secret(field: str, value: str) -> None:
     os.chmod(SETTINGS_FILE, stat.S_IRUSR | stat.S_IWUSR)
 
 
-def _get_secrets() -> dict[str, str]:
-    """Read all secret fields from the keyring."""
-    secrets: dict[str, str] = {}
-    for field in _SECRET_FIELDS:
-        secrets[field] = _read_secret(field)
-    return secrets
+# ---------------------------------------------------------------------------
+# Consent tracking (stored in the settings file)
+# ---------------------------------------------------------------------------
+
+
+def has_insecure_consent() -> bool:
+    """Check if user previously consented to insecure (plain text) storage."""
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("_insecureStorageConsent", False)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return False
+
+
+def set_insecure_consent(value: bool) -> None:
+    """Store the user's consent for insecure storage."""
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    file_settings: dict = {}
+    if SETTINGS_FILE.exists():
+        try:
+            with open(SETTINGS_FILE, encoding="utf-8") as f:
+                file_settings = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    if value:
+        file_settings["_insecureStorageConsent"] = True
+    else:
+        file_settings.pop("_insecureStorageConsent", None)
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(file_settings, f, indent=2)
+    os.chmod(SETTINGS_FILE, stat.S_IRUSR | stat.S_IWUSR)
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 
 def get_settings() -> dict[str, Any]:
@@ -138,13 +178,18 @@ def get_settings() -> dict[str, Any]:
                     file_settings = json.load(f)
             except (json.JSONDecodeError, OSError) as e:
                 print(f"[Settings] Error reading settings: {e}")
-        # Strip any secrets that may have leaked into the file (migration)
-        for field in _SECRET_FIELDS:
-            file_settings.pop(field, None)
+        # Strip secrets that may have leaked into the file (migration)
+        if keyring_available():
+            for field in SECRET_FIELDS:
+                file_settings.pop(field, None)
         _cached_file_settings = {**_get_defaults(), **file_settings}
         _cached_mtime = mtime
 
-    return {**_cached_file_settings, **_get_secrets(), **_get_env_overrides()}
+    return {
+        **_cached_file_settings,
+        **get_secrets(_fallback_read),
+        **_get_env_overrides(),
+    }
 
 
 def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
@@ -157,14 +202,14 @@ def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
     secret_updates: dict[str, str] = {}
     file_updates: dict[str, Any] = {}
     for key, value in updates.items():
-        if key in _SECRET_FIELDS:
+        if key in SECRET_FIELDS:
             secret_updates[key] = value
         else:
             file_updates[key] = value
 
-    # Write secrets to keyring
+    # Write secrets
     for field, value in secret_updates.items():
-        _write_secret(field, value)
+        settings_base.write_secret(field, value, _fallback_write)
 
     # Write non-secret settings to file
     file_settings: dict[str, Any] = {}
@@ -175,9 +220,10 @@ def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             pass
 
-    # Strip any secrets from the file (migration cleanup)
-    for field in _SECRET_FIELDS:
-        file_settings.pop(field, None)
+    # Strip secrets from the file (migration cleanup)
+    if keyring_available():
+        for field in SECRET_FIELDS:
+            file_settings.pop(field, None)
 
     file_settings.update(file_updates)
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
@@ -186,11 +232,8 @@ def save_settings(updates: dict[str, Any]) -> dict[str, Any]:
 
     _cached_file_settings = {**_get_defaults(), **file_settings}
     _cached_mtime = SETTINGS_FILE.stat().st_mtime
-    return {**_cached_file_settings, **_get_secrets(), **_get_env_overrides()}
-
-
-def mask_key(key: str) -> str:
-    """Mask an API key for display (show last 4 chars)."""
-    if not key:
-        return ""
-    return "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" + key[-4:]
+    return {
+        **_cached_file_settings,
+        **get_secrets(_fallback_read),
+        **_get_env_overrides(),
+    }

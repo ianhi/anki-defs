@@ -58,3 +58,8 @@ def _isolated_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(keyring, "get_password", _mock_get)
     monkeypatch.setattr(keyring, "set_password", _mock_set)
     monkeypatch.setattr(keyring, "delete_password", _mock_delete)
+
+    # Tell settings_base that keyring is available (it's mocked)
+    import anki_defs.services.settings_base as settings_base_mod
+
+    monkeypatch.setattr(settings_base_mod, "_keyring_available", True)

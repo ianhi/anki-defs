@@ -6,20 +6,25 @@ from ..server.web import Response
 from ..services.settings_service import (
     get_masked_settings,
     has_insecure_consent,
+    has_new_secrets,
     keyring_available,
     save_settings,
     set_insecure_consent,
+    strip_masked_keys,
 )
 
-_MASK_CHAR = "\u2022"
+
+def _response_settings():
+    """Get masked settings with keyring metadata."""
+    result = get_masked_settings()
+    result["_keyringAvailable"] = keyring_available()
+    result["_insecureStorageConsent"] = has_insecure_consent()
+    return result
 
 
 def handle_get_settings(_params, _headers, _body):
     try:
-        settings = get_masked_settings()
-        settings["_keyringAvailable"] = keyring_available()
-        settings["_insecureStorageConsent"] = has_insecure_consent()
-        return Response.json(settings)
+        return Response.json(_response_settings())
     except RuntimeError as e:
         return Response.error("Failed to fetch settings: {}".format(e))
 
@@ -30,11 +35,8 @@ def handle_put_settings(_params, _headers, body):
     except json.JSONDecodeError:
         return Response.error("Invalid JSON", 400)
 
-    # If API keys are masked (bullet chars), don't update them
-    for key in ("claudeApiKey", "geminiApiKey", "openRouterApiKey"):
-        val = updates.get(key, "")
-        if isinstance(val, str) and val.startswith(_MASK_CHAR):
-            del updates[key]
+    # Strip masked keys (they haven't changed)
+    updates = strip_masked_keys(updates)
 
     # Handle insecure storage consent toggle
     consent_flag = updates.pop("_insecureStorageConsent", None)
@@ -42,11 +44,7 @@ def handle_put_settings(_params, _headers, body):
         set_insecure_consent(bool(consent_flag))
 
     # Check if saving secrets without keyring — require consent (once)
-    has_secrets = any(
-        key in updates and updates[key]
-        for key in ("claudeApiKey", "geminiApiKey", "openRouterApiKey")
-    )
-    if has_secrets and not keyring_available() and not has_insecure_consent():
+    if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
         return Response.error(
             "No system keyring available. API keys would be stored in plain text "
             "in Anki's addon config. Confirm to proceed.",
@@ -58,7 +56,4 @@ def handle_put_settings(_params, _headers, body):
     except RuntimeError as e:
         return Response.error("Failed to update settings: {}".format(e))
 
-    result = get_masked_settings()
-    result["_keyringAvailable"] = keyring_available()
-    result["_insecureStorageConsent"] = has_insecure_consent()
-    return Response.json(result)
+    return Response.json(_response_settings())

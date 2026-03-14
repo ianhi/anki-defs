@@ -14,14 +14,7 @@ _vendor_dir = os.path.join(os.path.dirname(__file__), "_vendor")
 if os.path.isdir(_vendor_dir) and _vendor_dir not in sys.path:
     sys.path.insert(0, _vendor_dir)
 
-# Ensure D-Bus session address is set so the keyring SecretService backend
-# can connect. Desktop sessions always have this socket but some environments
-# (e.g. systemd services, cron) don't export the env var.
-if sys.platform == "linux" and not os.environ.get("DBUS_SESSION_BUS_ADDRESS"):
-    _bus = "/run/user/{}/bus".format(os.getuid())
-    if os.path.exists(_bus):
-        os.environ["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=" + _bus
-
+# D-Bus fix and keyring probe run at import time in settings_base
 from aqt import gui_hooks, mw  # noqa: E402
 from aqt.qt import QAction, QTimer, qconnect  # noqa: E402
 
