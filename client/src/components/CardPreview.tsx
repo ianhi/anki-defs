@@ -415,7 +415,7 @@ export function CardPreview({
           </>
         )}
         {addError && (
-          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 w-full">{addError}</p>
+          <p className="text-xs sm:text-sm text-red-600 dark:text-red-300 w-full">{addError}</p>
         )}
       </CardFooter>
       {!isAdded && !isQueued && onRetryWithContext && assistantMsgId && (
