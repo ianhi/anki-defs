@@ -8,7 +8,7 @@ Replace Express backend with FastAPI. Share service layer with Anki addon.
 |-------|-------------|--------|
 | 1 | Shared service layer | Done |
 | 2 | FastAPI server + routes | Done |
-| 3 | API comparison testing | Not started |
+| 3 | API comparison testing | Done |
 | 4 | Addon integration | Not started |
 | 5 | Switchover | Not started |
 
@@ -32,9 +32,10 @@ Replace Express backend with FastAPI. Share service layer with Anki addon.
 
 ## What's Left
 
-### Phase 3: API Comparison Testing
-- Run Express on :3001 and Python on :3002 side by side
-- `tests/test_api_comparison.py` — compare responses for same inputs
+### Phase 3: API Comparison Testing — Done
+- 20 comparison tests: health, platform, settings, anki (decks/models/fields),
+  session (state/usage/history), prompt preview (all 5 modes), SSE structure, write ops
+- All passing — full structural parity confirmed
 
 ### Phase 4: Addon Integration
 - Update `scripts/build-addon.sh` to copy shared services
