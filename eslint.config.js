@@ -15,6 +15,7 @@ export default [
       'docs/**',
       'android/**',
       'anki-addon/**',
+      'python-server/**',
     ],
   },
   {

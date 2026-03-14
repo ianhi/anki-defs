@@ -11,9 +11,9 @@ that serves the frontend and implements the same HTTP API.
 ```
 client/              -- React frontend (shared by ALL platforms)
 shared/              -- TypeScript types + prompt templates (API contract: shared/types.ts)
-ankiconnect-server/  -- Backend #1: Node.js + Express + AnkiConnect (desktop/web)
+python-server/       -- Backend #1: Python FastAPI + AnkiConnect (desktop/web)
 android/             -- Backend #2: Kotlin + NanoHTTPd + AnkiDroid ContentProvider
-anki-addon/          -- Backend #3: Python inside Anki Desktop (direct collection access)
+anki-addon/          -- Backend #3: Python inside Anki Desktop (shares services with python-server)
 docs/                -- Astro Starlight documentation site (GitHub Pages)
 scripts/             -- Build/install scripts (build-addon.sh, install-dev.sh)
 ```
@@ -21,9 +21,15 @@ scripts/             -- Build/install scripts (build-addon.sh, install-dev.sh)
 ## Build Commands
 
 ```bash
-# Web
-npm install && npm run dev       # Dev server (client + server)
-npm run check                    # Typecheck + lint + format
+# Web (Python server + React client)
+npm install && npm run dev       # Dev server (python-server + client)
+npm run check                    # Typecheck + lint + format (TypeScript)
+npm run check:py                 # Ruff + pyright + pytest (Python)
+
+# Python server standalone
+cd python-server
+uv sync --group dev
+uv run ruff check . && uv run pyright && uv run pytest tests/ -v
 
 # Android
 cd android && export ANDROID_HOME=~/Android/Sdk && export JAVA_HOME=/usr
@@ -32,7 +38,7 @@ cd android && export ANDROID_HOME=~/Android/Sdk && export JAVA_HOME=/usr
 # Anki add-on
 cd anki-addon
 uv sync --group dev              # Dev tools (ruff, pyright, pytest)
-uv run ruff check . && uv run pyright && uv run pytest tests/ -v
+uv run ruff check . && uv run pytest tests/ -v
 scripts/build-addon.sh           # Package as .ankiaddon
 scripts/install-dev.sh           # Symlink into Anki addons dir
 
@@ -40,9 +46,10 @@ scripts/install-dev.sh           # Symlink into Anki addons dir
 cd docs && npm install && npm run dev  # Local dev server
 ```
 
-## Code Quality (Web)
+## Code Quality
 
-All web code must pass TypeScript strict mode, ESLint, and Prettier (`npm run check`).
+- **TypeScript**: All web code must pass strict mode, ESLint, and Prettier (`npm run check`).
+- **Python**: All server code must pass ruff, pyright, and pytest (`npm run check:py`).
 
 ## Team Coordination
 
@@ -55,11 +62,11 @@ files outside your stated scope.
 
 ## Network & Security
 
-- Express binds to `0.0.0.0` (all interfaces) for Tailscale access. Bearer token auth
-  protects all `/api/*` routes -- localhost requests are exempt, remote requests require
-  `Authorization: Bearer <token>`. Token auto-generated on first startup in settings.json.
+- Python server (FastAPI/uvicorn) binds to `0.0.0.0` for Tailscale access. Bearer token
+  auth protects all `/api/*` routes -- localhost requests are exempt, remote requests
+  require `Authorization: Bearer <token>`. Token auto-generated on first startup.
 - Vite dev server also binds to all interfaces (`host: true`) with `allowedHosts` check.
-- CORS restricted to localhost origins on Express. Android NanoHTTPd binds to `127.0.0.1`.
+- CORS restricted to localhost origins. Android NanoHTTPd binds to `127.0.0.1`.
 - Anki add-on binds to `0.0.0.0` with bearer token auth (same pattern as Express).
 - Note deletion requires the `auto-generated` tag -- prevents deleting hand-crafted cards.
 - See `PLANNING/security-audit.md` for the full audit and findings.

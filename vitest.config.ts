@@ -3,7 +3,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   test: {
-    include: ['ankiconnect-server/src/**/*.test.ts', 'client/src/**/*.test.ts'],
+    include: ['client/src/**/*.test.ts'],
   },
   resolve: {
     alias: {

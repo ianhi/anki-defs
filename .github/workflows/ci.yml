@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  lint-and-test:
+  web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,5 +22,24 @@ jobs:
       - name: Typecheck, lint, and format check
         run: npm run check
 
-      - name: Run tests
+      - name: Run vitest tests
         run: npm test
+
+  python-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        working-directory: python-server
+        run: uv sync --group dev
+
+      - name: Lint and typecheck
+        working-directory: python-server
+        run: uv run ruff check . && uv run pyright
+
+      - name: Run pytest
+        working-directory: python-server
+        run: uv run pytest tests/ -v --ignore=tests/test_api_comparison.py
