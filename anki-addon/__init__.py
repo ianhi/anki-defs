@@ -4,11 +4,18 @@ Runs a local HTTP server inside Anki, serving the React frontend and
 implementing the same API contract as the Node.js/Express backend.
 """
 
+import os
+import sys
 import uuid
 import webbrowser
 
-from aqt import gui_hooks, mw
-from aqt.qt import QAction, QTimer, qconnect
+# Add bundled vendor packages (httpx, etc.) to import path
+_vendor_dir = os.path.join(os.path.dirname(__file__), "_vendor")
+if os.path.isdir(_vendor_dir) and _vendor_dir not in sys.path:
+    sys.path.insert(0, _vendor_dir)
+
+from aqt import gui_hooks, mw  # noqa: E402
+from aqt.qt import QAction, QTimer, qconnect  # noqa: E402
 
 PORT = 28735
 

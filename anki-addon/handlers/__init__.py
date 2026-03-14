@@ -38,5 +38,11 @@ def create_router():
     router.delete("/api/session/pending/:id", session_routes.handle_remove_pending)
     router.post("/api/session/pending/:id/promote", session_routes.handle_promote_pending)
     router.post("/api/session/clear", session_routes.handle_clear_session)
+    router.get("/api/session/usage", session_routes.handle_get_usage)
+    router.post("/api/session/usage/reset", session_routes.handle_reset_usage)
+    router.get("/api/session/history", session_routes.handle_search_history)
+
+    # Prompts
+    router.post("/api/prompts/preview", chat_routes.handle_prompt_preview)
 
     return router

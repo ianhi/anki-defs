@@ -4,8 +4,9 @@ import json
 
 import pytest
 
+from _services.card_extraction import _note_to_card_content
 from services.ai_service import parse_json_response
-from services.card_extraction import _note_to_existing_card, apply_spelling_correction
+from services.card_extraction import apply_spelling_correction
 
 
 class TestApplySpellingCorrection:
@@ -52,18 +53,17 @@ class TestNoteToExistingCard:
             "Example": "example sentence",
             "Translation": "sentence-trans",
         }
-        result = _note_to_existing_card(note, field_mapping)
+        result = _note_to_card_content(note, field_mapping)
         assert result["word"] == "কাঁদা"
         assert result["definition"] == "to cry"
         assert result["banglaDefinition"] == "চোখ থেকে জল পড়া"
         assert result["exampleSentence"] == "মেয়েটা কাঁদছে।"
         assert result["sentenceTranslation"] == "The girl is crying."
 
-    def test_none_note_returns_none(self):
-        assert _note_to_existing_card(None, {}) is None
-
-    def test_none_mapping_returns_none(self):
-        assert _note_to_existing_card({"fields": {}}, None) is None
+    def test_empty_fields(self):
+        result = _note_to_card_content({"fields": {}}, {})
+        assert result["word"] == ""
+        assert result["definition"] == ""
 
 
 class TestParseJsonResponse:

@@ -4,7 +4,9 @@
 # Steps:
 #   1. Build the React frontend
 #   2. Copy client/dist/* into anki-addon/web/
-#   3. Symlink anki-addon/ into ~/.local/share/Anki2/addons21/anki_defs
+#   3. Copy shared services from python-server into anki-addon/_services/
+#   4. Install httpx into anki-addon/_vendor/
+#   5. Symlink anki-addon/ into ~/.local/share/Anki2/addons21/anki_defs
 #
 # After running, restart Anki to load the add-on. Code changes to Python files
 # take effect on Anki restart (no reinstall needed). Frontend changes require
@@ -33,6 +35,22 @@ npm run build:client
 echo "==> Copying frontend build to anki-addon/web/..."
 rm -rf "$ADDON_DIR/web"
 cp -r "$ROOT/client/dist" "$ADDON_DIR/web"
+
+echo "==> Copying shared services from python-server..."
+rm -rf "$ADDON_DIR/_services"
+cp -r "$ROOT/python-server/anki_defs/services" "$ADDON_DIR/_services"
+cp "$ADDON_DIR/_services_settings_wrapper.py" "$ADDON_DIR/_services/settings.py"
+rm -f "$ADDON_DIR/_services/anki_connect.py"
+# Rewrite `from ..config import` to `from config import` (addon's config.py is at package root)
+find "$ADDON_DIR/_services" -name '*.py' -exec \
+    sed -i 's/from \.\.config import/from config import/' {} +
+
+echo "==> Installing httpx into _vendor/..."
+rm -rf "$ADDON_DIR/_vendor"
+pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2>/dev/null || \
+    uv pip install httpx --target "$ADDON_DIR/_vendor" --quiet 2>/dev/null || \
+    python3 -m pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir
+find "$ADDON_DIR/_vendor" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
 
 echo "==> Symlinking addon into Anki..."
 if [ -L "$LINK_PATH" ]; then

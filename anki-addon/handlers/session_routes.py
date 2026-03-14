@@ -72,3 +72,41 @@ def handle_clear_session(_params, _headers, _body):
         return Response.json({"success": True})
     except Exception as e:
         return Response.error("Failed to clear session: {}".format(e))
+
+
+# --- Usage tracking (new — from shared service layer) ---
+
+
+def handle_get_usage(_params, _headers, _body):
+    try:
+        totals = session_service.get_usage_totals()
+        return Response.json(totals)
+    except Exception as e:
+        return Response.error("Failed to get usage: {}".format(e))
+
+
+def handle_reset_usage(_params, _headers, _body):
+    try:
+        session_service.clear_usage()
+        return Response.json({"success": True})
+    except Exception as e:
+        return Response.error("Failed to reset usage: {}".format(e))
+
+
+# --- History search (new — from shared service layer) ---
+
+
+def handle_search_history(_params, headers, body):
+    try:
+        # Parse query params from URL (passed via headers dict in our server)
+        import urllib.parse
+
+        query_string = headers.get("query_string", "")
+        params = urllib.parse.parse_qs(query_string)
+        q = params.get("q", [None])[0]
+        limit = min(max(int(params.get("limit", ["50"])[0]), 1), 200)
+        offset = max(int(params.get("offset", ["0"])[0]), 0)
+        result = session_service.search_history(q, limit, offset)
+        return Response.json(result)
+    except Exception as e:
+        return Response.error("Failed to search history: {}".format(e))

@@ -4,10 +4,10 @@
 # Steps:
 #   1. Build the React frontend (npm run build:client)
 #   2. Copy client/dist/* into anki-addon/web/
-#   3. Copy shared/ data (prompts, defaults) into anki-addon/shared/
-#   4. Zip into anki-defs.ankiaddon (excluding dev files)
-#
-# The resulting .ankiaddon can be installed via Anki: Tools > Add-ons > Install from file.
+#   3. Copy shared/ data (prompts, defaults) into anki-addon/_shared/
+#   4. Copy python-server shared services into anki-addon/_services/
+#   5. Bundle httpx + deps into anki-addon/_vendor/
+#   6. Zip into anki-defs.ankiaddon (excluding dev files)
 #
 # Usage: ./scripts/build-addon.sh
 
@@ -26,15 +26,30 @@ rm -rf "$ADDON_DIR/web"
 cp -r "$ROOT/client/dist" "$ADDON_DIR/web"
 
 echo "==> Copying shared data into addon package..."
-# The addon reads prompts from ../../shared/ relative to its services/ dir.
-# For packaging, we copy shared/ into the addon and the path resolution
-# still works: anki-addon/services/ -> ../../shared/ = shared/ (at repo root).
-# But in a packaged addon installed to ~/.local/share/Anki2/addons21/,
-# there is no repo root. So we copy shared/ INTO the addon dir and
-# the relative path from services/ becomes ../shared/.
-mkdir -p "$ADDON_DIR/_shared/prompts" "$ADDON_DIR/_shared/defaults"
+mkdir -p "$ADDON_DIR/_shared/prompts" "$ADDON_DIR/_shared/defaults" "$ADDON_DIR/_shared/data"
 cp "$ROOT/shared/prompts/"*.json "$ADDON_DIR/_shared/prompts/"
 cp "$ROOT/shared/defaults/"*.json "$ADDON_DIR/_shared/defaults/"
+cp "$ROOT/shared/data/"*.json "$ADDON_DIR/_shared/data/"
+
+echo "==> Copying shared services from python-server..."
+rm -rf "$ADDON_DIR/_services"
+cp -r "$ROOT/python-server/anki_defs/services" "$ADDON_DIR/_services"
+# Replace settings.py with addon-specific wrapper
+cp "$ADDON_DIR/_services_settings_wrapper.py" "$ADDON_DIR/_services/settings.py"
+# Remove anki_connect.py (addon uses direct mw.col access, not AnkiConnect HTTP)
+rm -f "$ADDON_DIR/_services/anki_connect.py"
+# Rewrite `from ..config import` to `from config import` (addon's config.py is at package root)
+find "$ADDON_DIR/_services" -name '*.py' -exec \
+    sed -i 's/from \.\.config import/from config import/' {} +
+
+echo "==> Bundling httpx and dependencies..."
+rm -rf "$ADDON_DIR/_vendor"
+pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir 2>/dev/null || \
+    uv pip install httpx --target "$ADDON_DIR/_vendor" --quiet 2>/dev/null || \
+    python3 -m pip install httpx --target "$ADDON_DIR/_vendor" --quiet --no-cache-dir
+# Clean up unnecessary files from vendor
+find "$ADDON_DIR/_vendor" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+find "$ADDON_DIR/_vendor" -name '*.dist-info' -exec rm -rf {} + 2>/dev/null || true
 
 echo "==> Creating $OUTPUT..."
 rm -f "$OUTPUT"
@@ -50,7 +65,8 @@ zip -r "$OUTPUT" . \
     -x 'tests/*' \
     -x 'pyproject.toml' \
     -x 'uv.lock' \
-    -x '.gitignore'
+    -x '.gitignore' \
+    -x '_services_settings_wrapper.py'
 
 echo "==> Built: $OUTPUT ($(du -h "$OUTPUT" | cut -f1))"
 echo "   Install via Anki: Tools > Add-ons > Install from file"

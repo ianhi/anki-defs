@@ -14,6 +14,20 @@ addon_dir = os.path.dirname(os.path.dirname(__file__))
 if addon_dir not in sys.path:
     sys.path.insert(0, addon_dir)
 
+# Also add vendor dir for httpx
+vendor_dir = os.path.join(addon_dir, "_vendor")
+if os.path.isdir(vendor_dir) and vendor_dir not in sys.path:
+    sys.path.insert(0, vendor_dir)
+
+# Register addon dir as a package so relative imports in _services/ work
+# (_services/ai.py does `from ..config import PROMPTS_DIR`)
+_addon_pkg_name = os.path.basename(addon_dir)
+if _addon_pkg_name not in sys.modules:
+    _pkg = types.ModuleType(_addon_pkg_name)
+    _pkg.__path__ = [addon_dir]  # type: ignore[attr-defined]
+    _pkg.__package__ = _addon_pkg_name
+    sys.modules[_addon_pkg_name] = _pkg
+
 # Mock aqt before anything tries to import it (prevents segfault from Qt init)
 
 _mock_mw = types.SimpleNamespace(

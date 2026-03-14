@@ -29,7 +29,7 @@ All three backends are functional. All use JSON-first pipeline (single LLM call)
 | Doc                                                      | Summary                   | What's left                              |
 | -------------------------------------------------------- | ------------------------- | ---------------------------------------- |
 | [next-steps.md](next-steps.md)                           | Feature roadmap           | Prioritized TODO list                    |
-| [python-server-migration.md](python-server-migration.md) | Replace Express w/ Python | Phase 4-5: addon integration, switchover |
+| [python-server-migration.md](python-server-migration.md) | Replace Express w/ Python | Phase 5: switchover |
 
 ## Reference (keep, don't modify)
 
