@@ -86,7 +86,6 @@ def _init_tables(db: sqlite3.Connection) -> None:
                 raise
 
 
-
 def _rows_to_list(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 

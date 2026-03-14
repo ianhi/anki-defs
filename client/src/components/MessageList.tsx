@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
-import { MODEL_PRICING } from 'shared';
+import { computeCost } from 'shared';
 import { CardPreview } from './CardPreview';
 import { Button } from './ui/Button';
 import { cn, buildNoteFields } from '@/lib/utils';
@@ -33,10 +33,7 @@ function MarkedText({ text }: { text: string }) {
 }
 
 function formatCost(usage: TokenUsage): string {
-  const pricing = usage.model ? MODEL_PRICING[usage.model] : undefined;
-  if (!pricing) return '';
-  const cost =
-    (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
+  const cost = computeCost(usage);
   if (cost === 0) return '';
   return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
 }

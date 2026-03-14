@@ -1,13 +1,7 @@
 import { create } from 'zustand';
 import type { TokenUsage } from 'shared';
-import { MODEL_PRICING } from 'shared';
+import { computeCost } from 'shared';
 import { sessionApi } from '@/lib/api';
-
-function calculateCost(usage: TokenUsage): number {
-  const pricing = usage.model ? MODEL_PRICING[usage.model] : undefined;
-  if (!pricing) return 0;
-  return (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
-}
 
 interface TokenUsageState {
   totalInputTokens: number;
@@ -31,7 +25,7 @@ export const useTokenUsage = create<TokenUsageState>()((set) => ({
     set((state) => ({
       totalInputTokens: state.totalInputTokens + usage.inputTokens,
       totalOutputTokens: state.totalOutputTokens + usage.outputTokens,
-      totalCost: state.totalCost + calculateCost(usage),
+      totalCost: state.totalCost + computeCost(usage),
       requestCount: state.requestCount + 1,
     })),
 
