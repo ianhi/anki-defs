@@ -18,7 +18,7 @@ export default defineConfig({
     allowedHosts: ['pop-os'],
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: process.env.API_TARGET || 'http://localhost:3001',
         changeOrigin: true,
       },
     },
