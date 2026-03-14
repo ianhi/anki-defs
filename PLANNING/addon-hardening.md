@@ -22,22 +22,22 @@ All 6 tasks completed.
 
 Replaced all `except Exception:` with specific types across both addon and python-server:
 
-| File | Was | Now |
-|------|-----|-----|
-| `anki-addon/services/settings_service.py` | `except Exception` | `except keyring.errors.KeyringError` |
-| `anki-addon/services/anki_service.py` | `except Exception` | `except (ValueError, KeyError)` |
-| `anki-addon/server/web.py` (10 sites) | `except Exception` | `except OSError` / `except (OSError, ValueError)` |
-| `anki-addon/server/sse.py` | `except Exception` | `except OSError` |
-| `anki-addon/server/router.py` | `except Exception` | `except (RuntimeError, ValueError, OSError, KeyError)` |
-| `anki-addon/handlers/chat_routes.py` | `except Exception` | `except OSError` / `except (RuntimeError, ValueError)` / specific |
-| `anki-addon/handlers/anki_routes.py` | `except Exception` | `except ValueError` / `except RuntimeError` |
-| `anki-addon/handlers/session_routes.py` | `except Exception` | `except sqlite3.Error` |
-| `anki-addon/handlers/settings_routes.py` | `except Exception` | `except RuntimeError` / `except json.JSONDecodeError` |
-| `python-server/routes/anki.py` | `except Exception` | `except httpx.HTTPError` / `except RuntimeError` |
-| `python-server/routes/session.py` | `except Exception` | `except sqlite3.Error` |
-| `python-server/routes/settings.py` | `except Exception` | `except RuntimeError` |
-| `python-server/services/settings.py` | `except Exception` | `except keyring.errors.KeyringError` |
-| `python-server/services/anki_connect.py` | `except Exception` | `except (httpx.HTTPError, RuntimeError)` |
+| File                                      | Was                | Now                                                               |
+| ----------------------------------------- | ------------------ | ----------------------------------------------------------------- |
+| `anki-addon/services/settings_service.py` | `except Exception` | `except keyring.errors.KeyringError`                              |
+| `anki-addon/services/anki_service.py`     | `except Exception` | `except (ValueError, KeyError)`                                   |
+| `anki-addon/server/web.py` (10 sites)     | `except Exception` | `except OSError` / `except (OSError, ValueError)`                 |
+| `anki-addon/server/sse.py`                | `except Exception` | `except OSError`                                                  |
+| `anki-addon/server/router.py`             | `except Exception` | `except (RuntimeError, ValueError, OSError, KeyError)`            |
+| `anki-addon/handlers/chat_routes.py`      | `except Exception` | `except OSError` / `except (RuntimeError, ValueError)` / specific |
+| `anki-addon/handlers/anki_routes.py`      | `except Exception` | `except ValueError` / `except RuntimeError`                       |
+| `anki-addon/handlers/session_routes.py`   | `except Exception` | `except sqlite3.Error`                                            |
+| `anki-addon/handlers/settings_routes.py`  | `except Exception` | `except RuntimeError` / `except json.JSONDecodeError`             |
+| `python-server/routes/anki.py`            | `except Exception` | `except httpx.HTTPError` / `except RuntimeError`                  |
+| `python-server/routes/session.py`         | `except Exception` | `except sqlite3.Error`                                            |
+| `python-server/routes/settings.py`        | `except Exception` | `except RuntimeError`                                             |
+| `python-server/services/settings.py`      | `except Exception` | `except keyring.errors.KeyringError`                              |
+| `python-server/services/anki_connect.py`  | `except Exception` | `except (httpx.HTTPError, RuntimeError)`                          |
 
 ### 3. Use absolute imports everywhere — DONE (verified)
 
@@ -65,6 +65,7 @@ message instead of silently queuing.
 ### 6. Better error handling for card creation — DONE
 
 **Server-side (both backends):**
+
 - python-server `routes/anki.py`: Returns specific HTTP status codes:
   - 503 for connection errors (`httpx.HTTPError`) — "Could not connect to Anki"
   - 500 for AnkiConnect errors (`RuntimeError`) — forwards actual error message
@@ -73,6 +74,7 @@ message instead of silently queuing.
 - `anki_connect.py`: Improved error message for null note_id (duplicate/empty field)
 
 **Client-side (`CardPreview.tsx`):**
+
 - Added `addError` state for displaying errors
 - Connection errors (`Request failed`, `Could not connect`) → queue silently
 - Application errors (wrong model, missing fields, duplicates) → display red error text

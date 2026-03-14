@@ -145,7 +145,7 @@ export function CardPreview({
       return;
     }
 
-    setAddError(null);
+    if (addError) setAddError(null);
     try {
       const noteId = await createNote.mutateAsync({
         deckName: targetDeck,
@@ -414,12 +414,10 @@ export function CardPreview({
             </Button>
           </>
         )}
+        {addError && (
+          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 w-full">{addError}</p>
+        )}
       </CardFooter>
-      {addError && (
-        <div className="px-3 pb-2 sm:px-6">
-          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400">{addError}</p>
-        </div>
-      )}
       {!isAdded && !isQueued && onRetryWithContext && assistantMsgId && (
         <div className="px-3 pb-2.5 sm:px-6 sm:pb-3">
           {showRetryInput ? (

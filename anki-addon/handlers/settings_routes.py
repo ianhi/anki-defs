@@ -6,7 +6,6 @@ from ..server.web import Response
 from ..services.settings_service import get_masked_settings, save_settings
 
 _MASK_CHAR = "\u2022"
-_MASK_PREFIX = _MASK_CHAR * 8
 
 
 def handle_get_settings(_params, _headers, _body):
@@ -30,17 +29,8 @@ def handle_put_settings(_params, _headers, body):
             del updates[key]
 
     try:
-        updated = save_settings(updates)
+        save_settings(updates)
     except RuntimeError as e:
         return Response.error("Failed to update settings: {}".format(e))
 
-    # Mask keys in response
-    masked = dict(updated)
-    for key in ("claudeApiKey", "geminiApiKey", "openRouterApiKey"):
-        val = masked.get(key, "")
-        if val:
-            masked[key] = _MASK_PREFIX + val[-4:]
-        else:
-            masked[key] = ""
-
-    return Response.json(masked)
+    return Response.json(get_masked_settings())
