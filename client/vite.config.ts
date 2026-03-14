@@ -15,7 +15,7 @@ export default defineConfig({
     // Security tradeoff: host: true exposes dev server on all interfaces
     // (needed for Tailscale access from phone). CORS on the API server restricts API access.
     host: true,
-    allowedHosts: ['pop-os'],
+    allowedHosts: ['pop-os', '.ts.net'],
     proxy: {
       '/api': {
         target: process.env.API_TARGET || 'http://localhost:3001',
