@@ -100,7 +100,7 @@ export function Settings() {
   const showFooter = hasChanges || showInsecureWarning || updateMutation.isError;
 
   return (
-    <>
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="p-4 space-y-6 overflow-y-auto flex-1 min-h-0">
         {/* Anki Connection Status — only for standalone server (not addon or Android) */}
         {platform.platform === 'web' && (
@@ -432,6 +432,6 @@ export function Settings() {
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
