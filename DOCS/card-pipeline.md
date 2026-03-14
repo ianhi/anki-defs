@@ -113,15 +113,15 @@ context with `; ` separators.
 
 ## Key Files
 
-| File                                                | Role                                               |
-| --------------------------------------------------- | -------------------------------------------------- |
-| `ankiconnect-server/src/routes/chat.ts`             | Mode detection, JSON completion, SSE orchestration |
-| `ankiconnect-server/src/services/cardExtraction.ts` | `buildCardPreviews()` — Anki dedup, card building  |
-| `ankiconnect-server/src/services/ai.ts`             | `getJsonCompletion()`, prompt loading/rendering    |
-| `ankiconnect-server/src/services/gemini.ts`         | Gemini JSON completion (`responseMimeType`)        |
-| `ankiconnect-server/src/services/claude.ts`         | Claude JSON completion                             |
-| `ankiconnect-server/src/services/openrouter.ts`     | OpenRouter JSON completion                         |
-| `client/src/components/CardPreview.tsx`             | Card UI, add/undo/edit, retry-with-context         |
-| `client/src/lib/utils.ts`                           | `markdownBoldToHtml()`                             |
-| `shared/prompts/*.json`                             | Prompt templates with `{{variable}}` substitution  |
-| `shared/prompts/variables.json`                     | Shared variables: preamble, outputRules, etc.      |
+| File                                                       | Role                                                |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| `python-server/anki_defs/routes/chat.py`                   | Mode detection, JSON completion, SSE orchestration  |
+| `python-server/anki_defs/services/card_extraction.py`      | `build_card_previews()` — Anki dedup, card building |
+| `python-server/anki_defs/services/ai.py`                   | `get_json_completion()`, prompt loading/rendering   |
+| `python-server/anki_defs/services/providers/gemini.py`     | Gemini JSON completion (`responseMimeType`)         |
+| `python-server/anki_defs/services/providers/claude.py`     | Claude JSON completion                              |
+| `python-server/anki_defs/services/providers/openrouter.py` | OpenRouter JSON completion                          |
+| `client/src/components/CardPreview.tsx`                    | Card UI, add/undo/edit, retry-with-context          |
+| `client/src/lib/utils.ts`                                  | `markdownBoldToHtml()`                              |
+| `shared/prompts/*.json`                                    | Prompt templates with `{{variable}}` substitution   |
+| `shared/prompts/variables.json`                            | Shared variables: preamble, outputRules, etc.       |

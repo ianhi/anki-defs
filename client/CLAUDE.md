@@ -20,7 +20,7 @@ Shared frontend for all platforms. Runs in browser (web) and WebView (Android).
 
 - **You own**: `client/` (React frontend)
 - **You consume**: `shared/types.ts` (API contract -- do not modify without coordinating)
-- **You do NOT touch**: `ankiconnect-server/`, `android/`
+- **You do NOT touch**: `python-server/`, `android/`
 - **Platform awareness**: Frontend must work in both browser and Android WebView. Use platform detection for conditional rendering -- never hardcode backend assumptions.
 - If you need an API change, note it clearly in your output.
 

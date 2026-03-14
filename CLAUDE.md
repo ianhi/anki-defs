@@ -67,7 +67,7 @@ files outside your stated scope.
   require `Authorization: Bearer <token>`. Token auto-generated on first startup.
 - Vite dev server also binds to all interfaces (`host: true`) with `allowedHosts` check.
 - CORS restricted to localhost origins. Android NanoHTTPd binds to `127.0.0.1`.
-- Anki add-on binds to `0.0.0.0` with bearer token auth (same pattern as Express).
+- Anki add-on binds to `0.0.0.0` with bearer token auth (same pattern as python-server).
 - Note deletion requires the `auto-generated` tag -- prevents deleting hand-crafted cards.
 - See `PLANNING/security-audit.md` for the full audit and findings.
 

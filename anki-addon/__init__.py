@@ -1,7 +1,7 @@
 """anki-defs: Vocabulary flashcard tool for Anki Desktop.
 
 Runs a local HTTP server inside Anki, serving the React frontend and
-implementing the same API contract as the Node.js/Express backend.
+implementing the same API contract as the Python/FastAPI backend.
 """
 
 import os

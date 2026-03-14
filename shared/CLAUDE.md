@@ -6,7 +6,7 @@ This directory defines the TypeScript types shared between the frontend and all 
 ## Boundaries
 
 - **You own**: `shared/` (type definitions)
-- **Consumed by**: `client/`, `ankiconnect-server/`, and `android/` (which re-implements the same API)
+- **Consumed by**: `client/`, `python-server/`, `anki-addon/`, and `android/`
 - Changes here affect ALL backends and the frontend
 - After changes: run `npm run check` (web) and verify Android still builds
 
