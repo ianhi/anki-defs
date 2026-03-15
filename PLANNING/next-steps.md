@@ -2,11 +2,21 @@
 
 ## High Priority
 
+### Error UX overhaul
+
+- Errors around prompts should show as AI response messages, not banners/inline text
+- API key missing → assistant bubble: "I need a Gemini API key. Go to Settings > AI Provider."
+- Rate limit / network errors → assistant message with retry button
+- Card creation errors already show inline on cards (done in hardening)
+- Wire up `useErrorModal.showError()` for non-recoverable errors (500s, unexpected failures)
+- The ErrorModal component and store exist but nothing triggers `showError()` yet
+
 ### Manually test Anki add-on inside Anki Desktop
 
-- Code is complete but has never been run inside Anki
-- Need to verify: card creation, search, deletion, SSE streaming, prompt loading
-- See `anki-addon/PLANNING/` for details
+- Code is hardened but has never been verified end-to-end inside Anki
+- Need to verify: card creation, search, deletion, SSE streaming, settings/keyring
+- The keyring consent flow and D-Bus fix need real-world testing
+- Run `install-dev.sh` as ian, restart Anki, test all flows
 
 ### Migrate Android to JSON-first pipeline
 
