@@ -5,7 +5,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 
 export function Chat() {
-  const { messages, isStreaming, error, sendMessage, retryWithContext } = useChat();
+  const { messages, isStreaming, sendMessage, retryWithContext } = useChat();
   const { settings } = useSettingsStore();
   const [sharedText, setSharedText] = useState<string | null>(null);
 
@@ -36,9 +36,6 @@ export function Chat() {
         isStreaming={isStreaming}
         retryWithContext={retryWithContext}
       />
-
-      {error && <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">{error}</div>}
-
       <MessageInput onSend={handleSend} />
     </div>
   );

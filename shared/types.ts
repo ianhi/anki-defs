@@ -8,6 +8,7 @@ export interface Message {
   tokenUsage?: TokenUsage;
   refinements?: string[];
   originalQuery?: string;
+  error?: string; // Error message to display in the assistant bubble
 }
 
 // Core card content (what makes up a flashcard)

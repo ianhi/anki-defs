@@ -11,9 +11,7 @@ import { useTokenUsage } from './useTokenUsage';
 interface ChatState {
   messages: Message[];
   activeStreamCount: number;
-  error: string | null;
   setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
-  setError: (error: string | null) => void;
   clearMessages: () => void;
   incrementStreams: () => void;
   decrementStreams: () => void;
@@ -24,13 +22,11 @@ const useChatStore = create<ChatState>()(
     (set) => ({
       messages: [],
       activeStreamCount: 0,
-      error: null,
       setMessages: (updater) =>
         set((state) => ({
           messages: typeof updater === 'function' ? updater(state.messages) : updater,
         })),
-      setError: (error) => set({ error }),
-      clearMessages: () => set({ messages: [], error: null, activeStreamCount: 0 }),
+      clearMessages: () => set({ messages: [], activeStreamCount: 0 }),
       incrementStreams: () => set((state) => ({ activeStreamCount: state.activeStreamCount + 1 })),
       decrementStreams: () =>
         set((state) => ({
@@ -46,13 +42,16 @@ const useChatStore = create<ChatState>()(
   )
 );
 
+/** Set an error on a specific assistant message. */
+function setMessageError(setMessages: ChatState['setMessages'], msgId: string, error: string) {
+  setMessages((prev) => prev.map((msg) => (msg.id === msgId ? { ...msg, error } : msg)));
+}
+
 export function useChat() {
   const {
     messages,
     activeStreamCount,
-    error,
     setMessages,
-    setError,
     clearMessages,
     incrementStreams,
     decrementStreams,
@@ -66,8 +65,6 @@ export function useChat() {
   const sendMessage = useCallback(
     async (content: string, deck?: string, userContext?: string, mode?: 'english-to-bangla') => {
       const controller = new AbortController();
-
-      setError(null);
 
       // content has ** markers — extract highlighted words for API, keep raw for display
       const highlightedWords = parseHighlightedWords(content);
@@ -140,25 +137,25 @@ export function useChat() {
               );
               break;
             case 'error':
-              setError(event.data);
+              setMessageError(setMessages, assistantMsgId, event.data);
               break;
           }
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+        setMessageError(setMessages, assistantMsgId, errorMsg);
       } finally {
         activeControllersRef.current.delete(controller);
         decrementStreams();
       }
     },
-    [setMessages, setError, incrementStreams, decrementStreams]
+    [setMessages, incrementStreams, decrementStreams]
   );
 
   const retryWithContext = useCallback(
     async (assistantMsgId: string, context: string) => {
       const controller = new AbortController();
-      setError(null);
 
       // Find the assistant message and the preceding user message
       const msgs = useChatStore.getState().messages;
@@ -194,6 +191,7 @@ export function useChat() {
                 content: '',
                 cardPreviews: undefined,
                 tokenUsage: undefined,
+                error: undefined,
                 refinements,
                 originalQuery,
               }
@@ -248,19 +246,20 @@ export function useChat() {
               );
               break;
             case 'error':
-              setError(event.data);
+              setMessageError(setMessages, assistantMsgId, event.data);
               break;
           }
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        const errorMsg = err instanceof Error ? err.message : 'An error occurred';
+        setMessageError(setMessages, assistantMsgId, errorMsg);
       } finally {
         activeControllersRef.current.delete(controller);
         decrementStreams();
       }
     },
-    [setMessages, setError, incrementStreams, decrementStreams]
+    [setMessages, incrementStreams, decrementStreams]
   );
 
   const clearChat = useCallback(() => {
@@ -275,7 +274,6 @@ export function useChat() {
   return {
     messages,
     isStreaming,
-    error,
     sendMessage,
     retryWithContext,
     clearMessages: clearChat,

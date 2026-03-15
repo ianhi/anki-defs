@@ -262,6 +262,12 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
                 />
               )}
 
+              {message.error && (
+                <div className="mt-2 p-3 rounded bg-destructive/10 border border-destructive/20">
+                  <p className="text-sm text-destructive">{message.error}</p>
+                </div>
+              )}
+
               {message.role === 'assistant' && message.tokenUsage && !showStreamingIndicator && (
                 <div
                   className="mt-2 text-xs text-muted-foreground tabular-nums"
