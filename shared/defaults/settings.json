@@ -1,5 +1,5 @@
 {
-  "aiProvider": "claude",
+  "aiProvider": "gemini",
   "claudeApiKey": "",
   "geminiApiKey": "",
   "geminiModel": "gemini-2.5-flash-lite",

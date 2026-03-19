@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
+import { OnboardingModal } from './components/OnboardingModal';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
@@ -11,6 +12,7 @@ import { ErrorModal } from './components/ErrorModal';
 import { SettingsIcon, X, RefreshCw, History, AlertTriangle } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
+import { useSettingsStore } from './hooks/useSettings';
 import { useTokenUsage } from './hooks/useTokenUsage';
 import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
 import { usePlatform } from './hooks/usePlatform';
@@ -29,12 +31,30 @@ export default function App() {
   return <MainApp />;
 }
 
+function needsOnboarding(settings: {
+  aiProvider: string;
+  claudeApiKey: string;
+  geminiApiKey: string;
+  openRouterApiKey: string;
+}): boolean {
+  if (localStorage.getItem('anki-defs-onboarded')) return false;
+  const keyForProvider =
+    settings.aiProvider === 'claude'
+      ? settings.claudeApiKey
+      : settings.aiProvider === 'gemini'
+        ? settings.geminiApiKey
+        : settings.openRouterApiKey;
+  return !keyForProvider;
+}
+
 function MainApp() {
   useEffect(() => initSessionCards(), []);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { pendingQueue } = useSessionCards();
+  const { settings } = useSettingsStore();
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
   const totalTokens = totalInputTokens + totalOutputTokens;
   const platform = usePlatform();
@@ -42,12 +62,20 @@ function MainApp() {
   const sync = useAnkiSync();
   const { data: ankiConnected } = useAnkiStatus();
 
+  // Show onboarding on first visit when no API key is configured
+  useEffect(() => {
+    if (needsOnboarding(settings)) {
+      setShowOnboarding(true);
+    }
+  }, [settings]);
+
   return (
     <div className="fixed inset-0 flex overflow-hidden">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <span className="text-xs text-muted-foreground hidden sm:inline">Deck</span>
             <HeaderDeckSelector />
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -143,6 +171,7 @@ function MainApp() {
           </div>
         </div>
       )}
+      {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <ErrorModal />
     </div>
   );
