@@ -121,7 +121,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     setModel('');
                   }}
                 >
-                  <option value="gemini">Gemini (recommended)</option>
+                  <option value="gemini">Gemini (recommended for South Asian languages)</option>
                   <option value="openrouter">OpenRouter</option>
                   <option value="claude">Claude</option>
                 </Select>
