@@ -24,6 +24,13 @@
 - Should match web backend: single non-streaming LLM call returning JSON
 - SSE events: only `usage`, `card_preview`, `done` (no more `text` events)
 
+### In-app help / about page
+
+- Currently the ? button links to the external docs site
+- Should have an in-app page covering: how AI generation works, note type setup,
+  field mapping explained, troubleshooting (Anki not connected, API key errors)
+- Could reuse the onboarding modal pattern for a multi-page guide
+
 ## Medium Priority
 
 ### Unmarked sentence mode

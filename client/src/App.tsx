@@ -9,7 +9,7 @@ import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorModal } from './components/ErrorModal';
-import { SettingsIcon, X, RefreshCw, History, AlertTriangle } from 'lucide-react';
+import { SettingsIcon, X, RefreshCw, History, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
 import { useSettingsStore } from './hooks/useSettings';
@@ -118,6 +118,14 @@ function MainApp() {
               title="Word history"
             >
               <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.open('https://ianhuntisaak.github.io/anki-defs/', '_blank')}
+              title="Help & documentation"
+            >
+              <HelpCircle className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowSettings(!showSettings)}>
               {showSettings ? <X className="h-5 w-5" /> : <SettingsIcon className="h-5 w-5" />}
