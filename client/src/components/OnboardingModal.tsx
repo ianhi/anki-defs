@@ -131,12 +131,12 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               {provider === 'gemini' && (
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
-                    <strong>Free tier:</strong> Gemini API keys are free but rate-limited
-                    (e.g. 2.5 Flash is limited to 20 requests/day on free tier).
+                    <strong>Free tier:</strong> Free but rate-limited (e.g. 2.5 Flash allows
+                    ~20 requests/day). Your data may be used to improve Google&apos;s models.
                   </p>
                   <p>
-                    <strong>Paid tier:</strong> If you link a billing account in Google Cloud, rate
-                    limits increase significantly.
+                    <strong>Paid tier:</strong> Link a billing account in Google Cloud for higher
+                    limits and a guarantee that your data is not used for training.
                     {costEstimate && costEstimate !== 'Free' && (
                       <> Estimated cost: {costEstimate} per 1,000 cards.</>
                     )}
@@ -147,7 +147,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
                     OpenRouter aggregates multiple AI providers. Some models are free, others are
-                    pay-per-use.
+                    pay-per-use. Data policies vary by provider.
                     {costEstimate && costEstimate !== 'Free' && (
                       <> Estimated cost with default model: {costEstimate} per 1,000 cards.</>
                     )}
@@ -157,8 +157,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               {provider === 'claude' && (
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
-                    Claude is a paid API. Estimated cost: ~$2.50 per 1,000 cards (Sonnet 4). High
-                    quality but significantly more expensive than Gemini.
+                    Claude is a paid API. Your data is not used for training. Estimated cost:
+                    ~$2.50 per 1,000 cards (Sonnet 4) — significantly more expensive than Gemini.
                   </p>
                 </div>
               )}
