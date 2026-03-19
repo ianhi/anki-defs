@@ -2,7 +2,7 @@
   "aiProvider": "gemini",
   "claudeApiKey": "",
   "geminiApiKey": "",
-  "geminiModel": "gemini-2.5-flash-lite",
+  "geminiModel": "gemini-2.5-flash",
   "showTransliteration": false,
   "leftHanded": false,
   "openRouterApiKey": "",

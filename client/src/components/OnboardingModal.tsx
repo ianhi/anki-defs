@@ -10,6 +10,30 @@ import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Loader2 } from 'lucide-react';
 
+const DEFAULT_MODELS: Record<string, string> = {
+  gemini: 'gemini-2.5-flash',
+  openrouter: 'google/gemini-2.5-flash',
+};
+
+function getDefaultModelLabel(provider: AIProvider): string {
+  const modelId = DEFAULT_MODELS[provider];
+  if (!modelId) return '';
+  const models = provider === 'gemini' ? GEMINI_MODELS : OPENROUTER_MODELS;
+  return models.find((m) => m.value === modelId)?.label ?? modelId;
+}
+
+/** Estimate cost per 1000 cards for a model (based on ~680 tokens per card avg) */
+function estimateCostPer1000(modelId: string): string | null {
+  const pricing = MODEL_PRICING[modelId];
+  if (!pricing) return null;
+  if (pricing.input === 0 && pricing.output === 0) return 'Free';
+  // Average observed: ~600 input + ~80 output tokens per card
+  const costPerCard = (600 * pricing.input + 80 * pricing.output) / 1_000_000;
+  const per1000 = costPerCard * 1000;
+  if (per1000 < 0.01) return '<$0.01';
+  return `~$${per1000.toFixed(2)}`;
+}
+
 interface OnboardingModalProps {
   onComplete: () => void;
 }
@@ -24,6 +48,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [deck, setDeck] = useState(settings.defaultDeck);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const effectiveModel = model || DEFAULT_MODELS[provider] || '';
+  const costEstimate = estimateCostPer1000(effectiveModel);
 
   const handleNext = () => {
     if (!apiKey.trim()) {
@@ -49,7 +76,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       aiProvider: provider,
       [keyField]: apiKey,
       defaultDeck: deck,
-      _insecureStorageConsent: true, // Auto-consent during onboarding
+      _insecureStorageConsent: true,
     };
 
     if (model) {
@@ -76,7 +103,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           <h2 className="text-xl font-semibold">{step === 1 ? 'Welcome' : 'Choose a deck'}</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {step === 1
-              ? 'Connect an AI provider to start generating vocabulary flashcards.'
+              ? 'This app uses AI to generate Anki flashcards from vocabulary words and sentences. Connect an AI provider to get started.'
               : 'Pick the Anki deck where new cards will be added.'}
           </p>
         </div>
@@ -94,11 +121,47 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     setModel('');
                   }}
                 >
-                  <option value="gemini">Gemini (recommended — free tier available)</option>
-                  <option value="claude">Claude</option>
+                  <option value="gemini">Gemini (recommended)</option>
                   <option value="openrouter">OpenRouter</option>
+                  <option value="claude">Claude</option>
                 </Select>
               </div>
+
+              {/* Free vs paid explanation */}
+              {provider === 'gemini' && (
+                <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
+                  <p>
+                    <strong>Free tier:</strong> Gemini API keys are free with rate limits (15
+                    requests/minute). Plenty for vocabulary study.
+                  </p>
+                  <p>
+                    <strong>Paid tier:</strong> If you link a billing account in Google Cloud, rate
+                    limits increase significantly.
+                    {costEstimate && costEstimate !== 'Free' && (
+                      <> Estimated cost: {costEstimate} per 1,000 cards.</>
+                    )}
+                  </p>
+                </div>
+              )}
+              {provider === 'openrouter' && (
+                <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
+                  <p>
+                    OpenRouter aggregates multiple AI providers. Some models are free, others are
+                    pay-per-use.
+                    {costEstimate && costEstimate !== 'Free' && (
+                      <> Estimated cost with default model: {costEstimate} per 1,000 cards.</>
+                    )}
+                  </p>
+                </div>
+              )}
+              {provider === 'claude' && (
+                <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
+                  <p>
+                    Claude is a paid API. Estimated cost: ~$2.50 per 1,000 cards (Sonnet 4). High
+                    quality but significantly more expensive than Gemini.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="ob-key">API Key</Label>
@@ -166,17 +229,13 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     value={model}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) => setModel(e.target.value)}
                   >
-                    <option value="">Default</option>
+                    <option value="">Default ({getDefaultModelLabel(provider)})</option>
                     {(provider === 'gemini' ? GEMINI_MODELS : OPENROUTER_MODELS).map((m) => {
-                      const p = MODEL_PRICING[m.value];
+                      const cost = estimateCostPer1000(m.value);
                       return (
                         <option key={m.value} value={m.value}>
                           {m.label}
-                          {p
-                            ? p.input === 0
-                              ? ' (Free)'
-                              : ` ($${p.input.toFixed(2)}/$${p.output.toFixed(2)})`
-                            : ''}
+                          {cost ? ` (${cost}/1K cards)` : ''}
                         </option>
                       );
                     })}
