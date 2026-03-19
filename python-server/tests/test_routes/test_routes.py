@@ -30,7 +30,7 @@ class TestSettings:
         resp = client.get("/api/settings")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["aiProvider"] == "claude"
+        assert data["aiProvider"] == "gemini"
         assert data["defaultDeck"] == "Bangla"
         # Keys should be masked (empty = empty, not masked)
         assert data["claudeApiKey"] == ""

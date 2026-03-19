@@ -72,6 +72,12 @@ export const ankiApi = {
 
 // Chat API
 export const chatApi = {
+  generateDistractors: (request: { word: string; sentence: string; definition: string }) =>
+    fetchJson<{ distractors: { word: string; definition: string }[] }>('/chat/distractors', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
   relemmatize: (request: RelemmatizeRequest) =>
     fetchJson<RelemmatizeResponse>('/chat/relemmatize', {
       method: 'POST',

@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
 import { createLogger } from '@/lib/logger';
 import type React from 'react';
-import type { CardPreview as CardPreviewType } from 'shared';
+import type { CardPreview as CardPreviewType, CardType } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { buildNoteFields } from '@/lib/utils';
+import { buildNoteFields, buildClozeFields, buildMCClozeFields } from '@/lib/utils';
 import { chatApi } from '@/lib/api';
 import {
   Check,
@@ -115,8 +115,24 @@ export function CardPreview({
   const [showRetryInput, setShowRetryInput] = useState(false);
   const [retryContext, setRetryContext] = useState('');
   const [showExisting, setShowExisting] = useState(true);
+  const [generatingMC, setGeneratingMC] = useState(false);
 
   const { settings } = useSettingsStore();
+  const [selectedTypes, setSelectedTypes] = useState<Set<CardType>>(
+    () => new Set(settings.defaultCardTypes)
+  );
+
+  const toggleType = (type: CardType) => {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  };
+
+  const hasClozeConfig = !!settings.clozeNoteType;
+  const hasMCClozeConfig = !!settings.mcClozeNoteType;
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } = sessionCards;
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
@@ -149,20 +165,61 @@ export function CardPreview({
     }
 
     if (addError) setAddError(null);
-    try {
+
+    const createOneNote = async (modelName: string, fields: Record<string, string>) => {
       const noteId = await createNote.mutateAsync({
         deckName: targetDeck,
-        modelName: targetModel,
-        fields: buildNoteFields(preview, {
-          word: currentWord,
-          definition: currentDefinition,
-        }),
+        modelName,
+        fields,
         tags: ['auto-generated'],
       });
-      addCard(cardPreview, targetDeck, targetModel, noteId);
+      return noteId;
+    };
+
+    try {
+      let firstNoteId: number | undefined;
+
+      // Vocab card
+      if (selectedTypes.has('vocab')) {
+        firstNoteId = await createOneNote(
+          targetModel,
+          buildNoteFields(preview, { word: currentWord, definition: currentDefinition })
+        );
+      }
+
+      // Basic cloze card
+      if (selectedTypes.has('cloze') && settings.clozeNoteType) {
+        const clozeNoteId = await createOneNote(
+          settings.clozeNoteType,
+          buildClozeFields(cardPreview, settings.clozeFieldMapping)
+        );
+        if (!firstNoteId) firstNoteId = clozeNoteId;
+      }
+
+      // MC cloze card (needs on-demand AI call for distractors)
+      if (selectedTypes.has('mcCloze') && settings.mcClozeNoteType) {
+        setGeneratingMC(true);
+        try {
+          const { distractors } = await chatApi.generateDistractors({
+            word: currentWord,
+            sentence: preview.exampleSentence,
+            definition: currentDefinition,
+          });
+          const mcNoteId = await createOneNote(
+            settings.mcClozeNoteType,
+            buildMCClozeFields(cardPreview, distractors, settings.mcClozeFieldMapping)
+          );
+          if (!firstNoteId) firstNoteId = mcNoteId;
+        } finally {
+          setGeneratingMC(false);
+        }
+      }
+
+      if (firstNoteId) {
+        addCard(cardPreview, targetDeck, targetModel, firstNoteId);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      // Connection errors (503, network failure) → queue for later
       if (
         !ankiConnected ||
         message.includes('Could not connect') ||
@@ -170,7 +227,6 @@ export function CardPreview({
       ) {
         addToPendingQueue(cardPreview, targetDeck, targetModel);
       } else {
-        // Application errors (wrong model, missing fields) → show to user
         setAddError(message);
       }
     }
@@ -402,8 +458,46 @@ export function CardPreview({
           </>
         ) : (
           <>
-            <Button onClick={handleAddCard} disabled={createNote.isPending} size="sm">
-              {createNote.isPending ? (
+            <div className="flex items-center gap-3 mr-auto text-xs">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.has('vocab')}
+                  onChange={() => toggleType('vocab')}
+                  className="h-3 w-3"
+                />
+                Vocab
+              </label>
+              {hasClozeConfig && (
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('cloze')}
+                    onChange={() => toggleType('cloze')}
+                    className="h-3 w-3"
+                  />
+                  Cloze
+                </label>
+              )}
+              {hasMCClozeConfig && (
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('mcCloze')}
+                    onChange={() => toggleType('mcCloze')}
+                    className="h-3 w-3"
+                  />
+                  MC
+                  {generatingMC && <Loader2 className="h-3 w-3 animate-spin" />}
+                </label>
+              )}
+            </div>
+            <Button
+              onClick={handleAddCard}
+              disabled={createNote.isPending || generatingMC || selectedTypes.size === 0}
+              size="sm"
+            >
+              {createNote.isPending || generatingMC ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Adding...

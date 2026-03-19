@@ -7,8 +7,9 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
-import type { AIProvider, Settings as SettingsType } from 'shared';
+import type { AIProvider, CardType, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
+import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 
@@ -61,6 +62,8 @@ export function Settings() {
   const { data: decks } = useDecks();
   const { data: models } = useModels();
   const { data: modelFields } = useModelFields(localSettings.defaultModel);
+  const { data: clozeFields } = useModelFields(localSettings.clozeNoteType || undefined);
+  const { data: mcClozeFields } = useModelFields(localSettings.mcClozeNoteType || undefined);
 
   useEffect(() => {
     if (serverSettings) {
@@ -299,6 +302,135 @@ export function Settings() {
                       >
                         <option value="">-- not mapped --</option>
                         {modelFields.map((field) => (
+                          <option key={field} value={field}>
+                            {field}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Default Card Types */}
+            <div className="space-y-2">
+              <Label>Default Card Types</Label>
+              <div className="flex gap-4">
+                {(['vocab', 'cloze', 'mcCloze'] as CardType[]).map((type) => (
+                  <label key={type} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localSettings.defaultCardTypes.includes(type)}
+                      onChange={() => {
+                        const types = localSettings.defaultCardTypes.includes(type)
+                          ? localSettings.defaultCardTypes.filter((t) => t !== type)
+                          : [...localSettings.defaultCardTypes, type];
+                        handleChange('defaultCardTypes', types as unknown as string);
+                      }}
+                      className="h-3.5 w-3.5"
+                    />
+                    {type === 'vocab' ? 'Vocab' : type === 'cloze' ? 'Cloze' : 'MC Cloze'}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Cloze Note Type */}
+            <div className="space-y-2">
+              <Label htmlFor="cloze-model">Cloze Note Type</Label>
+              <Select
+                id="cloze-model"
+                value={localSettings.clozeNoteType}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  handleChange('clozeNoteType', e.target.value)
+                }
+                disabled={!models || models.length === 0}
+              >
+                <option value="">-- not configured --</option>
+                {models?.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* Cloze Field Mapping */}
+            {localSettings.clozeNoteType && clozeFields && clozeFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>Cloze Field Mapping</Label>
+                <div className="space-y-1.5">
+                  {CLOZE_DATA_FIELDS.map((cardField) => (
+                    <div key={cardField} className="flex items-center gap-2">
+                      <span className="text-sm w-28 flex-shrink-0">{cardField}</span>
+                      <span className="text-muted-foreground text-sm">&rarr;</span>
+                      <Select
+                        value={localSettings.clozeFieldMapping?.[cardField] || ''}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                          const newMapping = {
+                            ...localSettings.clozeFieldMapping,
+                            [cardField]: e.target.value,
+                          };
+                          handleChange('clozeFieldMapping', newMapping);
+                        }}
+                        className="flex-1"
+                      >
+                        <option value="">-- not mapped --</option>
+                        {clozeFields.map((field) => (
+                          <option key={field} value={field}>
+                            {field}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* MC Cloze Note Type */}
+            <div className="space-y-2">
+              <Label htmlFor="mc-cloze-model">MC Cloze Note Type</Label>
+              <Select
+                id="mc-cloze-model"
+                value={localSettings.mcClozeNoteType}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  handleChange('mcClozeNoteType', e.target.value)
+                }
+                disabled={!models || models.length === 0}
+              >
+                <option value="">-- not configured --</option>
+                {models?.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            {/* MC Cloze Field Mapping */}
+            {localSettings.mcClozeNoteType && mcClozeFields && mcClozeFields.length > 0 && (
+              <div className="space-y-2">
+                <Label>MC Cloze Field Mapping</Label>
+                <div className="space-y-1.5">
+                  {MC_CLOZE_DATA_FIELDS.map((cardField) => (
+                    <div key={cardField} className="flex items-center gap-2">
+                      <span className="text-sm w-28 flex-shrink-0">{cardField}</span>
+                      <span className="text-muted-foreground text-sm">&rarr;</span>
+                      <Select
+                        value={localSettings.mcClozeFieldMapping?.[cardField] || ''}
+                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                          const newMapping = {
+                            ...localSettings.mcClozeFieldMapping,
+                            [cardField]: e.target.value,
+                          };
+                          handleChange('mcClozeFieldMapping', newMapping);
+                        }}
+                        className="flex-1"
+                      >
+                        <option value="">-- not mapped --</option>
+                        {mcClozeFields.map((field) => (
                           <option key={field} value={field}>
                             {field}
                           </option>

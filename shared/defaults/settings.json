@@ -19,5 +19,10 @@
   },
   "apiToken": "",
   "englishToBanglaPrefix": "bn:",
-  "autoDetectEnglish": true
+  "autoDetectEnglish": true,
+  "defaultCardTypes": ["vocab"],
+  "clozeNoteType": "",
+  "clozeFieldMapping": {},
+  "mcClozeNoteType": "",
+  "mcClozeFieldMapping": {}
 }

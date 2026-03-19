@@ -7,7 +7,7 @@ from anki_defs.services.settings import get_settings, mask_key, save_settings
 
 def test_defaults_loaded():
     settings = get_settings()
-    assert settings["aiProvider"] == "claude"
+    assert settings["aiProvider"] == "gemini"
     assert settings["defaultDeck"] == "Bangla"
     assert settings["defaultModel"] == "Bangla (and reversed)"
 

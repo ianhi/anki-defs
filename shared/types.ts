@@ -83,6 +83,8 @@ export type AIProvider = 'claude' | 'gemini' | 'openrouter';
 // Maps card data fields (Word, Definition, Example, Translation) to note type field names
 export type FieldMapping = Record<string, string>;
 
+export type CardType = 'vocab' | 'cloze' | 'mcCloze';
+
 export interface Settings {
   aiProvider: AIProvider;
   claudeApiKey: string;
@@ -99,6 +101,12 @@ export interface Settings {
   apiToken: string;
   englishToBanglaPrefix: string;
   autoDetectEnglish: boolean;
+  // Cloze card settings
+  defaultCardTypes: CardType[];
+  clozeNoteType: string;
+  clozeFieldMapping: FieldMapping;
+  mcClozeNoteType: string;
+  mcClozeFieldMapping: FieldMapping;
 }
 
 export const CARD_DATA_FIELDS = [
@@ -132,6 +140,11 @@ export const DEFAULT_SETTINGS: Settings = {
   apiToken: '',
   englishToBanglaPrefix: 'bn:',
   autoDetectEnglish: true,
+  defaultCardTypes: ['vocab'],
+  clozeNoteType: '',
+  clozeFieldMapping: {},
+  mcClozeNoteType: '',
+  mcClozeFieldMapping: {},
 };
 
 // Model options per provider
