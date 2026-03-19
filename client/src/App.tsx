@@ -48,7 +48,6 @@ function MainApp() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <h1 className="text-lg sm:text-xl font-semibold whitespace-nowrap">Bangla</h1>
             <HeaderDeckSelector />
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
