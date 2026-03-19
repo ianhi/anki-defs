@@ -102,7 +102,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-lg sm:max-w-2xl border border-border flex flex-col min-h-[540px] sm:min-h-[520px]">
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-lg sm:max-w-2xl border border-border flex flex-col h-[580px] sm:h-[560px] max-h-[90vh]">
         <div className="px-6 pt-6 pb-2">
           <h2 className="text-xl font-semibold">
             {step === 1 ? 'Welcome' : step === 2 ? 'Choose a deck' : 'How it works'}
