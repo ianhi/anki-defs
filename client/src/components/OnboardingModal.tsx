@@ -317,23 +317,18 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         </div>
 
         <div className="px-6 pb-6 flex gap-2 justify-end">
-          {step > 1 && (
-            <Button variant="outline" onClick={() => setStep((step - 1) as 1 | 2)}>
+          {step > 1 ? (
+            <Button variant="outline" className="w-20" onClick={() => setStep((step - 1) as 1 | 2)}>
               Back
             </Button>
+          ) : (
+            <div className="w-20" />
           )}
           {step < 3 ? (
-            <Button onClick={handleNext}>Next</Button>
+            <Button className="w-20" onClick={handleNext}>Next</Button>
           ) : (
-            <Button onClick={handleFinish} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Get started'
-              )}
+            <Button className="w-20" onClick={handleFinish} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Start'}
             </Button>
           )}
         </div>
