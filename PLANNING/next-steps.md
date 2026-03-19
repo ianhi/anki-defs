@@ -52,6 +52,14 @@
 
 ## Lower Priority
 
+### Gemini grounding with web search
+
+- Gemini API supports `google_search` tool for grounded responses
+- Could verify definitions, find real example sentences, check transliterations
+- Cost: $35/1,000 grounded requests (paid tier only, ~250x more than ungrounded)
+- Should be opt-in toggle in settings, not default
+- Implementation: add `tools: [{ google_search: {} }]` to Gemini API call
+
 ### Cloze card support
 
 - Add "Cloze+" note type toggle per card preview for grammar practice
