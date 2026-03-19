@@ -71,7 +71,9 @@ export function HeaderDeckSelector() {
           disabled={isLoading}
           className="flex items-center gap-1 bg-secondary text-secondary-foreground pr-7 pl-3 py-1.5 text-sm font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring rounded-md border border-input"
         >
-          {isLoading ? 'Loading...' : settings.defaultDeck}
+          <span className="truncate max-w-[8rem] sm:max-w-none" style={{ direction: 'rtl', textAlign: 'left' }}>
+            {isLoading ? 'Loading...' : settings.defaultDeck}
+          </span>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </button>
 
