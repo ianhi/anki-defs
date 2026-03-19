@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
-import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ErrorModal } from './components/ErrorModal';
-import { SettingsIcon, X, Layers, RefreshCw, History } from 'lucide-react';
+import { SettingsIcon, X, RefreshCw, History, AlertTriangle } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
 import { useTokenUsage } from './hooks/useTokenUsage';
@@ -34,10 +33,8 @@ function MainApp() {
   useEffect(() => initSessionCards(), []);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [showCards, setShowCards] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const { cards, pendingQueue } = useSessionCards();
-  const totalCards = cards.length + pendingQueue.length;
+  const { pendingQueue } = useSessionCards();
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
   const totalTokens = totalInputTokens + totalOutputTokens;
   const platform = usePlatform();
@@ -77,6 +74,16 @@ function MainApp() {
                 />
               </Button>
             )}
+            {pendingQueue.length > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowHistory(true)}
+                title={`${pendingQueue.length} card${pendingQueue.length > 1 ? 's' : ''} queued — waiting for Anki`}
+              >
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+              </Button>
+            )}
             <Button
               variant={showHistory ? 'secondary' : 'ghost'}
               size="icon"
@@ -84,25 +91,6 @@ function MainApp() {
               title="Word history"
             >
               <History className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={showCards ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setShowCards(!showCards)}
-              className="gap-2"
-            >
-              <Layers className="h-4 w-4" />
-              {totalCards > 0 && (
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    pendingQueue.length > 0
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-primary text-primary-foreground'
-                  }`}
-                >
-                  {totalCards}
-                </span>
-              )}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowSettings(!showSettings)}>
               {showSettings ? <X className="h-5 w-5" /> : <SettingsIcon className="h-5 w-5" />}
@@ -113,24 +101,6 @@ function MainApp() {
           <Chat />
         </ErrorBoundary>
       </div>
-
-      {/* Cards Sidebar - overlay on mobile, sidebar on desktop */}
-      {showCards && (
-        <aside className="fixed inset-0 z-40 bg-card sm:static sm:inset-auto sm:w-72 sm:border-l sm:border-border flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h2 className="font-medium">Session Cards</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setShowCards(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <SessionCardsPanel />
-        </aside>
-      )}
 
       {/* History Sidebar - overlay on mobile, sidebar on desktop */}
       {showHistory && (
