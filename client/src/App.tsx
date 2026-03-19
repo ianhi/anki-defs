@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
-import { HeaderDeckSelector, MobileDeckSelector } from './components/HeaderDeckSelector';
+import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { SessionCardsPanel } from './components/SessionCardsPanel';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
@@ -52,12 +52,7 @@ function MainApp() {
         <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <h1 className="text-lg sm:text-xl font-semibold whitespace-nowrap">Bangla</h1>
-            <div className="sm:hidden">
-              <MobileDeckSelector />
-            </div>
-            <div className="hidden sm:block">
-              <HeaderDeckSelector />
-            </div>
+            <HeaderDeckSelector />
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {totalTokens > 0 && (
