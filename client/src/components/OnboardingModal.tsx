@@ -41,7 +41,7 @@ interface OnboardingModalProps {
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const { settings, loadSettings } = useSettingsStore();
   const { data: decks } = useDecks();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [provider, setProvider] = useState<AIProvider>(settings.aiProvider);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
@@ -53,12 +53,16 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const costEstimate = estimateCostPer1000(effectiveModel);
 
   const handleNext = () => {
-    if (!apiKey.trim()) {
-      setError('An API key is required to generate flashcards.');
-      return;
+    if (step === 1) {
+      if (!apiKey.trim()) {
+        setError('An API key is required to generate flashcards.');
+        return;
+      }
+      setError('');
+      setStep(2);
+    } else if (step === 2) {
+      setStep(3);
     }
-    setError('');
-    setStep(2);
   };
 
   const handleFinish = async () => {
@@ -100,11 +104,14 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
       <div className="bg-card rounded-lg shadow-xl w-full max-w-lg border border-border">
         <div className="px-6 pt-6 pb-2">
-          <h2 className="text-xl font-semibold">{step === 1 ? 'Welcome' : 'Choose a deck'}</h2>
+          <h2 className="text-xl font-semibold">
+            {step === 1 ? 'Welcome' : step === 2 ? 'Choose a deck' : 'How it works'}
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {step === 1
-              ? 'This app uses AI to generate Anki flashcards from vocabulary words and sentences. Connect an AI provider to get started.'
-              : 'Pick the Anki deck where new cards will be added.'}
+            {step === 1 &&
+              'This app uses AI to generate Anki flashcards from vocabulary words and sentences. Connect an AI provider to get started.'}
+            {step === 2 && 'Pick the Anki deck where new cards will be added.'}
+            {step === 3 && 'A few tips to get the most out of the app.'}
           </p>
         </div>
 
@@ -131,8 +138,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               {provider === 'gemini' && (
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
-                    <strong>Free tier:</strong> Free but rate-limited (e.g. 2.5 Flash allows
-                    ~20 requests/day). Your data may be used to improve Google&apos;s models.
+                    <strong>Free tier:</strong> Free but rate-limited (e.g. 2.5 Flash allows ~20
+                    requests/day). Your data may be used to improve Google&apos;s models.
                   </p>
                   <p>
                     <strong>Paid tier:</strong> Link a billing account in Google Cloud for higher
@@ -157,8 +164,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               {provider === 'claude' && (
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
-                    Claude is a paid API. Your data is not used for training. Estimated cost:
-                    ~$2.50 per 1,000 cards (Sonnet 4).
+                    Claude is a paid API. Your data is not used for training. Estimated cost: ~$2.50
+                    per 1,000 cards (Sonnet 4).
                   </p>
                 </div>
               )}
@@ -266,16 +273,56 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </div>
           )}
 
+          {step === 3 && (
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground">Type in your target language</p>
+                <p>
+                  Enter a word or paste a sentence. The AI generates flashcards with definitions,
+                  examples, and translations.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Or type in English</p>
+                <p>
+                  English input is auto-detected and generates cards in your target language. You
+                  can also prefix with <code className="bg-muted px-1 rounded">bn:</code> to force
+                  it.
+                </p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Highlight words in sentences</p>
+                <p>When you paste a sentence, select which words you want cards for:</p>
+                <ul className="list-disc list-inside ml-1 mt-1 space-y-0.5">
+                  <li>Tap the crosshair icon, then tap words (mobile)</li>
+                  <li>
+                    <kbd className="bg-muted px-1 py-0.5 rounded border border-border text-xs">
+                      Ctrl+B
+                    </kbd>{' '}
+                    /{' '}
+                    <kbd className="bg-muted px-1 py-0.5 rounded border border-border text-xs">
+                      Cmd+B
+                    </kbd>{' '}
+                    to bold-select words (desktop)
+                  </li>
+                  <li>
+                    Or wrap manually: <code className="bg-muted px-1 rounded">**word**</code>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <div className="px-6 pb-6 flex gap-2 justify-end">
-          {step === 2 && (
-            <Button variant="outline" onClick={() => setStep(1)}>
+          {step > 1 && (
+            <Button variant="outline" onClick={() => setStep((step - 1) as 1 | 2)}>
               Back
             </Button>
           )}
-          {step === 1 ? (
+          {step < 3 ? (
             <Button onClick={handleNext}>Next</Button>
           ) : (
             <Button onClick={handleFinish} disabled={saving}>

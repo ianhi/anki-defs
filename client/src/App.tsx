@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { OnboardingModal } from './components/OnboardingModal';
+import { HelpPage } from './components/HelpPage';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
@@ -53,6 +54,7 @@ function MainApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const { pendingQueue } = useSessionCards();
   const { settings } = useSettingsStore();
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
@@ -119,12 +121,7 @@ function MainApp() {
             >
               <History className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => window.open('https://ianhuntisaak.github.io/anki-defs/', '_blank')}
-              title="Help & documentation"
-            >
+            <Button variant="ghost" size="icon" onClick={() => setShowHelp(true)} title="Help">
               <HelpCircle className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowSettings(!showSettings)}>
@@ -179,6 +176,7 @@ function MainApp() {
           </div>
         </div>
       )}
+      {showHelp && <HelpPage onClose={() => setShowHelp(false)} />}
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
       <ErrorModal />
     </div>
