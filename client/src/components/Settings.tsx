@@ -10,6 +10,7 @@ import { Button } from './ui/Button';
 import type { AIProvider, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Loader2 } from 'lucide-react';
+import { KeyringWarning } from './KeyringWarning';
 
 type SettingsTab = 'ai' | 'anki' | 'preferences';
 
@@ -371,32 +372,11 @@ export function Settings() {
       {/* Sticky footer — always visible */}
       <div className="border-t border-border p-4 flex-shrink-0 space-y-3">
         {showInsecureWarning && (
-          <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950 space-y-2">
-            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-              Store API key in local config?
-            </p>
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              No system keyring (GNOME Keyring, macOS Keychain) was detected, so your API key will
-              be saved in a local config file. The file is only readable by your OS user account, so
-              this is safe for personal machines. Avoid this on shared computers.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={() => handleSave(true)}
-                disabled={updateMutation.isPending}
-              >
-                {updateMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'OK, save'
-                )}
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowInsecureWarning(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
+          <KeyringWarning
+            onConfirm={() => handleSave(true)}
+            onCancel={() => setShowInsecureWarning(false)}
+            saving={updateMutation.isPending}
+          />
         )}
 
         {!showInsecureWarning && (

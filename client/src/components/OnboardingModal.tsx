@@ -9,6 +9,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Loader2 } from 'lucide-react';
+import { KeyringWarning } from './KeyringWarning';
 
 const DEFAULT_MODELS: Record<string, string> = {
   gemini: 'gemini-2.5-flash',
@@ -48,6 +49,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [deck, setDeck] = useState(settings.defaultDeck);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showKeyringWarning, setShowKeyringWarning] = useState(false);
 
   const effectiveModel = model || DEFAULT_MODELS[provider] || '';
   const costEstimate = estimateCostPer1000(effectiveModel);
@@ -65,10 +67,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     }
   };
 
-  const handleFinish = async () => {
-    setSaving(true);
-    setError('');
-
+  const buildUpdates = (withConsent = false) => {
     const keyField =
       provider === 'claude'
         ? 'claudeApiKey'
@@ -80,21 +79,34 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       aiProvider: provider,
       [keyField]: apiKey,
       defaultDeck: deck,
-      _insecureStorageConsent: true,
     };
+
+    if (withConsent) updates._insecureStorageConsent = true;
 
     if (model) {
       if (provider === 'gemini') updates.geminiModel = model;
       else if (provider === 'openrouter') updates.openRouterModel = model;
     }
 
+    return updates;
+  };
+
+  const handleFinish = async (withConsent = false) => {
+    setSaving(true);
+    setError('');
+
     try {
-      const saved = await settingsApi.update(updates);
+      const saved = await settingsApi.update(buildUpdates(withConsent));
       loadSettings(saved);
       localStorage.setItem('anki-defs-onboarded', '1');
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save settings');
+      const msg = err instanceof Error ? err.message : 'Failed to save settings';
+      if (msg.includes('plain text') || msg.includes('insecure')) {
+        setShowKeyringWarning(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -313,7 +325,17 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </div>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {showKeyringWarning && (
+            <KeyringWarning
+              onConfirm={() => {
+                setShowKeyringWarning(false);
+                handleFinish(true);
+              }}
+              onCancel={() => setShowKeyringWarning(false)}
+              saving={saving}
+            />
+          )}
+          {error && !showKeyringWarning && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <div className="px-6 pb-6 flex justify-between">
@@ -327,7 +349,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           {step < 3 ? (
             <Button onClick={handleNext}>Next</Button>
           ) : (
-            <Button onClick={handleFinish} disabled={saving}>
+            <Button onClick={() => handleFinish()} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Start'}
             </Button>
           )}
