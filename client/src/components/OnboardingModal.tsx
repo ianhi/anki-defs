@@ -131,8 +131,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               {provider === 'gemini' && (
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
-                    <strong>Free tier:</strong> Gemini API keys are free with rate limits (15
-                    requests/minute, 1,500/day). Plenty for vocabulary study.
+                    <strong>Free tier:</strong> Gemini API keys are free with rate limits. Plenty
+                    for vocabulary study.
                   </p>
                   <p>
                     <strong>Paid tier:</strong> If you link a billing account in Google Cloud, rate
