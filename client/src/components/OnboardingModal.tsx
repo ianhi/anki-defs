@@ -158,7 +158,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 <div className="text-xs text-muted-foreground space-y-1 p-3 bg-muted/50 rounded">
                   <p>
                     Claude is a paid API. Your data is not used for training. Estimated cost:
-                    ~$2.50 per 1,000 cards (Sonnet 4) — significantly more expensive than Gemini.
+                    ~$2.50 per 1,000 cards (Sonnet 4).
                   </p>
                 </div>
               )}
