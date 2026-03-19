@@ -8,7 +8,7 @@ interface HelpPageProps {
 export function HelpPage({ onClose }: HelpPageProps) {
   return (
     <div className="fixed inset-0 z-50 bg-card overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-8 sm:py-10">
+      <div className="max-w-4xl mx-auto px-4 py-6 sm:px-8 sm:py-10">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-semibold">How to use</h1>
           <Button variant="ghost" size="icon" onClick={onClose}>
