@@ -16,6 +16,11 @@ export default defineConfig({
     // (needed for Tailscale access from phone). CORS on the API server restricts API access.
     host: true,
     allowedHosts: ['pop-os', '.ts.net'],
+    hmr: {
+      // Don't full-reload on HMR disconnect (e.g. mobile screen lock).
+      // The client will reconnect when the tab resumes.
+      timeout: 60000,
+    },
     proxy: {
       '/api': {
         target: process.env.API_TARGET || 'http://localhost:3001',
