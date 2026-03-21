@@ -16,14 +16,22 @@ interface MessageInputProps {
   onSend: (message: string, mode?: 'english-to-bangla') => void;
   disabled?: boolean;
   placeholder?: string;
+  initialValue?: string;
+  onDraftChange?: (draft: string) => void;
 }
 
 export function MessageInput({
   onSend,
   disabled = false,
   placeholder = 'Bangla word or sentence...',
+  initialValue = '',
+  onDraftChange,
 }: MessageInputProps) {
-  const [value, setValue] = useState('');
+  const [value, setValueRaw] = useState(initialValue);
+  const setValue = (v: string) => {
+    setValueRaw(v);
+    onDraftChange?.(v);
+  };
   const [cursorPos, setCursorPos] = useState(0);
   const [hasSelection, setHasSelection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

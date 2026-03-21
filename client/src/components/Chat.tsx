@@ -5,7 +5,8 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 
 export function Chat() {
-  const { messages, isStreaming, sendMessage, retryWithContext } = useChat();
+  const { messages, isStreaming, inputDraft, setInputDraft, sendMessage, retryWithContext } =
+    useChat();
   const { settings } = useSettingsStore();
   const [sharedText, setSharedText] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ export function Chat() {
         isStreaming={isStreaming}
         retryWithContext={retryWithContext}
       />
-      <MessageInput onSend={handleSend} />
+      <MessageInput onSend={handleSend} initialValue={inputDraft} onDraftChange={setInputDraft} />
     </div>
   );
 }

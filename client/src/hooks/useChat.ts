@@ -11,7 +11,9 @@ import { useTokenUsage } from './useTokenUsage';
 interface ChatState {
   messages: Message[];
   activeStreamCount: number;
+  inputDraft: string;
   setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
+  setInputDraft: (draft: string) => void;
   clearMessages: () => void;
   incrementStreams: () => void;
   decrementStreams: () => void;
@@ -22,11 +24,13 @@ const useChatStore = create<ChatState>()(
     (set) => ({
       messages: [],
       activeStreamCount: 0,
+      inputDraft: '',
       setMessages: (updater) =>
         set((state) => ({
           messages: typeof updater === 'function' ? updater(state.messages) : updater,
         })),
-      clearMessages: () => set({ messages: [], activeStreamCount: 0 }),
+      setInputDraft: (draft) => set({ inputDraft: draft }),
+      clearMessages: () => set({ messages: [], activeStreamCount: 0, inputDraft: '' }),
       incrementStreams: () => set((state) => ({ activeStreamCount: state.activeStreamCount + 1 })),
       decrementStreams: () =>
         set((state) => ({
@@ -37,6 +41,7 @@ const useChatStore = create<ChatState>()(
       name: 'bangla-chat',
       partialize: (state) => ({
         messages: state.messages,
+        inputDraft: state.inputDraft,
       }),
     }
   )
@@ -51,7 +56,9 @@ export function useChat() {
   const {
     messages,
     activeStreamCount,
+    inputDraft,
     setMessages,
+    setInputDraft,
     clearMessages,
     incrementStreams,
     decrementStreams,
@@ -274,6 +281,8 @@ export function useChat() {
   return {
     messages,
     isStreaming,
+    inputDraft,
+    setInputDraft,
     sendMessage,
     retryWithContext,
     clearMessages: clearChat,
