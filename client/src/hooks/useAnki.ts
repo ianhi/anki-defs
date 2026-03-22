@@ -45,8 +45,13 @@ export function useCreateNote() {
 }
 
 export function useAnkiSync() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: () => ankiApi.sync(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['anki'] });
+    },
   });
 }
 
