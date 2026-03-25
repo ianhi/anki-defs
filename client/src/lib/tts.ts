@@ -11,15 +11,21 @@ const log = createLogger('TTS');
 let banglaVoice: SpeechSynthesisVoice | null = null;
 let voicesLoaded = false;
 
+/** Normalize lang code — browsers use both bn-IN and bn_IN. */
+function normLang(lang: string): string {
+  return lang.replace('_', '-').toLowerCase();
+}
+
 /** Find the best available voice for a language. Prefers regional variants. */
 function findVoice(lang: string): SpeechSynthesisVoice | null {
   const voices = speechSynthesis.getVoices();
-  // Prefer exact regional match (e.g. bn-IN)
-  const exact = voices.find((v) => v.lang === lang);
+  const target = normLang(lang);
+  // Prefer exact regional match (e.g. bn-in)
+  const exact = voices.find((v) => normLang(v.lang) === target);
   if (exact) return exact;
-  // Then any voice starting with the language prefix (bn-BD, bn-IN, bn)
-  const prefix = lang.split('-')[0]!;
-  const prefixMatch = voices.find((v) => v.lang.startsWith(prefix));
+  // Then any voice starting with the language prefix (bn)
+  const prefix = target.split('-')[0]!;
+  const prefixMatch = voices.find((v) => normLang(v.lang).startsWith(prefix));
   if (prefixMatch) return prefixMatch;
   // Fallback: check voice name
   const nameMatch = voices.find(
@@ -46,6 +52,18 @@ if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.addEventListener('voiceschanged', () => {
     voicesLoaded = false;
     ensureVoice();
+    // Debug: log all Bangla-related voices
+    const allVoices = speechSynthesis.getVoices();
+    const bnVoices = allVoices.filter(
+      (v) =>
+        v.lang.toLowerCase().includes('bn') ||
+        v.name.toLowerCase().includes('bangla') ||
+        v.name.toLowerCase().includes('bengali')
+    );
+    log.info(
+      'Available Bangla voices: %s',
+      bnVoices.map((v) => `${v.name} [${v.lang}]`).join(', ')
+    );
   });
 }
 
@@ -84,7 +102,7 @@ export function getVoicesForLanguage(langPrefix = 'bn'): SpeechSynthesisVoice[] 
     .getVoices()
     .filter(
       (v) =>
-        v.lang.startsWith(langPrefix) ||
+        normLang(v.lang).startsWith(langPrefix) ||
         v.name.toLowerCase().includes('bangla') ||
         v.name.toLowerCase().includes('bengali')
     );

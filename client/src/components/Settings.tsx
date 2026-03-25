@@ -26,7 +26,7 @@ const TTS_PREVIEW_TEXT = 'আমি বাজারে যাচ্ছি।';
 
 function TtsVoicePicker() {
   const voices = getVoicesForLanguage('bn');
-  const currentVoice = getCurrentVoiceName();
+  const [selectedVoice, setSelectedVoice] = useState(getCurrentVoiceName() ?? '');
 
   if (voices.length === 0) return null;
 
@@ -36,9 +36,10 @@ function TtsVoicePicker() {
       <div className="flex gap-2 items-center">
         <Select
           id="tts-voice"
-          value={currentVoice ?? ''}
+          value={selectedVoice}
           onChange={(e: ChangeEvent<HTMLSelectElement>) => {
             setVoiceByName(e.target.value);
+            setSelectedVoice(e.target.value);
           }}
           className="flex-1"
         >
