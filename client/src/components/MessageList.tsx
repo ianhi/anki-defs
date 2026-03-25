@@ -8,7 +8,7 @@ import { cn, buildNoteFields } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { User, Bot, Eye, MessageSquare, Plus, Loader2 } from 'lucide-react';
+import { Eye, MessageSquare, Plus, Loader2 } from 'lucide-react';
 
 const log = createLogger('MessageList');
 
@@ -194,19 +194,10 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
             role="article"
             aria-label={`${message.role === 'user' ? 'You' : 'Assistant'}`}
             className={cn(
-              'flex gap-2 sm:gap-3',
+              'flex',
               message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
           >
-            {message.role === 'assistant' && (
-              <div
-                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1"
-                aria-hidden="true"
-              >
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-              </div>
-            )}
-
             <div
               className={cn(
                 'rounded-xl px-3 py-2.5 sm:px-5 sm:py-4',
@@ -282,14 +273,6 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
               )}
             </div>
 
-            {message.role === 'user' && (
-              <div
-                className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0 mt-1"
-                aria-hidden="true"
-              >
-                <User className="w-4 h-4 sm:w-5 sm:h-5 text-secondary-foreground" />
-              </div>
-            )}
           </div>
         );
       })}
