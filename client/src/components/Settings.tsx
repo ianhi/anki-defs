@@ -10,10 +10,57 @@ import { Button } from './ui/Button';
 import type { AIProvider, CardType, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Volume2 } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
+import {
+  getVoicesForLanguage,
+  setVoiceByName,
+  getCurrentVoiceName,
+  speak,
+  hasTTS,
+} from '@/lib/tts';
 
 type SettingsTab = 'ai' | 'anki' | 'preferences';
+
+const TTS_PREVIEW_TEXT = 'আমি বাজারে যাচ্ছি।';
+
+function TtsVoicePicker() {
+  const voices = getVoicesForLanguage('bn');
+  const currentVoice = getCurrentVoiceName();
+
+  if (voices.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="tts-voice">Text-to-speech voice</Label>
+      <div className="flex gap-2 items-center">
+        <Select
+          id="tts-voice"
+          value={currentVoice ?? ''}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+            setVoiceByName(e.target.value);
+          }}
+          className="flex-1"
+        >
+          {voices.map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.name} ({v.lang})
+            </option>
+          ))}
+        </Select>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => speak(TTS_PREVIEW_TEXT)}
+          title="Preview voice"
+        >
+          <Volume2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Preview: &ldquo;{TTS_PREVIEW_TEXT}&rdquo;</p>
+    </div>
+  );
+}
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'ai', label: 'AI Provider' },
@@ -497,6 +544,9 @@ export function Settings() {
                 className="w-24"
               />
             </div>
+
+            {/* TTS Voice */}
+            {hasTTS() && <TtsVoicePicker />}
           </>
         )}
       </div>
