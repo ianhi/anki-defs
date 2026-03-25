@@ -198,6 +198,38 @@ def handle_prompt_preview(_params, _headers, body):
     })
 
 
+def handle_distractors(_params, _headers, body):
+    """POST /api/chat/distractors -- Generate distractors for a cloze card."""
+    data = json.loads(body) if body else {}
+    word = data.get("word", "")
+    sentence = data.get("sentence", "")
+    definition = data.get("definition", "")
+
+    if not word or not sentence or not definition:
+        return Response.error("word, sentence, and definition are required", 400)
+
+    try:
+        system_prompt, user_message = ai_service.get_distractor_prompt(
+            word, sentence, definition
+        )
+        result = ai_service.get_json_completion(system_prompt, user_message)
+        raw_response = result.get("text", "")
+
+        try:
+            parsed = json.loads(raw_response)
+        except (json.JSONDecodeError, ValueError):
+            # Try stripping markdown fences
+            try:
+                parsed = ai_service.parse_json_response(raw_response)
+            except (json.JSONDecodeError, ValueError):
+                return Response.error("Failed to parse AI response as JSON")
+
+        distractors = parsed.get("distractors", [])
+        return Response.json({"distractors": distractors})
+    except (RuntimeError, ValueError, OSError) as e:
+        return Response.error("Failed to generate distractors: {}".format(e))
+
+
 def handle_relemmatize(_params, _headers, body):
     """POST /api/chat/relemmatize -- Re-check the dictionary form of a word."""
     data = json.loads(body) if body else {}
