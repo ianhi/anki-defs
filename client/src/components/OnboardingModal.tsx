@@ -306,7 +306,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 <p className="font-medium text-foreground">Highlight words in sentences</p>
                 <p>When you paste a sentence, select which words you want cards for:</p>
                 <ul className="list-disc list-inside ml-1 mt-1 space-y-0.5">
-                  <li>Tap the crosshair icon, then tap words (mobile)</li>
+                  <li>Tap words in the Focus bar above the input (mobile)</li>
                   <li>
                     <kbd className="bg-muted px-1 py-0.5 rounded border border-border text-xs">
                       Ctrl+B

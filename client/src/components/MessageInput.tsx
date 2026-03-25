@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
-import { Crosshair, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import {
   type WordToken,
   parseWordTokens,
@@ -41,7 +41,7 @@ export function MessageInput({
     debouncedDraftChange(v);
   };
   const [cursorPos, setCursorPos] = useState(0);
-  const [hasSelection, setHasSelection] = useState(false);
+  const [, setHasSelection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { settings } = useSettingsStore();
 
@@ -272,19 +272,6 @@ export function MessageInput({
             rows={1}
             className={`flex-1 resize-none rounded-lg border bg-background px-3 py-2.5 sm:px-4 sm:py-3 text-base leading-relaxed max-h-[40vh] overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${isEnglishToBangla ? 'border-blue-400 dark:border-blue-600' : 'border-input'}`}
           />
-          <Button
-            onMouseDown={(e) => {
-              e.preventDefault();
-              handleFocusToggle();
-            }}
-            disabled={disabled || !hasSelection}
-            size="icon"
-            variant="outline"
-            aria-label="Focus selected text"
-            className="sm:hidden"
-          >
-            <Crosshair className="h-4 w-4" />
-          </Button>
           <Button
             onClick={handleSubmit}
             disabled={disabled || !value.trim() || needsHighlight}

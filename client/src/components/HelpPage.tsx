@@ -69,8 +69,8 @@ export function HelpPage({ onClose }: HelpPageProps) {
                   Mobile
                 </span>
                 <p>
-                  Tap the crosshair icon, then tap individual words in the sentence to toggle
-                  highlighting.
+                  Place your cursor on a word in the input, then tap it in the Focus bar above
+                  to highlight it.
                 </p>
               </div>
               <div className="flex gap-3 items-start">
