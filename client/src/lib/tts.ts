@@ -89,10 +89,10 @@ export function speak(text: string, lang = 'bn'): boolean {
   return true;
 }
 
-/** Check if TTS is available for a language. */
-export function hasTTS(lang = 'bn'): boolean {
-  if (typeof speechSynthesis === 'undefined') return false;
-  return lang === 'bn' ? ensureVoice() !== null : findVoice(lang) !== null;
+/** Check if TTS is available. Returns true eagerly if speechSynthesis exists
+ *  (voices may not have loaded yet but will be available when speak() is called). */
+export function hasTTS(): boolean {
+  return typeof speechSynthesis !== 'undefined';
 }
 
 /** Get all available voices for a language prefix (e.g. 'bn'). */

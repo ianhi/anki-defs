@@ -321,31 +321,32 @@ export function CardPreview({
               </>
             ) : (
               <>
-                <CardTitle className="text-base sm:text-lg">{currentWord}</CardTitle>
-                {hasTTS() && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => speak(currentWord)}
-                    title="Pronounce"
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-1.5">
+                  <CardTitle className="text-lg sm:text-xl">{currentWord}</CardTitle>
+                  {hasTTS() && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => speak(currentWord)}
+                      title="Pronounce"
+                    >
+                      <Volume2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {!isAdded && !isQueued && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => setIsEditing(true)}
+                      title="Edit word or definition"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
                 )}
-                <span className="text-muted-foreground">—</span>
-                <span className="text-sm sm:text-base">{currentDefinition}</span>
-                {!isAdded && !isQueued && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() => setIsEditing(true)}
-                    title="Edit word or definition"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </Button>
-                )}
+                </div>
+                <span className="text-sm sm:text-base w-full">{currentDefinition}</span>
               </>
             )}
             {preview.spellingCorrection && (
