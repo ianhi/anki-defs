@@ -106,8 +106,10 @@ def create_note(deck_name, model_name, fields, tags=None):
     else:
         note.tags = ["auto-generated"]
 
-    if note.fields_check() == 2:  # empty first field
+    check = note.fields_check()
+    if check == 2:  # empty first field
         raise ValueError("First field is empty")
+    # check == 1 means duplicate — we allow duplicates (user already confirmed)
 
     col.add_note(note, deck["id"])
     return note.id
