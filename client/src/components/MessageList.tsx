@@ -164,14 +164,8 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <div className="text-center space-y-3 max-w-md px-6">
-          <p className="text-xl sm:text-2xl font-medium">Bangla Vocabulary</p>
-          <p className="text-sm sm:text-base">
-            Type a Bangla word or sentence to get definitions and create flashcards.
-          </p>
-          <div className="text-sm space-y-1 mt-4">
-            <p>Examples:</p>
-            <p className="font-medium">পানি • সুন্দর • ভালো</p>
-          </div>
+          <p className="text-lg sm:text-xl font-medium">Type a word or sentence</p>
+          <p className="text-sm">Get AI-generated definitions and create Anki flashcards.</p>
         </div>
       </div>
     );
@@ -193,10 +187,7 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
             key={message.id}
             role="article"
             aria-label={`${message.role === 'user' ? 'You' : 'Assistant'}`}
-            className={cn(
-              'flex',
-              message.role === 'user' ? 'justify-end' : 'justify-start'
-            )}
+            className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}
           >
             <div
               className={cn(
@@ -272,7 +263,6 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
                 </div>
               )}
             </div>
-
           </div>
         );
       })}

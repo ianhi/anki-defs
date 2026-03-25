@@ -90,13 +90,14 @@ function MainApp() {
                 onReset={resetUsage}
               />
             )}
-            {!isAndroid && ankiConnected && (
+            {!isAndroid && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => sync.mutate()}
-                disabled={sync.isPending}
+                disabled={sync.isPending || !ankiConnected}
                 title="Sync Anki"
+                className={ankiConnected ? '' : 'invisible'}
               >
                 <RefreshCw
                   className={`h-4 w-4 ${sync.isPending ? 'animate-spin' : ''} ${sync.isSuccess ? 'text-green-500' : ''} ${sync.isError ? 'text-destructive' : ''}`}

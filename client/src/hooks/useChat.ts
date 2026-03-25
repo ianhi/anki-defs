@@ -8,6 +8,20 @@ import { useSettingsStore } from '@/hooks/useSettings';
 import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
 
+// Pre-read persisted state synchronously to avoid layout shift on hydration
+const _persisted = (() => {
+  try {
+    const raw = localStorage.getItem('bangla-chat');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.state as { messages?: Message[]; inputDraft?: string } | undefined;
+    }
+  } catch {
+    /* empty */
+  }
+  return undefined;
+})();
+
 interface ChatState {
   messages: Message[];
   activeStreamCount: number;
@@ -22,9 +36,9 @@ interface ChatState {
 const useChatStore = create<ChatState>()(
   persist(
     (set) => ({
-      messages: [],
+      messages: _persisted?.messages ?? [],
       activeStreamCount: 0,
-      inputDraft: '',
+      inputDraft: _persisted?.inputDraft ?? '',
       setMessages: (updater) =>
         set((state) => ({
           messages: typeof updater === 'function' ? updater(state.messages) : updater,
