@@ -50,6 +50,15 @@ export function MessageInput({
   const hasPrefix = value.trimStart().toLowerCase().startsWith(prefix.toLowerCase());
   const isEnglishToBangla = isEnglishToBanglaMode(value, prefix, settings.autoDetectEnglish);
 
+  // Auto-resize on mount if there's a persisted draft
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea && value) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Listen for external "set input" events (e.g. clicking a Bangla definition)
   useEffect(() => {
     const handler = (e: Event) => {
