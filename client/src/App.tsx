@@ -72,7 +72,7 @@ function MainApp() {
   }, [settings]);
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden">
+    <div className="fixed inset-0 flex overflow-hidden h-dvh">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">

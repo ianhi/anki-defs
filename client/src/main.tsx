@@ -4,6 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './index.css';
 
+// Prevent browser scroll restoration from causing layout shifts
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
