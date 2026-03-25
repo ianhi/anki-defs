@@ -275,9 +275,9 @@ export function MessageInput({
           <Button
             onClick={handleSubmit}
             disabled={disabled || !value.trim() || needsHighlight}
-            size="icon"
+            className="h-[42px] w-[42px] sm:h-[46px] sm:w-[46px] shrink-0 rounded-lg"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           </Button>
         </div>
         {needsHighlight && (
