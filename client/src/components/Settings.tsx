@@ -12,6 +12,7 @@ import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } fro
 import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
 import { Loader2, Volume2 } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
+import { useTheme, type Theme } from '@/hooks/useTheme';
 import {
   getVoicesForLanguage,
   setVoiceByName,
@@ -21,6 +22,36 @@ import {
 } from '@/lib/tts';
 
 type SettingsTab = 'ai' | 'anki' | 'preferences';
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="space-y-2">
+      <Label>Theme</Label>
+      <div className="flex gap-2">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+              theme === opt.value
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background text-foreground border-input hover:bg-muted'
+            }`}
+            onClick={() => setTheme(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const TTS_PREVIEW_TEXT = 'আমি বাজারে যাচ্ছি।';
 
@@ -494,6 +525,8 @@ export function Settings() {
 
         {activeTab === 'preferences' && (
           <>
+            <ThemeSelector />
+
             <div className="flex items-center justify-between">
               <Label htmlFor="transliteration">Show transliteration</Label>
               <input
