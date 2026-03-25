@@ -69,8 +69,9 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
         if selection.mode == "sentence-blocked":
             yield _sse_event({
                 "type": "error",
-                "data": "Sentence mode without highlighted words is not supported. "
-                "Please highlight the words you want to learn.",
+                "data": "Highlight the words you want cards for. "
+                "On mobile: tap the crosshair icon then tap words. "
+                "On desktop: select text and press Ctrl+B.",
             })
             yield _sse_event({"type": "done", "data": None})
             return

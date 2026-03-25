@@ -47,8 +47,9 @@ def handle_stream(_params, _headers, body):
             send_sse(
                 sock,
                 "error",
-                "Sentence mode without highlighted words is not supported. "
-                "Please highlight the words you want to learn.",
+                "Highlight the words you want cards for. "
+                "On mobile: tap the crosshair icon then tap words. "
+                "On desktop: select text and press Ctrl+B.",
             )
             send_sse(sock, "done", None)
             try:

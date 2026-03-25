@@ -383,7 +383,18 @@ export function CardPreview({
       )}
       {preview.exampleSentence && (
         <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
-          <p className="text-xs sm:text-sm">{highlightBoldMarkers(preview.exampleSentence)}</p>
+          <button
+            type="button"
+            className="text-xs sm:text-sm text-left cursor-pointer hover:text-primary transition-colors"
+            onClick={() =>
+              window.dispatchEvent(
+                new globalThis.CustomEvent('setInput', { detail: preview.exampleSentence })
+              )
+            }
+            title="Use sentence as input"
+          >
+            {highlightBoldMarkers(preview.exampleSentence)}
+          </button>
           {preview.sentenceTranslation && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {preview.sentenceTranslation}

@@ -158,13 +158,13 @@ def create_card(
             "modelName": model,
             "fields": fields,
             "tags": tags or ["auto-generated"],
+            "options": {"allowDuplicate": True},
         },
     )
 
     if note_id is None:
         raise RuntimeError(
-            f"Cannot create note. The note may be a duplicate, "
-            f"or the first field of note type '{model}' is empty."
+            f"Cannot create note. The first field of note type '{model}' may be empty."
         )
 
     # Add to word cache
