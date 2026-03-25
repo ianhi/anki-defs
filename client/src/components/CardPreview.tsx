@@ -382,7 +382,7 @@ export function CardPreview({
         <div className="px-3 sm:px-6 pt-0 pb-0.5">
           <button
             type="button"
-            className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
             onClick={() =>
               window.dispatchEvent(
                 new globalThis.CustomEvent('setInput', { detail: preview.banglaDefinition })
@@ -399,7 +399,7 @@ export function CardPreview({
           <div className="flex items-start gap-1">
             <button
               type="button"
-              className="text-xs sm:text-sm text-left cursor-pointer hover:text-primary transition-colors"
+              className="text-sm sm:text-base text-left cursor-pointer hover:text-primary transition-colors"
               onClick={() =>
                 window.dispatchEvent(
                   new globalThis.CustomEvent('setInput', { detail: preview.exampleSentence })
@@ -422,7 +422,7 @@ export function CardPreview({
             )}
           </div>
           {preview.sentenceTranslation && (
-            <p className="text-xs sm:text-sm text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {preview.sentenceTranslation}
             </p>
           )}

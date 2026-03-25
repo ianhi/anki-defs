@@ -75,7 +75,7 @@ function MainApp() {
     <div className="fixed inset-0 flex overflow-hidden h-dvh">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 border-b border-border bg-background gap-2">
+        <header className="flex items-center justify-between px-3 h-12 sm:h-14 border-b border-border bg-background gap-2 flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <span className="text-xs text-muted-foreground hidden sm:inline">Deck</span>
             <HeaderDeckSelector />

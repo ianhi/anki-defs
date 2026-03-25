@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useLayoutEffect, useState, useCallback } from 'react';
 import type { Message, TokenUsage } from 'shared';
 import { computeCost } from 'shared';
 import { createLogger } from '@/lib/logger';
@@ -153,7 +153,8 @@ function CardPreviewList({
 export function MessageList({ messages, isStreaming, retryWithContext }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  // Scroll to bottom before paint to avoid visible jump
+  useLayoutEffect(() => {
     const container = scrollContainerRef.current;
     if (container) {
       container.scrollTop = container.scrollHeight;
