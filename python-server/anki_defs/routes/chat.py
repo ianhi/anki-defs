@@ -178,6 +178,42 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
     })
 
 
+@router.post("/distractors")
+async def generate_distractors(request: Request) -> JSONResponse:
+    """Generate 3 plausible-but-wrong distractors for a cloze card."""
+    body = await request.json()
+    word: str = body.get("word", "")
+    sentence: str = body.get("sentence", "")
+    definition: str = body.get("definition", "")
+
+    if not word or not sentence or not definition:
+        return JSONResponse(
+            {"error": "word, sentence, and definition are required"}, status_code=400
+        )
+
+    try:
+        system_prompt, user_message = ai.get_distractor_prompt(word, sentence, definition)
+        result = await asyncio.to_thread(
+            ai.get_json_completion, system_prompt, user_message
+        )
+        raw_response = result.get("text", "")
+
+        try:
+            parsed = ai.parse_json_response(raw_response)
+        except (json.JSONDecodeError, ValueError):
+            return JSONResponse(
+                {"error": "Failed to parse AI response as JSON"}, status_code=500
+            )
+
+        distractors = parsed.get("distractors", [])
+        return JSONResponse({"distractors": distractors})
+    except (RuntimeError, ValueError, OSError) as e:
+        log.error("Error generating distractors: %s", e)
+        return JSONResponse(
+            {"error": f"Failed to generate distractors: {e}"}, status_code=500
+        )
+
+
 @router.post("/relemmatize")
 async def relemmatize(request: Request) -> JSONResponse:
     body = await request.json()

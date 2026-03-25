@@ -37,6 +37,7 @@ def _load_all_prompts() -> dict[str, Any]:
         "relemmatize": _load_json("relemmatize.json"),
         "englishToBangla": _load_json("english-to-bangla.json"),
         "sentence": _load_json("sentence.json"),
+        "distractors": _load_json("distractors.json"),
     }
 
 
@@ -204,6 +205,22 @@ def get_relemmatize_prompt(word: str, sentence: str | None = None) -> str:
         .replace("{{word}}", word)
         .replace("{{context}}", context)
     )
+
+
+def get_distractor_prompt(word: str, sentence: str, definition: str) -> tuple[str, str]:
+    """Build the distractor generation prompt.
+
+    Returns (system_prompt, user_message) tuple.
+    """
+    template = _prompt_templates["distractors"]
+    system_prompt = template["system"]
+    user_message = (
+        template["user_template"]
+        .replace("{{word}}", word)
+        .replace("{{sentence}}", sentence)
+        .replace("{{definition}}", definition)
+    )
+    return system_prompt, user_message
 
 
 # --- Provider dispatch ---

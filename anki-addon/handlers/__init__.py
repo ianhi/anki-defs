@@ -24,6 +24,7 @@ def create_router():
 
     # Chat routes
     router.post("/api/chat/stream", chat_routes.handle_stream)
+    router.post("/api/chat/distractors", chat_routes.handle_distractors)
     router.post("/api/chat/relemmatize", chat_routes.handle_relemmatize)
 
     # Settings

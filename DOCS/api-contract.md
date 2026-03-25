@@ -36,6 +36,7 @@ is missing and prints warnings for extra routes not in the contract.
 | Method | Endpoint       | Description                            |
 | ------ | -------------- | -------------------------------------- |
 | POST   | `/stream`      | SSE endpoint for AI card generation    |
+| POST   | `/distractors` | Generate MC cloze distractors          |
 | POST   | `/relemmatize` | Re-check the dictionary form of a word |
 
 ### Settings Routes (`/api/settings`)
