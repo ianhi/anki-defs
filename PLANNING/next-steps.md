@@ -1,71 +1,124 @@
 # Next Steps
 
-## High Priority
+## Bugs (fix first)
+
+### Duplicate word with new definition fails to add
+
+- When a word already has a card but the user wants a second card with a different
+  definition (e.g. a different sense), the add fails
+- The duplicate check should warn but allow adding — currently it seems to block
+- Investigate: is the error from the `alreadyExists` check or from Anki itself?
+
+### Mobile refresh/relayout delays
+
+- Reopening the tab on phone causes visible relayout and refresh delays
+- Partially addressed (draft persistence, HMR timeout increase) but still noticeable
+- May be related to TanStack Query revalidation on tab focus (disabled globally but
+  individual queries may override), or Zustand rehydration
+- Need to profile: is it a full reload or just re-renders?
+
+## High Priority Features
+
+### Reader mode (tap-to-define)
+
+- Paste a large block of text (article, story, dialogue)
+- Tap any word to get an instant definition popup
+- Option to add tapped words as flashcards
+- This is the primary "study from real content" workflow
+- Could be a separate route/view (`/reader`) or a modal
+
+### PDF/image import into reader
+
+- Import PDFs or photos of text (textbook pages, signs, menus)
+- Run OCR/transcription to extract text (see `../transchrive` project prompts)
+- Feed extracted text into the reader mode
+- Gemini has built-in vision capabilities — could send images directly
+
+### Text-to-speech
+
+- Play pronunciation for single words (most valuable use case)
+- Options: browser SpeechSynthesis API (free, offline), Google TTS, or device voices
+- Add a speaker icon on card previews next to the word
+- Language detection: use the target language for TTS voice selection
+
+### Sentence translation without word highlighting
+
+- Currently blocked: entering a sentence without highlights returns an error
+- Should allow: just translate the sentence naturally without generating cards
+- Use case: "what does this sentence mean?" without wanting flashcards
+- Implementation: add a `translate` mode or unblock `sentence-blocked`
+
+### Cloze card support (Phase 3 — backend)
+
+- Frontend checkboxes + field builders done (committed)
+- Still needed: `/api/chat/distractors` endpoint + distractor prompt template
+- Validation pipeline: overgenerate 5 → validate → select best 3
+- See `PLANNING/cloze-research-prompt.md` for research findings
 
 ### Test and polish Anki add-on
 
 - Code is hardened but never verified end-to-end inside Anki Desktop
-- Run `install-dev.sh` as ian, restart Anki, test all flows:
-  card creation, search, deletion, SSE streaming, settings/keyring
-- Keyring consent flow and D-Bus fix need real-world testing
-- Rebuild frontend into addon after UI changes (`install-dev.sh`)
+- Run `install-dev.sh` as ian, restart Anki, test all flows
+- Rebuild frontend into addon after UI changes
 
-### Cloze card support
+## Already Implemented (verify these work)
 
-- Add "Cloze" note type toggle per card preview for grammar practice
-- Generate cloze deletions from example sentences (e.g. "মেয়েটা {{c1::কাঁদছে}}।")
-- Need to detect cloze-compatible note types in the user's Anki collection
-- Settings: option to auto-generate cloze cards alongside regular cards
+### Edit word/definition before adding ✓
 
-### Theming
+- Pencil icon on card preview lets you edit word and definition
+- Relemmatize button asks AI for correct dictionary form
+- Already in `CardPreview.tsx` — verify it works on mobile
 
-- Currently dark mode only (via Tailwind dark class)
-- Add light/dark/system toggle in Settings > Preferences
-- Respect `prefers-color-scheme` media query for system default
-- Store preference in settings (persisted to server)
+### Tap example sentence to populate input ✓
+
+- Clicking the Bangla definition text populates the input area
+- Uses `CustomEvent('setInput')` in `CardPreview.tsx` line 375
+- Verify: does tapping the EXAMPLE SENTENCE also work? (currently only
+  the Bangla definition is clickable — may want to add example sentence too)
 
 ## Medium Priority
 
+### Theming
+
+- Currently dark mode only
+- Add light/dark/system toggle in Settings > Preferences
+- Respect `prefers-color-scheme` for system default
+
 ### Error UX polish
 
-- Errors show in assistant bubbles (done) — wire up `useErrorModal.showError()`
-  for non-recoverable errors (500s, unexpected failures)
-- The ErrorModal component and store exist but nothing triggers `showError()` yet
+- Errors show in assistant bubbles (done)
+- Wire up `useErrorModal.showError()` for non-recoverable errors
+- ErrorModal component exists but nothing triggers it yet
 
-### Unmarked sentence mode
+### Unmarked sentence mode (auto-detect unknown words)
 
-- Paste a sentence without highlighting any words → auto-detect which words
-  are NOT in Anki
-- Tokenize sentence, lemmatize each word, batch-check Anki, filter to unknown words
-- Currently blocked in client UI (must highlight words manually)
-
-### Migrate Android to JSON-first pipeline
-
-- Android still uses old two-call streaming markdown + extraction pipeline
-- Should match web backend: single non-streaming LLM call returning JSON
-- SSE events: only `usage`, `card_preview`, `done` (no more `text` events)
+- Paste a sentence → auto-detect which words are NOT in Anki
+- Tokenize, lemmatize, batch-check Anki, filter to unknown
+- Different from "sentence translation" — this generates cards for unknown words
 
 ### Per-message streaming indicator
 
-- With concurrent streaming, the loading indicator only shows on the last message
-- Should show on any assistant message that's still loading
+- With concurrent streaming, loading indicator only shows on last message
+- Should show on any assistant message still loading
 
-### Bangla disambiguation support
+### Migrate Android to JSON-first pipeline
 
-- Add `eng-disambig` and `bangla-disambig` fields for homonyms
-- e.g. তারা = star vs they
-- Note: English→Bangla disambiguation is already handled via sentence highlights
+- Still uses old two-call streaming markdown + extraction
+- Should match web: single non-streaming LLM call returning JSON
 
 ## Lower Priority
 
 ### Gemini grounding with web search
 
-- Gemini API supports `google_search` tool for grounded responses
-- Could verify definitions, find real example sentences, check transliterations
-- Cost: $35/1,000 grounded requests (paid tier only, ~250x more than ungrounded)
-- Should be opt-in toggle in settings, not default
-- Implementation: add `tools: [{ google_search: {} }]` to Gemini API call
+- `google_search` tool for grounded responses
+- $35/1K grounded requests — opt-in only
+- Could verify definitions, find real example sentences
+
+### Bangla disambiguation support
+
+- `eng-disambig` and `bangla-disambig` fields for homonyms
+- e.g. তারা = star vs they
 
 ### Web search verification
 
-- Verify definitions via Samsad dictionary or Wiktionary for uncommon words
+- Verify definitions via Samsad dictionary or Wiktionary
