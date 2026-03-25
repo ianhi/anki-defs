@@ -65,7 +65,7 @@ export function speak(text: string, lang = 'bn'): boolean {
   const utterance = new SpeechSynthesisUtterance(stripMarkup(text));
   utterance.lang = voice?.lang ?? lang;
   if (voice) utterance.voice = voice;
-  utterance.rate = 0.9; // Slightly slower for learning
+  utterance.rate = 1.0;
 
   speechSynthesis.speak(utterance);
   return true;
