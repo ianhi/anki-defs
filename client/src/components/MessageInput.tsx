@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { Button } from './ui/Button';
 import { Crosshair, Send } from 'lucide-react';
 import {
@@ -28,9 +28,17 @@ export function MessageInput({
   onDraftChange,
 }: MessageInputProps) {
   const [value, setValueRaw] = useState(initialValue);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedDraftChange = useCallback(
+    (v: string) => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => onDraftChange?.(v), 500);
+    },
+    [onDraftChange]
+  );
   const setValue = (v: string) => {
     setValueRaw(v);
-    onDraftChange?.(v);
+    debouncedDraftChange(v);
   };
   const [cursorPos, setCursorPos] = useState(0);
   const [hasSelection, setHasSelection] = useState(false);
