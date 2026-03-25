@@ -180,7 +180,7 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6"
+      className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 sm:px-4 sm:py-6 space-y-4 sm:space-y-6"
       role="log"
       aria-label="Chat messages"
     >

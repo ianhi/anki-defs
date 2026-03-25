@@ -159,7 +159,7 @@ export function MessageInput({
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+      textarea.style.height = `${textarea.scrollHeight}px`;
     }
   };
 
@@ -262,7 +262,7 @@ export function MessageInput({
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className={`flex-1 resize-none rounded-lg border bg-background px-3 py-2.5 sm:px-4 sm:py-3 text-base leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${isEnglishToBangla ? 'border-blue-400 dark:border-blue-600' : 'border-input'}`}
+            className={`flex-1 resize-none rounded-lg border bg-background px-3 py-2.5 sm:px-4 sm:py-3 text-base leading-relaxed max-h-[40vh] overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${isEnglishToBangla ? 'border-blue-400 dark:border-blue-600' : 'border-input'}`}
           />
           <Button
             onMouseDown={(e) => {
