@@ -239,7 +239,7 @@ export function MessageInput({
                     e.preventDefault();
                     handleBadgeTap(token);
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-200 rounded text-xs font-medium hover:bg-yellow-200 dark:hover:bg-yellow-500/30 transition-colors"
                   title="Tap to unfocus"
                 >
                   {token.word}
@@ -260,7 +260,7 @@ export function MessageInput({
                     e.preventDefault();
                     handlePreviewTap();
                   }}
-                  className="px-2 py-0.5 rounded text-xs font-medium border border-dashed border-yellow-400 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-950 hover:bg-yellow-100 dark:hover:bg-yellow-900 transition-colors"
+                  className="px-2 py-0.5 rounded text-xs font-medium border border-dashed border-yellow-400 dark:border-yellow-500/50 text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-500/10 hover:bg-yellow-100 dark:hover:bg-yellow-500/20 transition-colors"
                 >
                   + {previewToken.word}
                 </button>

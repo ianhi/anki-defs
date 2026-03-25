@@ -47,7 +47,7 @@ function highlightBoldMarkers(sentence: string): React.ReactNode {
       {parts.map((part, i) => {
         const match = part.match(/^\*\*([^*]+)\*\*$/);
         return match ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 dark:text-yellow-200 px-0.5 rounded">
             {match[1]}
           </mark>
         ) : (
