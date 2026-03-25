@@ -13,9 +13,10 @@ is missing and prints warnings for extra routes not in the contract.
 
 ### Health Check
 
-| Method | Endpoint      | Description                |
-| ------ | ------------- | -------------------------- |
-| GET    | `/api/health` | Returns `{ status: 'ok' }` |
+| Method | Endpoint        | Description                  |
+| ------ | --------------- | ---------------------------- |
+| GET    | `/api/health`   | Returns `{ status: 'ok' }`   |
+| GET    | `/api/platform` | Returns `{ platform: '...'}` |
 
 ### Anki Routes (`/api/anki`)
 
@@ -30,6 +31,9 @@ is missing and prints warnings for extra routes not in the contract.
 | DELETE | `/notes/:id`           | Delete a note                |
 | POST   | `/sync`                | Trigger Anki sync            |
 | GET    | `/status`              | Check AnkiConnect connection |
+
+Note creation uses `allowDuplicate: true` so users can add multiple cards for the
+same word with different definitions.
 
 ### Chat Routes (`/api/chat`)
 
@@ -46,6 +50,9 @@ is missing and prints warnings for extra routes not in the contract.
 | GET    | `/`      | Get current settings (API keys masked) |
 | PUT    | `/`      | Update settings                        |
 
+GET response includes `_keyringAvailable` (bool) and `_insecureStorageConsent` (bool).
+PUT with secrets when keyring unavailable returns 409 until user consents.
+
 ### Session Routes (`/api/session`)
 
 | Method | Endpoint               | Description                                    |
@@ -57,44 +64,47 @@ is missing and prints warnings for extra routes not in the contract.
 | DELETE | `/pending/:id`         | Remove a card from the pending queue           |
 | POST   | `/pending/:id/promote` | Sync pending card to Anki and move to cards    |
 | POST   | `/clear`               | Clear all session data                         |
+| GET    | `/usage`               | Get token usage totals                         |
+| POST   | `/usage/reset`         | Reset token usage counters                     |
+| GET    | `/history`             | Search word history                            |
+
+### Prompt Routes (`/api/prompts`)
+
+| Method | Endpoint   | Description              |
+| ------ | ---------- | ------------------------ |
+| POST   | `/preview` | Preview rendered prompts |
 
 ## SSE Event Types
 
-The `/api/chat/stream` endpoint sends these discriminated union events (defined as `SSEEvent` in `shared/types.ts`):
+The `/api/chat/stream` endpoint sends discriminated union events (`SSEEvent` in `shared/types.ts`):
 
-| `type`         | `data`        | Description                        |
-| -------------- | ------------- | ---------------------------------- |
-| `card_preview` | `CardPreview` | Card preview with duplicate status |
-| `usage`        | `TokenUsage`  | Token usage and cost data          |
-| `done`         | `null`        | Stream complete                    |
-| `error`        | `string`      | Error message                      |
-
-No `text` events — the client shows a spinner until card previews arrive.
+| `type`         | `data`        | Description                               |
+| -------------- | ------------- | ----------------------------------------- |
+| `card_preview` | `CardPreview` | Card preview with duplicate status        |
+| `usage`        | `TokenUsage`  | Token usage and cost data                 |
+| `done`         | `null`        | Stream complete                           |
+| `error`        | `string`      | Error message (shown in assistant bubble) |
 
 ## Settings Storage
 
-Settings stored in `~/.config/bangla-anki/settings.json`:
+Settings are stored per-platform:
+
+- **Python server**: `~/.config/bangla-anki/settings.json`
+- **Anki addon**: Anki's addon config (`meta.json`)
+
+API keys stored in system keyring when available, with fallback to config
+file (requires user consent). See `settings_base.py` for shared logic.
+
+Settings include cloze card configuration:
 
 ```json
 {
-  "aiProvider": "claude",
-  "claudeApiKey": "sk-...",
-  "geminiApiKey": "...",
-  "geminiModel": "gemini-2.5-flash-lite",
-  "openRouterApiKey": "...",
-  "openRouterModel": "google/gemini-2.5-flash",
-  "showTransliteration": false,
-  "leftHanded": false,
-  "defaultDeck": "Bangla",
-  "defaultModel": "Bangla (and reversed)",
-  "ankiConnectUrl": "http://localhost:8765",
-  "fieldMapping": {
-    "Word": "Bangla",
-    "Definition": "Eng_trans",
-    "BanglaDefinition": "bangla-def",
-    "Example": "example sentence",
-    "Translation": "sentence-trans"
-  },
-  "apiToken": "auto-generated-on-first-startup"
+  "aiProvider": "gemini",
+  "defaultCardTypes": ["vocab"],
+  "clozeNoteType": "",
+  "clozeFieldMapping": {},
+  "mcClozeNoteType": "",
+  "mcClozeFieldMapping": {},
+  ...
 }
 ```

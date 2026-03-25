@@ -117,19 +117,26 @@ priorities. Read the relevant plan doc for your task.
 ## Documentation Workflow
 
 **Hard rule**: Every commit that changes code MUST also update the relevant PLANNING/ or
-DOCS/ file. If no doc update is needed, state why in the commit message.
+DOCS/ file. If no doc update is needed, state why in the commit message. Stale docs are
+worse than no docs — they actively mislead.
 
-**Update as you go** -- in the same commit as code changes:
+**What to update and when** -- in the same commit as code changes:
 
-- `PLANNING/` -- Plans, requirements, design proposals.
-  - When you **finish implementing** a plan: update its status in the plan doc and in
-    `PLANNING/INDEX.md`. If the plan is fully implemented, delete the file and remove
-    it from INDEX.md (don't accumulate stale plans).
-  - When you **discover new requirements**: create a new `.md` and add it to INDEX.md.
-  - When a plan becomes **partially done**: update the doc to show what's done vs remaining.
-- `DOCS/` -- Implementation reference (API details, file maps, patterns).
-  - When you **add/remove/rename files**: update the relevant `DOCS/file-map.md`.
-  - When you **change the API**: update `DOCS/api-contract.md` and `shared/DOCS/types-reference.md`.
+- `PLANNING/INDEX.md` -- Update component status table when features ship or break.
+- `PLANNING/next-steps.md` -- Mark items done, add new items as discovered.
+- `DOCS/api-contract.md` -- Update when adding/changing/removing API endpoints, changing
+  request/response shapes, or modifying settings fields.
+- `client/DOCS/file-map.md` -- Update when adding/removing/renaming components, hooks,
+  or lib files. Note new patterns (e.g. new stores, new utility modules).
+- `shared/DOCS/types-reference.md` -- Update when changing shared types.
+
+**Plan lifecycle**:
+- When you **finish implementing** a plan: update its status and move to Completed in INDEX.md.
+- When you **discover new requirements**: create a new `.md` and add it to INDEX.md.
+- When a plan becomes **partially done**: update the doc to show what's done vs remaining.
+
+**Enforcement**: Before making a commit, ask yourself: "Would someone reading the docs
+be surprised by this change?" If yes, the docs need updating.
 
 Each subproject has its own `PLANNING/` and `DOCS/` directories. Root-level ones cover
 cross-cutting concerns.

@@ -3,23 +3,24 @@
 ## Current Status
 
 All backends use JSON-first pipeline (single LLM call). Python server is the primary backend.
-Settings unified via shared `settings_base.py`. Structured logging (Python `logging` + frontend `createLogger`).
+Settings unified via shared `settings_base.py`. Structured logging throughout.
 
-| Component                              | Status                           | Notes                                                                        |
-| -------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------- |
-| Web app (`client/` + `python-server/`) | Working                          | FastAPI + React, 3 AI providers, bearer auth, mobile UX, EN→BN mode          |
-| Android (`android/`)                   | Working                          | WebView + NanoHTTPd, still uses old two-call pipeline                        |
-| Anki add-on (`anki-addon/`)            | Working                          | Hardened, keyring+fallback, needs manual testing inside Anki                 |
-| Shared prompts (`shared/prompts/`)     | Working                          | JSON-format templates incl. english-to-bangla, all backends load from shared |
-| Tests                                  | 65 vitest + 67 pytest + 46 addon | TypeScript + Python full coverage                                            |
-| CI                                     | Working                          | `.github/workflows/ci.yml` — web checks + python-server checks               |
-| Docs site (`docs/`)                    | Deployed                         | Astro Starlight on GitHub Pages                                              |
+| Component                              | Status                           | Notes                                                                            |
+| -------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| Web app (`client/` + `python-server/`) | Working                          | FastAPI + React, 3 AI providers, TTS, cloze support, onboarding, tabbed settings |
+| Android (`android/`)                   | Working                          | WebView + NanoHTTPd, still uses old two-call pipeline                            |
+| Anki add-on (`anki-addon/`)            | Working                          | Hardened, keyring+fallback, needs manual testing inside Anki                     |
+| Shared prompts (`shared/prompts/`)     | Working                          | JSON-format templates incl. english-to-bangla + distractor generation            |
+| Tests                                  | 65 vitest + 67 pytest + 46 addon | TypeScript + Python full coverage                                                |
+| CI                                     | Working                          | `.github/workflows/ci.yml` — web checks + python-server checks                   |
+| Docs site (`docs/`)                    | Deployed                         | Astro Starlight on GitHub Pages                                                  |
 
 ## Active Plans
 
-| Doc                            | Summary         | What's left                                          |
-| ------------------------------ | --------------- | ---------------------------------------------------- |
-| [next-steps.md](next-steps.md) | Feature roadmap | Error UX, addon testing, Android migration, and more |
+| Doc                                                  | Summary             | What's left                                      |
+| ---------------------------------------------------- | ------------------- | ------------------------------------------------ |
+| [next-steps.md](next-steps.md)                       | Feature roadmap     | Reader mode, TTS polish, addon testing, and more |
+| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research | Research complete, implementation in progress    |
 
 ## Completed Plans (reference only)
 

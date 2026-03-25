@@ -2,36 +2,49 @@
 
 ## Entry Points
 
-- `src/main.tsx` -- React entry point
-- `src/App.tsx` -- Main app component, layout
+- `src/main.tsx` -- React entry point, QueryClient config, scroll restoration fix
+- `src/App.tsx` -- Main app component, layout, modal routing (settings, help, onboarding)
 - `src/index.css` -- CSS entry with Tailwind v4 (`@theme` tokens, dark mode)
-- `src/types/index.ts` -- Re-exports all types from `shared`
+- `src/vite-env.d.ts` -- Vite client types (import.meta.env)
 
 ## Components (`src/components/`)
 
-- `Chat.tsx` -- Primary chat interface
-- `MessageList.tsx` -- Message rendering with markdown
-- `MessageInput.tsx` -- Text input with word focus UI (preview chip, badges, Ctrl+B)
-- `CardPreview.tsx` -- Flashcard preview with editing, add/skip/queue actions
-- `Settings.tsx` -- Settings panel (AI provider, API keys, deck selection)
-- `SessionCardsPanel.tsx` -- Session card history sidebar
-- `HeaderDeckSelector.tsx` -- Deck selector in header
-- `DebugMenu.tsx` -- Debug/dev tools
-- `ui/` -- Base UI primitives (shadcn-style: Badge, Button, Card, Input, Label, Select)
+- `Chat.tsx` -- Primary chat interface, passes draft persistence to MessageInput
+- `MessageList.tsx` -- Message rendering (no avatar icons, full-width on mobile)
+- `MessageInput.tsx` -- Text input with word focus UI (Focus bar, Ctrl+B, auto-resize, draft persistence)
+- `CardPreview.tsx` -- Flashcard preview with editing, TTS, cloze checkboxes, add/skip/queue
+- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences)
+- `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker)
+- `OnboardingModal.tsx` -- First-run setup wizard (3 steps: provider, deck, usage tips)
+- `HelpPage.tsx` -- In-app help/documentation page
+- `ErrorModal.tsx` -- Global error modal with copyable debug info
+- `ErrorBoundary.tsx` -- React error boundary
+- `KeyringWarning.tsx` -- Reusable insecure storage consent dialog
+- `SessionCardsPanel.tsx` -- Session card panel (removed from header, used internally)
+- `HistoryPanel.tsx` -- Word history sidebar
+- `TokenDisplay.tsx` -- Token/cost display in header
+- `PromptPreview.tsx` -- Debug prompt preview (via ?demo=prompts)
+- `RetryUxDemo.tsx` -- Debug retry UX demo (via ?demo=retry)
+- `ui/` -- Base UI primitives (Badge, Button, Card, Input, Label, Select)
 
 ## Hooks (`src/hooks/`)
 
-- `useChat.ts` -- Chat state + SSE streaming logic (Zustand + persist)
-- `useAnki.ts` -- TanStack Query hooks for Anki API calls
+- `useChat.ts` -- Chat state + SSE streaming + input draft persistence (Zustand + persist)
+- `useAnki.ts` -- TanStack Query hooks for Anki API calls (sync invalidates all queries)
 - `useSettings.ts` -- Zustand settings store (persisted)
 - `useSessionCards.ts` -- Session card tracking + pending queue
 - `useTokenUsage.ts` -- Token/cost accumulation
+- `useErrorModal.ts` -- Global error modal state (Zustand)
+- `usePlatform.ts` -- Platform detection (web/android/anki-addon)
 
 ## Lib (`src/lib/`)
 
-- `api.ts` -- API client functions (REST fetch wrappers + SSE connection)
-- `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, cursor lookup)
-- `utils.ts` -- Utility functions (`cn` for classnames, `generateId`, `boldWordInSentence`)
+- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation)
+- `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers)
+- `utils.ts` -- Utilities: `buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`,
+  `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`
+- `logger.ts` -- Structured console logging with levels (`createLogger`)
+- `tts.ts` -- Text-to-speech using browser SpeechSynthesis API (voice detection, selection)
 
 ## Adding a New API Endpoint (Client Side)
 
