@@ -326,11 +326,11 @@ export function CardPreview({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-5 w-5"
+                    className="h-7 w-7"
                     onClick={() => speak(currentWord)}
                     title="Pronounce"
                   >
-                    <Volume2 className="h-3 w-3" />
+                    <Volume2 className="h-4 w-4" />
                   </Button>
                 )}
                 <span className="text-muted-foreground">—</span>
@@ -413,11 +413,11 @@ export function CardPreview({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 flex-shrink-0 mt-0.5"
+                className="h-7 w-7 flex-shrink-0 mt-0.5"
                 onClick={() => speak(preview.exampleSentence)}
                 title="Listen"
               >
-                <Volume2 className="h-3 w-3" />
+                <Volume2 className="h-4 w-4" />
               </Button>
             )}
           </div>

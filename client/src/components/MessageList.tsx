@@ -209,10 +209,10 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
 
             <div
               className={cn(
-                'max-w-[90%] sm:max-w-[85%] rounded-xl px-3 py-2.5 sm:px-5 sm:py-4',
+                'rounded-xl px-3 py-2.5 sm:px-5 sm:py-4',
                 message.role === 'user'
-                  ? 'bg-primary text-primary-foreground text-base sm:text-lg'
-                  : 'bg-muted text-foreground'
+                  ? 'max-w-[90%] sm:max-w-[85%] bg-primary text-primary-foreground text-base sm:text-lg'
+                  : 'w-full sm:max-w-[85%] bg-muted text-foreground'
               )}
             >
               {message.role === 'user' ? (
