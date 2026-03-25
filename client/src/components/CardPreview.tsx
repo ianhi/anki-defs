@@ -22,7 +22,9 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
+  Volume2,
 } from 'lucide-react';
+import { speak, hasTTS } from '@/lib/tts';
 
 const log = createLogger('CardPreview');
 
@@ -320,6 +322,17 @@ export function CardPreview({
             ) : (
               <>
                 <CardTitle className="text-base sm:text-lg">{currentWord}</CardTitle>
+                {hasTTS() && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => speak(currentWord)}
+                    title="Pronounce"
+                  >
+                    <Volume2 className="h-3 w-3" />
+                  </Button>
+                )}
                 <span className="text-muted-foreground">—</span>
                 <span className="text-sm sm:text-base">{currentDefinition}</span>
                 {!isAdded && !isQueued && (
@@ -383,18 +396,31 @@ export function CardPreview({
       )}
       {preview.exampleSentence && (
         <CardContent className="pb-1.5 pt-0 sm:pb-2 px-3 sm:px-6">
-          <button
-            type="button"
-            className="text-xs sm:text-sm text-left cursor-pointer hover:text-primary transition-colors"
-            onClick={() =>
-              window.dispatchEvent(
-                new globalThis.CustomEvent('setInput', { detail: preview.exampleSentence })
-              )
-            }
-            title="Use sentence as input"
-          >
-            {highlightBoldMarkers(preview.exampleSentence)}
-          </button>
+          <div className="flex items-start gap-1">
+            <button
+              type="button"
+              className="text-xs sm:text-sm text-left cursor-pointer hover:text-primary transition-colors"
+              onClick={() =>
+                window.dispatchEvent(
+                  new globalThis.CustomEvent('setInput', { detail: preview.exampleSentence })
+                )
+              }
+              title="Use sentence as input"
+            >
+              {highlightBoldMarkers(preview.exampleSentence)}
+            </button>
+            {hasTTS() && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 flex-shrink-0 mt-0.5"
+                onClick={() => speak(preview.exampleSentence)}
+                title="Listen"
+              >
+                <Volume2 className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
           {preview.sentenceTranslation && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {preview.sentenceTranslation}
