@@ -37,6 +37,16 @@ export interface RelemmatizeResponse {
   definition: string;
 }
 
+// Distractor for MC cloze cards
+export interface Distractor {
+  word: string;
+  definition: string;
+}
+
+export interface DistractorResponse {
+  distractors: Distractor[];
+}
+
 // Session card types (synced between devices via server)
 export interface SessionCard extends CardContent {
   id: string;
@@ -119,10 +129,10 @@ export const CARD_DATA_FIELDS = [
 export type CardDataField = (typeof CARD_DATA_FIELDS)[number];
 
 export const DEFAULT_SETTINGS: Settings = {
-  aiProvider: 'claude',
+  aiProvider: 'gemini',
   claudeApiKey: '',
   geminiApiKey: '',
-  geminiModel: 'gemini-2.5-flash-lite',
+  geminiModel: 'gemini-2.5-flash',
   showTransliteration: false,
   leftHanded: false,
   openRouterApiKey: '',

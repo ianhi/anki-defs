@@ -29,6 +29,14 @@
 - See `PLANNING/audio-in-cards.md` for full plan
 - Google Cloud TTS recommended (~$0.02 per 1K words)
 
+### Language-agnostic prompts
+
+- All prompt templates are hardcoded to Bangla ("You are a Bangla language expert")
+- Types have `banglaDefinition`, `englishToBanglaPrefix`, `english-to-bangla` mode
+- To support other languages: parameterize prompts with target language,
+  rename fields to generic names (nativeDefinition, etc.)
+- Big refactor — needs careful planning
+
 ## Medium Priority
 
 ### Error UX polish
