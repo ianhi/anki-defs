@@ -100,7 +100,7 @@ async def create_note(request: Request) -> JSONResponse:
             model=model_name,
             word=fields.get("Word", ""),
             definition=fields.get("Definition", ""),
-            bangla_definition=fields.get("BanglaDefinition", ""),
+            native_definition=fields.get("NativeDefinition", ""),
             example_sentence=fields.get("Example", ""),
             sentence_translation=fields.get("Translation", ""),
             tags=tags,

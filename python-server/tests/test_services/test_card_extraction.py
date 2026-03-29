@@ -39,7 +39,7 @@ class TestValidateCardResponses:
     def test_missing_fields_default_to_empty(self):
         cards = validate_card_responses({"word": "test"})
         assert cards[0]["definition"] == ""
-        assert cards[0]["banglaDefinition"] == ""
+        assert cards[0]["nativeDefinition"] == ""
         assert cards[0]["exampleSentence"] == ""
 
     def test_spelling_correction_preserved(self):
@@ -66,14 +66,14 @@ class TestApplySpellingCorrection:
 
 class TestBuildCardPreviews:
     def test_new_word(self):
-        cards = [{"word": "বাজার", "definition": "market", "banglaDefinition": "",
+        cards = [{"word": "বাজার", "definition": "market", "nativeDefinition": "",
                   "exampleSentence": "test", "sentenceTranslation": "test"}]
         previews = build_card_previews(cards, "Bangla", {}, {})
         assert len(previews) == 1
         assert previews[0]["alreadyExists"] is False
 
     def test_existing_word(self):
-        cards = [{"word": "বাজার", "definition": "market", "banglaDefinition": "",
+        cards = [{"word": "বাজার", "definition": "market", "nativeDefinition": "",
                   "exampleSentence": "test", "sentenceTranslation": "test"}]
         anki_results = {"বাজার": {"noteId": 42, "fields": {}, "tags": [], "modelName": ""}}
         previews = build_card_previews(cards, "Bangla", anki_results, {})
@@ -83,7 +83,7 @@ class TestBuildCardPreviews:
         cards = [{
             "word": "কাঁদা",
             "definition": "to cry",
-            "banglaDefinition": "",
+            "nativeDefinition": "",
             "exampleSentence": "সে **কাদছে**।",
             "sentenceTranslation": "She is crying.",
             "spellingCorrection": "কাদছে → কাঁদছে",

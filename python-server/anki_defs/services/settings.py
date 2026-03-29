@@ -17,6 +17,7 @@ from ..config import CONFIG_DIR, DEFAULTS_DIR, SETTINGS_FILE
 from . import settings_base
 from .settings_base import (
     SECRET_FIELDS,
+    _migrate_settings,
     get_masked,
     get_secrets,
     has_new_secrets,
@@ -185,6 +186,8 @@ def get_settings() -> dict[str, Any]:
         if keyring_available():
             for field in SECRET_FIELDS:
                 file_settings.pop(field, None)
+        # Migrate legacy setting names
+        file_settings = _migrate_settings(file_settings)
         _cached_file_settings = {**_get_defaults(), **file_settings}
         _cached_mtime = mtime
 

@@ -22,7 +22,7 @@ def validate_card_responses(parsed: Any) -> list[dict[str, Any]]:
         card: dict[str, Any] = {
             "word": word,
             "definition": str(item.get("definition", "")),
-            "banglaDefinition": str(item.get("banglaDefinition", "")),
+            "nativeDefinition": str(item.get("nativeDefinition", "")),
             "exampleSentence": str(item.get("exampleSentence", "")),
             "sentenceTranslation": str(item.get("sentenceTranslation", "")),
         }
@@ -59,7 +59,7 @@ def _note_to_card_content(
     return {
         "word": get_field("Word"),
         "definition": get_field("Definition"),
-        "banglaDefinition": get_field("BanglaDefinition"),
+        "nativeDefinition": get_field("NativeDefinition"),
         "exampleSentence": get_field("Example"),
         "sentenceTranslation": get_field("Translation"),
     }
@@ -89,7 +89,7 @@ def build_card_previews(
         preview: dict[str, Any] = {
             "word": word,
             "definition": card.get("definition", ""),
-            "banglaDefinition": card.get("banglaDefinition", ""),
+            "nativeDefinition": card.get("nativeDefinition", ""),
             "exampleSentence": example_sentence,
             "sentenceTranslation": card.get("sentenceTranslation", ""),
             "alreadyExists": existing_note is not None,

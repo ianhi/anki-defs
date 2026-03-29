@@ -130,7 +130,7 @@ def create_card(
     model: str,
     word: str,
     definition: str,
-    bangla_definition: str,
+    native_definition: str,
     example_sentence: str,
     sentence_translation: str,
     tags: list[str] | None = None,
@@ -142,7 +142,7 @@ def create_card(
     fields = {
         mapping.get("Word", "Word"): word,
         mapping.get("Definition", "Definition"): definition,
-        mapping.get("BanglaDefinition", "BanglaDefinition"): bangla_definition,
+        mapping.get("NativeDefinition", "NativeDefinition"): native_definition,
         mapping.get("Example", "Example"): example_sentence,
         mapping.get("Translation", "Translation"): sentence_translation,
     }

@@ -16,8 +16,8 @@ class TestPromptLoading:
         prompts = get_system_prompts(False)
         assert "word" in prompts
         assert "focusedWords" in prompts
-        assert "englishToBangla" in prompts
-        assert "englishToBanglaFocused" in prompts
+        assert "englishToTarget" in prompts
+        assert "englishToTargetFocused" in prompts
 
     def test_word_prompt_has_preamble(self):
         prompts = get_system_prompts(False)
@@ -53,13 +53,13 @@ class TestRenderUserTemplate:
         assert "বাজারে, গেল" in result
 
     def test_english_to_bangla(self):
-        result = render_user_template("englishToBangla", {"word": "market"})
+        result = render_user_template("englishToTarget", {"word": "market"})
         assert result is not None
         assert "market" in result
 
     def test_english_to_bangla_focused(self):
         result = render_user_template(
-            "englishToBangla",
+            "englishToTarget",
             {"sentence": "I went to the market", "highlightedWords": "market"},
             "focused",
         )
@@ -91,17 +91,17 @@ class TestSelectPrompt:
         assert sel.mode == "sentence-blocked"
 
     def test_english_to_bangla(self):
-        sel = select_prompt(self.prompts, "market", mode="english-to-bangla")
-        assert sel.mode == "english-to-bangla"
+        sel = select_prompt(self.prompts, "market", mode="english-to-target")
+        assert sel.mode == "english-to-target"
 
     def test_english_to_bangla_focused(self):
         sel = select_prompt(
             self.prompts,
             "I went to the market",
             highlighted_words=["market"],
-            mode="english-to-bangla",
+            mode="english-to-target",
         )
-        assert sel.mode == "english-to-bangla-focused"
+        assert sel.mode == "english-to-target-focused"
 
 
 class TestRelemmatize:

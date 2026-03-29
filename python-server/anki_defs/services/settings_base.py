@@ -90,6 +90,17 @@ else:
 # ---------------------------------------------------------------------------
 
 
+def _migrate_settings(data: dict[str, Any]) -> dict[str, Any]:
+    """Migrate legacy setting names to current names."""
+    fm = data.get("fieldMapping", {})
+    if isinstance(fm, dict):
+        if "BanglaDefinition" in fm and "NativeDefinition" not in fm:
+            fm["NativeDefinition"] = fm.pop("BanglaDefinition")
+    if "englishToBanglaPrefix" in data and "translationPrefix" not in data:
+        data["translationPrefix"] = data.pop("englishToBanglaPrefix")
+    return data
+
+
 def keyring_available() -> bool:
     """Return whether a secure keyring backend is available."""
     return _keyring_available
