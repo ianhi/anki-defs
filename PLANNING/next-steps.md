@@ -22,13 +22,13 @@
 - See `PLANNING/audio-in-cards.md` for full plan
 - Google Cloud TTS recommended (~$0.02 per 1K words)
 
-### Language-agnostic prompts
+### Language-agnostic prompts — Phase 2 DONE, Phase 3 remaining
 
-- All prompt templates are hardcoded to Bangla ("You are a Bangla language expert")
-- Types have `banglaDefinition`, `englishToBanglaPrefix`, `english-to-bangla` mode
-- To support other languages: parameterize prompts with target language,
-  rename fields to generic names (nativeDefinition, etc.)
-- Big refactor — needs careful planning
+- Phase 2 DONE: All prompt templates parameterized with `{{targetLanguage}}`, `{{languageRules}}`, etc.
+  Bangla-specific content extracted to `shared/languages/bn.json`. Prompts load language
+  at startup from `targetLanguage` setting (default `"bn"`).
+- Remaining: add language files for other languages, update client to show language picker,
+  rename `banglaDefinition` field in data layer (session DB, card_extraction, types).
 
 ## Medium Priority
 

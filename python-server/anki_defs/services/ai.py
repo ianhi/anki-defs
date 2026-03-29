@@ -2,6 +2,9 @@
 
 Loads all 6 prompt templates from shared/prompts/*.json. Implements selectPrompt()
 logic matching Express ai.ts, plus provider dispatch to Claude/Gemini/OpenRouter.
+
+Language-specific content is loaded from shared/languages/<code>.json and substituted
+into parameterized prompt templates at render time.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ import logging
 import re
 from typing import Any
 
-from ..config import PROMPTS_DIR
+from ..config import LANGUAGES_DIR, PROMPTS_DIR
 from . import providers
 from .settings import get_settings
 
@@ -19,15 +22,34 @@ log = logging.getLogger(__name__)
 
 # --- Prompt loading and rendering ---
 
-def _load_json(filename: str) -> Any:
-    """Load a JSON file from the shared prompts directory."""
-    path = PROMPTS_DIR / filename
+def _load_json(filename: str, directory: Any = None) -> Any:
+    """Load a JSON file from the given directory (defaults to prompts)."""
+    path = (directory or PROMPTS_DIR) / filename
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
 def _load_variables() -> dict[str, Any]:
     return _load_json("variables.json")
+
+
+def _load_language(code: str) -> dict[str, Any]:
+    """Load a language definition file from shared/languages/."""
+    return _load_json(f"{code}.json", LANGUAGES_DIR)
+
+
+def _build_language_rules(lang: dict[str, Any]) -> str:
+    """Assemble the language-specific rules block from a language definition."""
+    name = lang["name"]
+    parts = [
+        f"### {name}-Specific Rules\n",
+        lang["lemmatizationRules"],
+        "\n",
+        lang["spellingRules"],
+        "\n",
+        lang["colloquialRules"],
+    ]
+    return "\n".join(parts)
 
 
 def _load_all_prompts() -> dict[str, Any]:
@@ -43,27 +65,36 @@ def _load_all_prompts() -> dict[str, Any]:
 
 # Cached at startup; reload_prompts() refreshes from disk
 _variables: dict[str, Any] = _load_variables()
+_language: dict[str, Any] = _load_language(get_settings().get("targetLanguage", "bn"))
 _prompt_templates: dict[str, Any] = _load_all_prompts()
 
 
 def reload_prompts() -> None:
-    """Reload prompt templates and variables from disk."""
-    global _variables, _prompt_templates
+    """Reload prompt templates, variables, and language from disk."""
+    global _variables, _prompt_templates, _language
     _variables = _load_variables()
+    _language = _load_language(get_settings().get("targetLanguage", "bn"))
     _prompt_templates = _load_all_prompts()
 
 
 def _render_prompt(template: str, transliteration: bool) -> str:
-    """Apply variable substitutions to a prompt template."""
+    """Apply variable and language substitutions to a prompt template."""
     key = "true" if transliteration else "false"
     result = template
-    result = result.replace("{{preamble}}", _variables["preamble"])
-    result = result.replace("{{outputRules}}", _variables["outputRules"])
-    result = result.replace("{{languageRules}}", _variables["languageRules"])
+    # Language substitutions
+    result = result.replace("{{preamble}}", _language["preamble"])
+    result = result.replace("{{targetLanguage}}", _language["name"])
+    result = result.replace("{{languageRules}}", _build_language_rules(_language))
     result = result.replace(
-        "{{transliterationInstruction}}", _variables["transliteration"]["instruction"][key]
+        "{{transliterationInstruction}}", _language["transliteration"]["instruction"][key]
     )
-    result = result.replace("{{translitMarker}}", _variables["transliteration"]["marker"][key])
+    result = result.replace("{{translitMarker}}", _language["transliteration"]["marker"][key])
+    result = result.replace("{{lemmaExample}}", _language["lemmaExamples"]["inline"])
+    result = result.replace("{{relemmatizeRules}}", _language["lemmaExamples"]["relemmatize"])
+    result = result.replace("{{skipParticles}}", _language["sentenceAnalysis"]["skipParticles"])
+    result = result.replace("{{translationGuidelines}}", _language["translationGuidelines"])
+    # Global substitutions
+    result = result.replace("{{outputRules}}", _variables["outputRules"])
     return result
 
 
@@ -205,13 +236,17 @@ def select_prompt(
 
 
 def get_relemmatize_prompt(word: str, sentence: str | None = None) -> str:
-    """Build the relemmatize prompt with word/context substitution."""
+    """Build the relemmatize prompt with word/context and language substitution."""
     context = f"\nContext sentence: {sentence}" if sentence else ""
-    return (
+    raw = (
         _prompt_templates["relemmatize"]["system"]
         .replace("{{word}}", word)
         .replace("{{context}}", context)
     )
+    # Apply language substitutions
+    raw = raw.replace("{{targetLanguage}}", _language["name"])
+    raw = raw.replace("{{relemmatizeRules}}", _language["lemmaExamples"]["relemmatize"])
+    return raw
 
 
 def get_distractor_prompt(word: str, sentence: str, definition: str) -> tuple[str, str]:

@@ -14,8 +14,8 @@
 
 3. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
    feature, needs UI planning. PDF/image import builds on this.
-4. **Language-agnostic prompts** — All prompts hardcoded to Bangla. Big refactor
-   to parameterize target language across types, prompts, and field names.
+4. **Language picker UI** — `targetLanguage` setting exists but no UI to change it.
+   Add language selector to Settings + create language files for other languages.
 
 ### Medium effort
 
@@ -38,7 +38,7 @@
 | Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, cloze, onboarding |
 | Android (`android/`)                   | Working | Still on old two-call pipeline                           |
 | Anki add-on (`anki-addon/`)            | Working | Hardened but untested inside Anki                        |
-| Shared prompts (`shared/prompts/`)     | Working | JSON templates incl. english-to-bangla + distractors     |
+| Shared prompts (`shared/prompts/`)     | Working | Parameterized templates + language files in `shared/languages/` |
 | Tests                                  | 65+67+46 | vitest + python-server pytest + addon pytest            |
 | CI                                     | Working | `.github/workflows/ci.yml`                               |
 | Docs site (`docs/`)                    | Deployed | Astro Starlight on GitHub Pages                         |

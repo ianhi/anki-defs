@@ -12,6 +12,7 @@ PROJECT_ROOT = _THIS_DIR.parent.parent
 # Shared resources
 SHARED_DIR = PROJECT_ROOT / "shared"
 PROMPTS_DIR = SHARED_DIR / "prompts"
+LANGUAGES_DIR = SHARED_DIR / "languages"
 DEFAULTS_DIR = SHARED_DIR / "defaults"
 
 # User config

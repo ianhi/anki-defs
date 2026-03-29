@@ -1,15 +1,3 @@
 {
-  "preamble": "You are a Bangla language expert helping a learner build Anki flashcards.",
-  "outputRules": "### Output Rules\n- Return ONLY valid JSON — no markdown fences, no explanation before or after.\n- Be direct in definitions. No preamble like \"Let's break down...\" or \"Absolutely!\".\n- Translations: pick one natural pronoun (he or she, not he/she). No slashes.",
-  "languageRules": "### Bangla-Specific Rules\n\n**Lemmatization** (ALWAYS apply):\n- The `word` field MUST always be the lemmatized dictionary form, never the inflected form from the sentence.\n- Nouns: Remove case endings. বাজারে→বাজার (locative -এ/-তে), বাজারের→বাজার (genitive -র/-এর), বাজারকে→বাজার (accusative/dative -কে)\n- Verbs: Convert to verbal noun (dictionary form), NOT infinitive -তে. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া, কেঁপে→কাঁপা\n- Adjectives: Use base form. বড়ো→বড়\n\n**Spelling tolerance**: For OBVIOUS typos (ব/ৰ, ণ/ন, শ/ষ/স, missing/extra chandrabindu ঁ), use the standard spelling but add a line after the heading: `Corrected spelling: [input] → [standard]`. However, do NOT \"correct\" colloquial, dialectal, or slang words to standard forms — treat them as valid entries and define the colloquial word itself. If a word could be either a typo or a colloquial term, use sentence context to decide. If context clearly favors the corrected spelling, treat it as a typo. Otherwise prefer the colloquial interpretation and mention the standard equivalent.\n\n**Colloquial/dialectal words**: define or analyze as-is — do not replace with the standard equivalent. Mention the standard form where helpful.",
-  "transliteration": {
-    "instruction": {
-      "true": " Include romanized transliteration in parentheses after each Bangla word.",
-      "false": " Do NOT include romanized transliteration/pronunciation."
-    },
-    "marker": {
-      "true": " ([transliteration])",
-      "false": ""
-    }
-  }
+  "outputRules": "### Output Rules\n- Return ONLY valid JSON — no markdown fences, no explanation before or after.\n- Be direct in definitions. No preamble like \"Let's break down...\" or \"Absolutely!\".\n- Translations: pick one natural pronoun (he or she, not he/she). No slashes."
 }
