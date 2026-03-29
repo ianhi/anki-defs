@@ -26,7 +26,7 @@ export function buildNoteFields(
   return {
     Word: overrides?.word ?? card.word,
     Definition: overrides?.definition ?? card.definition,
-    BanglaDefinition: card.banglaDefinition,
+    NativeDefinition: card.nativeDefinition,
     Example: markdownBoldToHtml(card.exampleSentence),
     Translation: card.sentenceTranslation,
   };
@@ -74,7 +74,7 @@ export function buildClozeFields(
   map('FullSentence', card.exampleSentence.replace(/\*\*/g, ''));
   map('Word', card.word);
   map('Definition', card.definition);
-  map('BanglaDefinition', card.banglaDefinition);
+  map('NativeDefinition', card.nativeDefinition);
 
   return fields;
 }
@@ -86,7 +86,7 @@ export const CLOZE_DATA_FIELDS = [
   'FullSentence',
   'Word',
   'Definition',
-  'BanglaDefinition',
+  'NativeDefinition',
 ] as const;
 
 /** Standard MC cloze field names for field mapping UI. */

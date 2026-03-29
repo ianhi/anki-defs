@@ -567,12 +567,12 @@ export function Settings() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="en-bn-prefix">English-to-Bangla prefix</Label>
+              <Label htmlFor="en-bn-prefix">Translation prefix</Label>
               <Input
                 id="en-bn-prefix"
-                value={localSettings.englishToBanglaPrefix}
+                value={localSettings.translationPrefix}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  handleChange('englishToBanglaPrefix', e.target.value)
+                  handleChange('translationPrefix', e.target.value)
                 }
                 placeholder="bn:"
                 className="w-24"

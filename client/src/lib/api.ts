@@ -89,7 +89,7 @@ export const chatApi = {
     deck?: string,
     highlightedWords?: string[],
     userContext?: string,
-    mode?: 'english-to-bangla',
+    mode?: 'english-to-target',
     signal?: AbortSignal
   ): AsyncGenerator<SSEEvent, void, unknown> {
     const response = await fetch(`${API_BASE}/chat/stream`, {

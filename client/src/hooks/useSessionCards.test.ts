@@ -52,7 +52,7 @@ describe('useSessionCards store', () => {
         {
           word: 'বাজার',
           definition: 'market',
-          banglaDefinition: 'হাট',
+          nativeDefinition: 'হাট',
           exampleSentence: 'বাজারে যাও।',
           sentenceTranslation: 'Go to the market.',
         },
@@ -74,7 +74,7 @@ describe('useSessionCards store', () => {
       const cardContent = {
         word: 'test',
         definition: 'test',
-        banglaDefinition: '',
+        nativeDefinition: '',
         exampleSentence: '',
         sentenceTranslation: '',
       };
@@ -92,7 +92,7 @@ describe('useSessionCards store', () => {
         {
           word: 'test',
           definition: 'test',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -111,7 +111,7 @@ describe('useSessionCards store', () => {
       const content = {
         word: 'a',
         definition: 'b',
-        banglaDefinition: '',
+        nativeDefinition: '',
         exampleSentence: '',
         sentenceTranslation: '',
       };
@@ -132,7 +132,7 @@ describe('useSessionCards store', () => {
       const content = {
         word: 'test',
         definition: 'test',
-        banglaDefinition: '',
+        nativeDefinition: '',
         exampleSentence: '',
         sentenceTranslation: '',
       };
@@ -153,7 +153,7 @@ describe('useSessionCards store', () => {
         {
           word: 'পানি',
           definition: 'water',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -172,7 +172,7 @@ describe('useSessionCards store', () => {
         {
           word: 'test',
           definition: 'test',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -191,7 +191,7 @@ describe('useSessionCards store', () => {
         {
           word: 'বাজার',
           definition: 'market',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -208,7 +208,7 @@ describe('useSessionCards store', () => {
         {
           word: 'পানি',
           definition: 'water',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -228,7 +228,7 @@ describe('useSessionCards store', () => {
         {
           word: 'Hello',
           definition: 'greeting',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -246,7 +246,7 @@ describe('useSessionCards store', () => {
         {
           word: 'test',
           definition: 'test',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },
@@ -263,7 +263,7 @@ describe('useSessionCards store', () => {
     it('returns set of all words from cards and pending', () => {
       const content = {
         definition: 'test',
-        banglaDefinition: '',
+        nativeDefinition: '',
         exampleSentence: '',
         sentenceTranslation: '',
       };
@@ -282,7 +282,7 @@ describe('useSessionCards store', () => {
         {
           word: 'Hello',
           definition: 'test',
-          banglaDefinition: '',
+          nativeDefinition: '',
           exampleSentence: '',
           sentenceTranslation: '',
         },

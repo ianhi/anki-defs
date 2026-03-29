@@ -27,7 +27,7 @@ describe('buildNoteFields', () => {
   const card = {
     word: 'বাজার',
     definition: 'market',
-    banglaDefinition: 'হাট',
+    nativeDefinition: 'হাট',
     exampleSentence: 'আমি **বাজারে** যাচ্ছি।',
     sentenceTranslation: 'I am going to the market.',
   };
@@ -36,7 +36,7 @@ describe('buildNoteFields', () => {
     const fields = buildNoteFields(card);
     expect(fields.Word).toBe('বাজার');
     expect(fields.Definition).toBe('market');
-    expect(fields.BanglaDefinition).toBe('হাট');
+    expect(fields.NativeDefinition).toBe('হাট');
     expect(fields.Example).toBe('আমি <b>বাজারে</b> যাচ্ছি।');
     expect(fields.Translation).toBe('I am going to the market.');
   });
@@ -45,7 +45,7 @@ describe('buildNoteFields', () => {
     const fields = buildNoteFields(card, { word: 'বাজারে', definition: 'in the market' });
     expect(fields.Word).toBe('বাজারে');
     expect(fields.Definition).toBe('in the market');
-    expect(fields.BanglaDefinition).toBe('হাট');
+    expect(fields.NativeDefinition).toBe('হাট');
   });
 
   it('converts bold markdown to HTML in Example field', () => {
