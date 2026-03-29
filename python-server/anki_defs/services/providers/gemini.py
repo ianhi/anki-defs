@@ -164,3 +164,41 @@ def get_json_completion(
         }
 
     return {"text": text, "usage": usage}
+
+
+def get_text_completion(
+    system_prompt: str, user_message: str
+) -> dict[str, Any]:
+    """Get a non-streaming completion without JSON mime type."""
+    client, api_key, model = _get_config()
+    url = f"{_BASE_URL}/{model}:generateContent?key={api_key}"
+
+    resp = client.post(
+        url,
+        json=_build_body(system_prompt, user_message),
+        headers={"Content-Type": "application/json"},
+    )
+    resp.raise_for_status()
+    result = resp.json()
+
+    text = ""
+    candidates = result.get("candidates", [])
+    if candidates:
+        parts = candidates[0].get("content", {}).get("parts", [])
+        for part in parts:
+            t = part.get("text", "")
+            if t:
+                text = t
+                break
+
+    usage = None
+    usage_meta = result.get("usageMetadata", {})
+    if usage_meta:
+        usage = {
+            "inputTokens": usage_meta.get("promptTokenCount", 0),
+            "outputTokens": usage_meta.get("candidatesTokenCount", 0),
+            "provider": "gemini",
+            "model": model,
+        }
+
+    return {"text": text, "usage": usage}

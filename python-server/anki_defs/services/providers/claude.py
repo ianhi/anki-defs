@@ -174,3 +174,7 @@ def get_json_completion(
         }
 
     return {"text": text, "usage": usage}
+
+
+# Claude doesn't use a JSON-specific mime type, so text and JSON completions are identical
+get_text_completion = get_json_completion

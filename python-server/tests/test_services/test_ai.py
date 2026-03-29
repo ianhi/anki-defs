@@ -18,6 +18,7 @@ class TestPromptLoading:
         assert "focusedWords" in prompts
         assert "englishToBangla" in prompts
         assert "englishToBanglaFocused" in prompts
+        assert "sentence" in prompts
 
     def test_word_prompt_has_preamble(self):
         prompts = get_system_prompts(False)
@@ -86,9 +87,10 @@ class TestSelectPrompt:
         )
         assert sel.mode == "focused-words"
 
-    def test_sentence_blocked(self):
+    def test_sentence_translate(self):
         sel = select_prompt(self.prompts, "সে বাজারে গেল")
-        assert sel.mode == "sentence-blocked"
+        assert sel.mode == "sentence-translate"
+        assert sel.system_prompt
 
     def test_english_to_bangla(self):
         sel = select_prompt(self.prompts, "market", mode="english-to-bangla")
