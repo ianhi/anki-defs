@@ -21,6 +21,7 @@ Settings unified via shared `settings_base.py`. Structured logging throughout.
 | ---------------------------------------------------- | ------------------- | ------------------------------------------------ |
 | [next-steps.md](next-steps.md)                       | Feature roadmap     | Reader mode, TTS polish, addon testing, and more |
 | [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research | Research complete, implementation in progress    |
+| [audio-in-cards.md](audio-in-cards.md)               | Embedded card audio | Planning — Google Cloud TTS recommended          |
 
 ## Completed Plans (reference only)
 
