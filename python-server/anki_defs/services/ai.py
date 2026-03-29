@@ -79,6 +79,9 @@ def get_system_prompts(transliteration: bool) -> dict[str, str]:
         "englishToBanglaFocused": _render_prompt(
             et.get("system_focused", et["system"]), transliteration
         ),
+        "sentence": _render_prompt(
+            _prompt_templates["sentence"]["system"], transliteration
+        ),
     }
 
 
@@ -190,10 +193,14 @@ def select_prompt(
             user_message=rendered or new_message,
         )
 
+    rendered = render_user_template(
+        "sentence",
+        {"sentence": new_message, "userContext": user_context or ""},
+    )
     return PromptSelection(
-        mode="sentence-blocked",
-        system_prompt="",
-        user_message=new_message,
+        mode="sentence-translate",
+        system_prompt=prompts["sentence"],
+        user_message=rendered or new_message,
     )
 
 
@@ -264,6 +271,12 @@ def get_json_completion(system_prompt: str, user_message: str) -> dict[str, Any]
     log.debug("getJsonCompletion using provider: %s", _provider_name())
     provider = _get_provider_module()
     return provider.get_json_completion(system_prompt, user_message)
+
+
+def get_text_completion(system_prompt: str, user_message: str) -> dict[str, Any]:
+    log.debug("getTextCompletion using provider: %s", _provider_name())
+    provider = _get_provider_module()
+    return provider.get_text_completion(system_prompt, user_message)
 
 
 def reset_clients() -> None:

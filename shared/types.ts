@@ -230,6 +230,7 @@ export interface PlatformInfo {
 // SSE event types (discriminated union for type safety)
 export type SSEEvent =
   | { type: 'card_preview'; data: CardPreview }
+  | { type: 'text'; data: string }
   | { type: 'usage'; data: TokenUsage }
   | { type: 'done'; data: null }
   | { type: 'error'; data: string };

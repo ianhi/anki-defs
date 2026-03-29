@@ -21,6 +21,7 @@ All types are defined in `types.ts`. This is the API contract source of truth.
 Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 
 - `{ type: 'card_preview', data: CardPreview }` -- Card preview from AI
+- `{ type: 'text', data: string }` -- Markdown text response (e.g. sentence translation)
 - `{ type: 'usage', data: TokenUsage }` -- Token usage for the call
 - `{ type: 'done', data: null }` -- Stream complete
 - `{ type: 'error', data: string }` -- Error message

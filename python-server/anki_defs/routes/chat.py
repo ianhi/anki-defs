@@ -67,14 +67,24 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
             mode=mode,
         )
 
-        if selection.mode == "sentence-blocked":
-            yield _sse_event({
-                "type": "error",
-                "data": "Highlight the words you want cards for. "
-                "On mobile: tap the crosshair icon then tap words. "
-                "On desktop: select text and press Ctrl+B.",
-            })
-            yield _sse_event({"type": "done", "data": None})
+        if selection.mode == "sentence-translate":
+            try:
+                result = await asyncio.to_thread(
+                    ai.get_text_completion,
+                    selection.system_prompt,
+                    selection.user_message,
+                )
+                usage = result.get("usage")
+                if usage:
+                    yield _sse_event({"type": "usage", "data": usage})
+                    cost = _compute_cost(usage)
+                    await asyncio.to_thread(session.record_usage, usage, cost)
+                yield _sse_event({"type": "text", "data": result.get("text", "")})
+                yield _sse_event({"type": "done", "data": None})
+            except (RuntimeError, ValueError, OSError) as e:
+                log.error("Sentence translate error: %s", e, exc_info=True)
+                yield _sse_event({"type": "error", "data": str(e)})
+                yield _sse_event({"type": "done", "data": None})
             return
 
         system_prompt = selection.system_prompt

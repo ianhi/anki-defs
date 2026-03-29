@@ -78,12 +78,13 @@ PUT with secrets when keyring unavailable returns 409 until user consents.
 
 The `/api/chat/stream` endpoint sends discriminated union events (`SSEEvent` in `shared/types.ts`):
 
-| `type`         | `data`        | Description                               |
-| -------------- | ------------- | ----------------------------------------- |
-| `card_preview` | `CardPreview` | Card preview with duplicate status        |
-| `usage`        | `TokenUsage`  | Token usage and cost data                 |
-| `done`         | `null`        | Stream complete                           |
-| `error`        | `string`      | Error message (shown in assistant bubble) |
+| `type`         | `data`        | Description                                      |
+| -------------- | ------------- | ------------------------------------------------ |
+| `card_preview` | `CardPreview` | Card preview with duplicate status               |
+| `text`         | `string`      | Markdown text response (e.g. sentence translation)|
+| `usage`        | `TokenUsage`  | Token usage and cost data                        |
+| `done`         | `null`        | Stream complete                                  |
+| `error`        | `string`      | Error message (shown in assistant bubble)        |
 
 ## Settings Storage
 
