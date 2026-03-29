@@ -5,8 +5,11 @@ import { chatApi } from '@/lib/api';
 import { generateId } from '@/lib/utils';
 import { parseHighlightedWords, getCleanText } from '@/lib/focus';
 import { useSettingsStore } from '@/hooks/useSettings';
-import type { Message } from 'shared';
+import type { Message, SSEEvent } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
+
+// Extended SSE event type -- `text` will be added to shared/types.ts by Agent A
+type ExtendedSSEEvent = SSEEvent | { type: 'text'; data: string };
 
 // Pre-read persisted state synchronously to avoid layout shift on hydration
 const _persisted = (() => {
@@ -116,7 +119,7 @@ export function useChat() {
       try {
         // Send clean text + extracted words to API
         const apiHighlightedWords = highlightedWords.length > 0 ? highlightedWords : undefined;
-        for await (const event of chatApi.stream(
+        for await (const _event of chatApi.stream(
           cleanText,
           deck,
           apiHighlightedWords,
@@ -124,6 +127,7 @@ export function useChat() {
           mode,
           controller.signal
         )) {
+          const event = _event as ExtendedSSEEvent;
           switch (event.type) {
             case 'card_preview':
               setMessages((prev) =>
@@ -155,6 +159,13 @@ export function useChat() {
                   }
                   return { ...msg, tokenUsage: event.data };
                 })
+              );
+              break;
+            case 'text':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, content: event.data } : msg
+                )
               );
               break;
             case 'error':
@@ -225,7 +236,7 @@ export function useChat() {
       const settings = useSettingsStore.getState().settings;
 
       try {
-        for await (const event of chatApi.stream(
+        for await (const _event of chatApi.stream(
           originalQuery,
           settings.defaultDeck,
           retryHighlightedWords,
@@ -233,6 +244,7 @@ export function useChat() {
           undefined,
           controller.signal
         )) {
+          const event = _event as ExtendedSSEEvent;
           switch (event.type) {
             case 'card_preview':
               setMessages((prev) =>
@@ -264,6 +276,13 @@ export function useChat() {
                   }
                   return { ...msg, tokenUsage: event.data };
                 })
+              );
+              break;
+            case 'text':
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId ? { ...msg, content: event.data } : msg
+                )
               );
               break;
             case 'error':

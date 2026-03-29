@@ -17,7 +17,6 @@
 - `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker)
 - `OnboardingModal.tsx` -- First-run setup wizard (3 steps: provider, deck, usage tips)
 - `HelpPage.tsx` -- In-app help/documentation page
-- `ErrorModal.tsx` -- Global error modal with copyable debug info
 - `ErrorBoundary.tsx` -- React error boundary
 - `KeyringWarning.tsx` -- Reusable insecure storage consent dialog
 - `SessionCardsPanel.tsx` -- Session card panel (removed from header, used internally)
@@ -34,7 +33,6 @@
 - `useSettings.ts` -- Zustand settings store (persisted)
 - `useSessionCards.ts` -- Session card tracking + pending queue
 - `useTokenUsage.ts` -- Token/cost accumulation
-- `useErrorModal.ts` -- Global error modal state (Zustand)
 - `usePlatform.ts` -- Platform detection (web/android/anki-addon)
 
 ## Lib (`src/lib/`)

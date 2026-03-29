@@ -85,9 +85,7 @@ export function MessageInput({
       return;
     }
 
-    const clean = getCleanText(trimmed);
-    const blocked = clean.includes(' ') && parseHighlightedWords(trimmed).length === 0;
-    if (trimmed && !disabled && !blocked) {
+    if (trimmed && !disabled) {
       // Send raw text with ** markers — they are the source of truth for focus
       onSend(trimmed);
       setValue('');
@@ -191,12 +189,11 @@ export function MessageInput({
   const previewToken = cursorToken && !cursorToken.highlighted ? cursorToken : null;
   const showFocusBar = value.trim().length > 0;
 
-  // Block submission when input has spaces (multi-word) but no highlighted words
-  // English→Bangla mode bypasses this check
   const cleanText = getCleanText(value).trim();
   const hasSpaces = cleanText.includes(' ');
   const highlightedWords = parseHighlightedWords(value);
-  const needsHighlight = !isEnglishToBangla && hasSpaces && highlightedWords.length === 0;
+  // Show informational hint for multi-word input without highlights (non-English→Bangla)
+  const showSentenceHint = !isEnglishToBangla && hasSpaces && highlightedWords.length === 0;
 
   const handlePreviewTap = () => {
     if (previewToken) {
@@ -281,15 +278,15 @@ export function MessageInput({
           />
           <Button
             onClick={handleSubmit}
-            disabled={disabled || !value.trim() || needsHighlight}
+            disabled={disabled || !value.trim()}
             className="h-[42px] w-[42px] sm:h-[46px] sm:w-[46px] shrink-0 rounded-lg"
           >
             <Send className="h-5 w-5" />
           </Button>
         </div>
-        {needsHighlight && (
+        {showSentenceHint && (
           <p className="text-xs text-muted-foreground mt-1">
-            Mark unknown words with Ctrl+B or tap them above
+            Will translate sentence. Tap words to make flashcards instead.
           </p>
         )}
       </div>
