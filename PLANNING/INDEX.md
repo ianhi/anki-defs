@@ -6,28 +6,24 @@
 
 1. **Test Anki add-on end-to-end** — Code is hardened but never verified inside
    Anki Desktop. Run `install-dev.sh`, restart Anki, test all flows. High value.
-2. **Sentence translation without highlighting** — Currently shows a help message.
-   Should just translate naturally. Small change, good UX win.
-3. **Wire up error modal** — `useErrorModal.showError()` exists but nothing
-   triggers it. Quick polish.
-4. **Embedded audio in cards** — TTS at card creation time. Plan exists at
+2. **Embedded audio in cards** — TTS at card creation time. Plan exists at
    [audio-in-cards.md](audio-in-cards.md). Separate comparison tool at
    `~/dev/tts-compare/` to pick the engine first.
 
 ### Needs design/discussion first
 
-5. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
+3. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
    feature, needs UI planning. PDF/image import builds on this.
-6. **Language-agnostic prompts** — All prompts hardcoded to Bangla. Big refactor
+4. **Language-agnostic prompts** — All prompts hardcoded to Bangla. Big refactor
    to parameterize target language across types, prompts, and field names.
 
 ### Medium effort
 
-7. **Migrate Android to JSON-first pipeline** — Still uses old two-call streaming.
+5. **Migrate Android to JSON-first pipeline** — Still uses old two-call streaming.
    Should match web's single JSON call.
-8. **Unmarked sentence mode** — Auto-detect unknown words in a sentence, generate
+6. **Unmarked sentence mode** — Auto-detect unknown words in a sentence, generate
    cards only for those. Different from sentence translation.
-9. **Per-message streaming indicator** — Loading indicator only shows on last
+7. **Per-message streaming indicator** — Loading indicator only shows on last
    message during concurrent streaming.
 
 ### Low priority / future

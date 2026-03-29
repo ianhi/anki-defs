@@ -9,13 +9,6 @@
   card creation, search, deletion, SSE streaming, settings/keyring, cloze
 - Rebuild frontend into addon after all recent UI changes
 
-### Sentence translation without word highlighting
-
-- Currently entering a sentence without highlights shows a help message
-- Should allow: just translate the sentence naturally
-- Use case: "what does this sentence mean?" without wanting flashcards
-- Implementation: add a `translate` mode to the AI pipeline
-
 ### Reader mode (tap-to-define)
 
 - Paste a large block of text, tap any word for instant definition
@@ -38,11 +31,6 @@
 - Big refactor — needs careful planning
 
 ## Medium Priority
-
-### Error UX polish
-
-- Wire up `useErrorModal.showError()` for non-recoverable errors
-- ErrorModal component and store exist but nothing triggers showError() yet
 
 ### Unmarked sentence mode (auto-detect unknown words)
 
@@ -85,3 +73,5 @@
 - Duplicate card fix (allowDuplicate: true)
 - Tap example sentence to populate input
 - Input draft persistence
+- Sentence translation mode (replaced sentence-blocked with sentence-translate)
+- Removed dead ErrorModal code (component + hook were never wired up)
