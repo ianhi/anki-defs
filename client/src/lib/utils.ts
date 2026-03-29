@@ -44,17 +44,6 @@ export function markdownBoldToHtml(text: string): string {
 }
 
 /**
- * Convert **word** markers to Anki cloze syntax {{c1::word}}.
- * When clozeIndex is provided, uses that number; otherwise starts at 1.
- */
-export function markdownBoldToCloze(text: string, clozeIndex = 1): string {
-  let idx = clozeIndex;
-  return text.replace(/\*\*([^*]+)\*\*/g, () => {
-    return `{{c${idx++}::${text.match(/\*\*([^*]+)\*\*/)?.[1] ?? ''}}}`;
-  });
-}
-
-/**
  * Convert **word** markers to cloze syntax, handling multiple markers.
  * Returns the converted text and the number of cloze deletions created.
  */

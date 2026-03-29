@@ -156,7 +156,7 @@ export function Settings() {
 
   const handleChange = (
     key: keyof SettingsType,
-    value: string | boolean | Record<string, string>
+    value: string | boolean | string[] | Record<string, string>
   ) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
@@ -405,7 +405,7 @@ export function Settings() {
                         const types = localSettings.defaultCardTypes.includes(type)
                           ? localSettings.defaultCardTypes.filter((t) => t !== type)
                           : [...localSettings.defaultCardTypes, type];
-                        handleChange('defaultCardTypes', types as unknown as string);
+                        handleChange('defaultCardTypes', types);
                       }}
                       className="h-3.5 w-3.5"
                     />

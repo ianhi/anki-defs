@@ -41,7 +41,6 @@ export function MessageInput({
     debouncedDraftChange(v);
   };
   const [cursorPos, setCursorPos] = useState(0);
-  const [, setHasSelection] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { settings } = useSettingsStore();
 
@@ -184,7 +183,6 @@ export function MessageInput({
     const textarea = textareaRef.current;
     if (textarea) {
       setCursorPos(textarea.selectionStart);
-      setHasSelection(textarea.selectionStart !== textarea.selectionEnd);
     }
   };
 
