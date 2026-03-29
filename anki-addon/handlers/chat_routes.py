@@ -2,6 +2,7 @@
 
 import concurrent.futures
 import json
+import logging
 import threading
 
 from ..server.sse import send_sse
@@ -9,6 +10,8 @@ from ..server.web import Response
 from ..services import ai_service, anki_service
 from ..services.card_extraction import build_card_previews, validate_card_responses
 from ..services.settings_service import get_settings
+
+log = logging.getLogger(__name__)
 
 
 def handle_stream(_params, _headers, body):
@@ -42,20 +45,15 @@ def handle_stream(_params, _headers, body):
         mode=mode,
     )
 
-    if selection.mode == "sentence-blocked":
+    if selection.mode == "sentence-translate":
+        # Sentence without highlights -- return a markdown translation, skip card pipeline
         def sse_handler(sock):
-            send_sse(
-                sock,
-                "error",
-                "Highlight the words you want cards for. "
-                "On mobile: tap the crosshair icon then tap words. "
-                "On desktop: select text and press Ctrl+B.",
+            thread = threading.Thread(
+                target=_sentence_translate_worker,
+                args=(sock, selection.system_prompt, selection.user_message),
+                daemon=True,
             )
-            send_sse(sock, "done", None)
-            try:
-                sock.close()
-            except OSError:
-                pass
+            thread.start()
 
         return Response.sse(sse_handler)
 
@@ -88,6 +86,29 @@ def handle_stream(_params, _headers, body):
         thread.start()
 
     return Response.sse(sse_handler)
+
+
+def _sentence_translate_worker(sock, system_prompt, user_message):
+    """Runs in a daemon thread -- plain text translation for sentence mode."""
+    try:
+        result = ai_service.get_text_completion(system_prompt, user_message)
+        text = result.get("text", "")
+        usage = result.get("usage")
+
+        if usage:
+            send_sse(sock, "usage", usage)
+
+        send_sse(sock, "text", text)
+
+    except (RuntimeError, ValueError, OSError) as e:
+        log.error("Sentence translate error: %s", e)
+        send_sse(sock, "error", str(e))
+
+    send_sse(sock, "done", None)
+    try:
+        sock.close()
+    except OSError:
+        pass
 
 
 def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_results,
