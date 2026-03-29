@@ -379,19 +379,19 @@ export function CardPreview({
           {showExisting && <ExistingCardContent card={preview.existingCard} />}
         </div>
       )}
-      {preview.banglaDefinition && (
+      {preview.nativeDefinition && (
         <div className="px-3 sm:px-6 pt-0 pb-0.5">
           <button
             type="button"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors text-left cursor-pointer"
             onClick={() =>
               window.dispatchEvent(
-                new globalThis.CustomEvent('setInput', { detail: preview.banglaDefinition })
+                new globalThis.CustomEvent('setInput', { detail: preview.nativeDefinition })
               )
             }
             title="Use as input"
           >
-            {preview.banglaDefinition}
+            {preview.nativeDefinition}
           </button>
         </div>
       )}

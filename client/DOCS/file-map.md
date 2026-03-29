@@ -40,7 +40,7 @@
 ## Lib (`src/lib/`)
 
 - `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation)
-- `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers)
+- `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, `isEnglishToTarget` detection)
 - `utils.ts` -- Utilities: `buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`,
   `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`
 - `logger.ts` -- Structured console logging with levels (`createLogger`)

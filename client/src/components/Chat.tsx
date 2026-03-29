@@ -26,7 +26,7 @@ export function Chat() {
     }
   }, [sharedText, isStreaming, sendMessage, settings.defaultDeck]);
 
-  const handleSend = (content: string, mode?: 'english-to-bangla') => {
+  const handleSend = (content: string, mode?: 'english-to-target') => {
     sendMessage(content, settings.defaultDeck, undefined, mode);
   };
 

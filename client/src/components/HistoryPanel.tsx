@@ -63,9 +63,9 @@ export function HistoryPanel() {
                 </CardHeader>
                 <CardContent className="px-3 pb-2.5 pt-0">
                   <p className="text-sm text-muted-foreground">{card.definition}</p>
-                  {card.banglaDefinition && (
+                  {card.nativeDefinition && (
                     <p className="text-sm text-muted-foreground/70 mt-0.5">
-                      {card.banglaDefinition}
+                      {card.nativeDefinition}
                     </p>
                   )}
                 </CardContent>

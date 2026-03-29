@@ -84,7 +84,7 @@ export function useChat() {
   const activeControllersRef = useRef(new Set<AbortController>());
 
   const sendMessage = useCallback(
-    async (content: string, deck?: string, userContext?: string, mode?: 'english-to-bangla') => {
+    async (content: string, deck?: string, userContext?: string, mode?: 'english-to-target') => {
       const controller = new AbortController();
 
       // content has ** markers — extract highlighted words for API, keep raw for display

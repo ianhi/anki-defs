@@ -4,7 +4,7 @@ import { CardPreview as CardPreviewComponent } from './CardPreview';
 import {
   parseHighlightedWords,
   getCleanText,
-  isEnglishToBangla as isEnglishToBanglaMode,
+  isEnglishToTarget as isEnglishToTargetMode,
 } from '../lib/focus';
 import { chatApi } from '../lib/api';
 import { useSettingsStore } from '../hooks/useSettings';
@@ -22,7 +22,7 @@ interface TestCase {
   label: string;
   value: string;
   description: string;
-  mode?: 'english-to-bangla';
+  mode?: 'english-to-target';
   checks: (cards: CardPreview[]) => CheckResult[];
 }
 
@@ -37,7 +37,7 @@ const TEST_CASES: TestCase[] = [
     label: 'EN→BN: snatch',
     value: 'snatch',
     description: 'English word → most natural Bangla equivalent',
-    mode: 'english-to-bangla',
+    mode: 'english-to-target',
     checks: (cards) => {
       const card = cards[0];
       return [
@@ -64,7 +64,7 @@ const TEST_CASES: TestCase[] = [
     label: 'EN→BN: phrase',
     value: 'what does it matter',
     description: 'English phrase → idiomatic Bangla equivalent (not word-by-word)',
-    mode: 'english-to-bangla',
+    mode: 'english-to-target',
     checks: (cards) => {
       const card = cards[0];
       return [
@@ -87,7 +87,7 @@ const TEST_CASES: TestCase[] = [
     value: 'he **framed** me for the **crime**',
     description:
       'English sentence with 2 highlights — same Bangla sentence for both cards, correct disambiguation',
-    mode: 'english-to-bangla',
+    mode: 'english-to-target',
     checks: (cards) => {
       return [
         { label: 'Returns 2 cards', pass: cards.length === 2 },
@@ -410,10 +410,10 @@ export function PromptPreview() {
       try {
         setError(null);
         const trimmed = input.trim();
-        const prefix = settings.englishToBanglaPrefix || 'bn:';
+        const prefix = settings.translationPrefix || 'bn:';
         const hasPrefix = trimmed.toLowerCase().startsWith(prefix.toLowerCase());
-        const previewMode = isEnglishToBanglaMode(input, prefix, settings.autoDetectEnglish)
-          ? 'english-to-bangla'
+        const previewMode = isEnglishToTargetMode(input, prefix, settings.autoDetectEnglish)
+          ? 'english-to-target'
           : undefined;
         const previewInput = hasPrefix ? trimmed.slice(prefix.length).trim() : input;
         setResult(await fetchPreview(previewInput, previewMode));
@@ -425,7 +425,7 @@ export function PromptPreview() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [input, settings.englishToBanglaPrefix, settings.autoDetectEnglish]);
+  }, [input, settings.translationPrefix, settings.autoDetectEnglish]);
 
   const runOne = async (tc: TestCase) => {
     setRunningTests((prev) => new Set(prev).add(tc.label));
