@@ -61,13 +61,13 @@ def handle_stream(_params, _headers, body):
 
     system_prompt = selection.system_prompt
     user_message = selection.user_message
-    is_english_to_bangla = selection.mode.startswith("english-to-bangla")
+    is_english_to_target = selection.mode.startswith("english-to-target")
     has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
 
     # Pre-check Anki for input words (on main thread -- collection access)
-    # For English→Bangla, skip pre-check since we don't know the Bangla word yet
+    # For English→Target, skip pre-check since we don't know the target word yet
     words_to_check = []
-    if not is_english_to_bangla:
+    if not is_english_to_target:
         words_to_check = highlighted_words if has_highlighted else [new_message]
 
     anki_results = {}

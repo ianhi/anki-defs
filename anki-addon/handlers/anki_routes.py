@@ -72,9 +72,9 @@ def handle_create_note(_params, _headers, body):
         mapped_fields[mapping.get("Word", "Word")] = fields["Word"]
     if fields.get("Definition"):
         mapped_fields[mapping.get("Definition", "Definition")] = fields["Definition"]
-    if fields.get("BanglaDefinition"):
-        mapped_fields[mapping.get("BanglaDefinition", "BanglaDefinition")] = fields[
-            "BanglaDefinition"
+    if fields.get("NativeDefinition"):
+        mapped_fields[mapping.get("NativeDefinition", "NativeDefinition")] = fields[
+            "NativeDefinition"
         ]
     if fields.get("Example"):
         mapped_fields[mapping.get("Example", "Example")] = fields["Example"]
@@ -82,7 +82,7 @@ def handle_create_note(_params, _headers, body):
         mapped_fields[mapping.get("Translation", "Translation")] = fields["Translation"]
 
     # Also pass through any fields not in the standard set
-    standard_fields = ("Word", "Definition", "BanglaDefinition", "Example", "Translation")
+    standard_fields = ("Word", "Definition", "NativeDefinition", "Example", "Translation")
     for key, value in fields.items():
         if key not in standard_fields:
             mapped_fields[key] = value
