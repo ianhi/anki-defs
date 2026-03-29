@@ -13,12 +13,13 @@
   "fieldMapping": {
     "Word": "Bangla",
     "Definition": "Eng_trans",
-    "BanglaDefinition": "bangla-def",
+    "NativeDefinition": "bangla-def",
     "Example": "example sentence",
     "Translation": "sentence-trans"
   },
   "apiToken": "",
-  "englishToBanglaPrefix": "bn:",
+  "translationPrefix": "bn:",
+  "targetLanguage": "bn",
   "autoDetectEnglish": true,
   "defaultCardTypes": ["vocab"],
   "clozeNoteType": "",

@@ -5,7 +5,7 @@ All types are defined in `types.ts`. This is the API contract source of truth.
 ## Core Types
 
 - `Message` -- Chat message (user/assistant, with optional card previews, token usage, refinements)
-- `CardContent` -- Base flashcard data: word, definition, banglaDefinition, exampleSentence, sentenceTranslation
+- `CardContent` -- Base flashcard data: word, definition, nativeDefinition, exampleSentence, sentenceTranslation
 - `CardPreview` -- Extends CardContent with: alreadyExists, existingCard?, spellingCorrection?
 
 ## Session & Anki Types
@@ -14,7 +14,7 @@ All types are defined in `types.ts`. This is the API contract source of truth.
 - `PendingCard` -- Extends CardContent with id, createdAt, deckName, modelName (not yet in Anki)
 - `SessionState` -- `{ cards: SessionCard[], pendingQueue: PendingCard[] }`
 - `AnkiNote` -- Anki note record (noteId, modelName, tags, fields)
-- `CreateCardParams` -- Params for creating a card (deck, model, word, definition, banglaDefinition, exampleSentence, sentenceTranslation, tags)
+- `CreateCardParams` -- Params for creating a card (deck, model, word, definition, nativeDefinition, exampleSentence, sentenceTranslation, tags)
 
 ## SSE Event Types
 
@@ -29,9 +29,9 @@ Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 ## Settings & Models
 
 - `AIProvider` -- `'claude' | 'gemini' | 'openrouter'`
-- `Settings` -- Full settings (aiProvider, API keys, geminiModel, openRouterModel, showTransliteration, leftHanded, defaultDeck, defaultModel, ankiConnectUrl, fieldMapping, apiToken)
+- `Settings` -- Full settings (aiProvider, API keys, geminiModel, openRouterModel, showTransliteration, leftHanded, defaultDeck, defaultModel, ankiConnectUrl, fieldMapping, apiToken, translationPrefix, targetLanguage)
 - `DEFAULT_SETTINGS` -- Const with sensible defaults for all Settings fields
-- `CARD_DATA_FIELDS` -- `['Word', 'Definition', 'BanglaDefinition', 'Example', 'Translation']`
+- `CARD_DATA_FIELDS` -- `['Word', 'Definition', 'NativeDefinition', 'Example', 'Translation']`
 - `FieldMapping` -- Maps card data fields to Anki note type field names
 - `ModelOption` -- `{ value, label }` for model selector UI
 - `GEMINI_MODELS` / `OPENROUTER_MODELS` -- Available model options per provider
@@ -40,7 +40,7 @@ Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 
 ## Request Types
 
-- `ChatStreamRequest` -- `{ messages, newMessage, deck?, highlightedWords?, userContext? }`
+- `ChatStreamRequest` -- `{ newMessage, deck?, highlightedWords?, userContext?, mode?: 'english-to-target' }`
 - `SearchNotesRequest` -- `{ query }`
 - `CreateNoteRequest` -- `{ deckName, modelName, fields, tags? }`
 - `RelemmatizeRequest` / `RelemmatizeResponse` -- Re-check dictionary form with context

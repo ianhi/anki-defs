@@ -15,7 +15,7 @@ export interface Message {
 export interface CardContent {
   word: string;
   definition: string;
-  banglaDefinition: string;
+  nativeDefinition: string;
   exampleSentence: string;
   sentenceTranslation: string;
 }
@@ -81,7 +81,7 @@ export interface CreateCardParams {
   model: string;
   word: string;
   definition: string;
-  banglaDefinition: string;
+  nativeDefinition: string;
   exampleSentence: string;
   sentenceTranslation: string;
   tags?: string[];
@@ -109,20 +109,21 @@ export interface Settings {
   ankiConnectUrl: string;
   fieldMapping: FieldMapping;
   apiToken: string;
-  englishToBanglaPrefix: string;
+  translationPrefix: string;
   autoDetectEnglish: boolean;
   // Cloze card settings
   defaultCardTypes: CardType[];
   clozeNoteType: string;
   clozeFieldMapping: FieldMapping;
   mcClozeNoteType: string;
+  targetLanguage: string;
   mcClozeFieldMapping: FieldMapping;
 }
 
 export const CARD_DATA_FIELDS = [
   'Word',
   'Definition',
-  'BanglaDefinition',
+  'NativeDefinition',
   'Example',
   'Translation',
 ] as const;
@@ -143,12 +144,13 @@ export const DEFAULT_SETTINGS: Settings = {
   fieldMapping: {
     Word: 'Bangla',
     Definition: 'Eng_trans',
-    BanglaDefinition: 'bangla-def',
+    NativeDefinition: 'bangla-def',
     Example: 'example sentence',
     Translation: 'sentence-trans',
   },
   apiToken: '',
-  englishToBanglaPrefix: 'bn:',
+  translationPrefix: 'bn:',
+  targetLanguage: 'bn',
   autoDetectEnglish: true,
   defaultCardTypes: ['vocab'],
   clozeNoteType: '',
@@ -198,7 +200,7 @@ export interface ChatStreamRequest {
   deck?: string;
   highlightedWords?: string[];
   userContext?: string;
-  mode?: 'english-to-bangla';
+  mode?: 'english-to-target';
 }
 
 export interface SearchNotesRequest {
