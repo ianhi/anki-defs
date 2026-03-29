@@ -35,7 +35,7 @@ def _load_all_prompts() -> dict[str, Any]:
         "word": _load_json("single-word.json"),
         "focusedWords": _load_json("focused-words.json"),
         "relemmatize": _load_json("relemmatize.json"),
-        "englishToBangla": _load_json("english-to-bangla.json"),
+        "englishToTarget": _load_json("english-to-target.json"),
         "sentence": _load_json("sentence.json"),
         "distractors": _load_json("distractors.json"),
     }
@@ -69,14 +69,14 @@ def _render_prompt(template: str, transliteration: bool) -> str:
 
 def get_system_prompts(transliteration: bool) -> dict[str, str]:
     """Get rendered system prompts for all modes."""
-    et = _prompt_templates["englishToBangla"]
+    et = _prompt_templates["englishToTarget"]
     return {
         "word": _render_prompt(_prompt_templates["word"]["system"], transliteration),
         "focusedWords": _render_prompt(
             _prompt_templates["focusedWords"]["system"], transliteration
         ),
-        "englishToBangla": _render_prompt(et["system"], transliteration),
-        "englishToBanglaFocused": _render_prompt(
+        "englishToTarget": _render_prompt(et["system"], transliteration),
+        "englishToTargetFocused": _render_prompt(
             et.get("system_focused", et["system"]), transliteration
         ),
         "sentence": _render_prompt(
@@ -136,34 +136,34 @@ def select_prompt(
     Matches Express selectPrompt() logic exactly.
     """
     trimmed = new_message.strip()
-    is_english_to_bangla = mode == "english-to-bangla"
+    is_english_to_target = mode == "english-to-target"
     is_single_word = " " not in trimmed and len(trimmed) < 30
     has_highlights = bool(highlighted_words and len(highlighted_words) > 0)
 
-    if is_english_to_bangla and has_highlights:
+    if is_english_to_target and has_highlights:
         assert highlighted_words is not None
         rendered = render_user_template(
-            "englishToBangla",
+            "englishToTarget",
             {"sentence": new_message, "highlightedWords": ", ".join(highlighted_words)},
             "focused",
         )
         return PromptSelection(
-            mode="english-to-bangla-focused",
-            system_prompt=prompts["englishToBanglaFocused"],
+            mode="english-to-target-focused",
+            system_prompt=prompts["englishToTargetFocused"],
             user_message=(
                 rendered
                 or f"Sentence: {new_message}\n\nFocus words: {', '.join(highlighted_words)}"
             ),
         )
 
-    if is_english_to_bangla:
+    if is_english_to_target:
         rendered = render_user_template(
-            "englishToBangla",
+            "englishToTarget",
             {"word": new_message, "userContext": user_context or ""},
         )
         return PromptSelection(
-            mode="english-to-bangla",
-            system_prompt=prompts["englishToBangla"],
+            mode="english-to-target",
+            system_prompt=prompts["englishToTarget"],
             user_message=rendered or new_message,
         )
 

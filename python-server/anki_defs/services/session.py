@@ -34,7 +34,7 @@ def _init_tables(db: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             word TEXT NOT NULL,
             definition TEXT NOT NULL,
-            banglaDefinition TEXT NOT NULL DEFAULT '',
+            nativeDefinition TEXT NOT NULL DEFAULT '',
             exampleSentence TEXT NOT NULL DEFAULT '',
             sentenceTranslation TEXT NOT NULL DEFAULT '',
             createdAt INTEGER NOT NULL,
@@ -47,7 +47,7 @@ def _init_tables(db: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             word TEXT NOT NULL,
             definition TEXT NOT NULL,
-            banglaDefinition TEXT NOT NULL DEFAULT '',
+            nativeDefinition TEXT NOT NULL DEFAULT '',
             exampleSentence TEXT NOT NULL DEFAULT '',
             sentenceTranslation TEXT NOT NULL DEFAULT '',
             createdAt INTEGER NOT NULL,
@@ -57,7 +57,6 @@ def _init_tables(db: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_cards_word ON cards(word);
         CREATE INDEX IF NOT EXISTS idx_cards_definition ON cards(definition);
-        CREATE INDEX IF NOT EXISTS idx_cards_bangla_def ON cards(banglaDefinition);
         CREATE INDEX IF NOT EXISTS idx_cards_sentence_trans ON cards(sentenceTranslation);
 
         CREATE TABLE IF NOT EXISTS word_cache (
@@ -77,13 +76,22 @@ def _init_tables(db: sqlite3.Connection) -> None:
         );
     """)
 
-    # Migration: add banglaDefinition column to existing tables
+    # Migration: add nativeDefinition column to existing tables
     for table in ("cards", "pending"):
         try:
-            db.execute(f"ALTER TABLE {table} ADD COLUMN banglaDefinition TEXT NOT NULL DEFAULT ''")
+            db.execute(f"ALTER TABLE {table} ADD COLUMN nativeDefinition TEXT NOT NULL DEFAULT ''")
         except sqlite3.OperationalError as e:
             if "duplicate column" not in str(e):
                 raise
+
+    # Migration: rename banglaDefinition → nativeDefinition
+    for table in ("cards", "pending"):
+        cols = [row[1] for row in db.execute(f"PRAGMA table_info({table})").fetchall()]
+        if "banglaDefinition" in cols and "nativeDefinition" not in cols:
+            db.execute(f"ALTER TABLE {table} RENAME COLUMN banglaDefinition TO nativeDefinition")
+
+    # Index on nativeDefinition (created after migration to handle renamed column)
+    db.execute("CREATE INDEX IF NOT EXISTS idx_cards_native_def ON cards(nativeDefinition)")
 
 
 def _rows_to_list(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
@@ -106,9 +114,9 @@ def add_card(card: dict[str, Any]) -> None:
     db = _get_db()
     db.execute(
         """INSERT OR REPLACE INTO cards
-        (id, word, definition, banglaDefinition, exampleSentence, sentenceTranslation,
+        (id, word, definition, nativeDefinition, exampleSentence, sentenceTranslation,
          createdAt, noteId, deckName, modelName)
-        VALUES (:id, :word, :definition, :banglaDefinition, :exampleSentence,
+        VALUES (:id, :word, :definition, :nativeDefinition, :exampleSentence,
                 :sentenceTranslation, :createdAt, :noteId, :deckName, :modelName)""",
         card,
     )
@@ -126,9 +134,9 @@ def add_pending(card: dict[str, Any]) -> None:
     db = _get_db()
     db.execute(
         """INSERT OR REPLACE INTO pending
-        (id, word, definition, banglaDefinition, exampleSentence, sentenceTranslation,
+        (id, word, definition, nativeDefinition, exampleSentence, sentenceTranslation,
          createdAt, deckName, modelName)
-        VALUES (:id, :word, :definition, :banglaDefinition, :exampleSentence,
+        VALUES (:id, :word, :definition, :nativeDefinition, :exampleSentence,
                 :sentenceTranslation, :createdAt, :deckName, :modelName)""",
         card,
     )
@@ -155,7 +163,7 @@ def promote_pending(pending_id: str, note_id: int) -> dict[str, Any] | None:
         "createdAt": pending["createdAt"],
         "word": pending["word"],
         "definition": pending["definition"],
-        "banglaDefinition": pending["banglaDefinition"],
+        "nativeDefinition": pending["nativeDefinition"],
         "exampleSentence": pending["exampleSentence"],
         "sentenceTranslation": pending["sentenceTranslation"],
         "deckName": pending["deckName"],
@@ -164,9 +172,9 @@ def promote_pending(pending_id: str, note_id: int) -> dict[str, Any] | None:
     }
     db.execute(
         """INSERT OR REPLACE INTO cards
-        (id, word, definition, banglaDefinition, exampleSentence, sentenceTranslation,
+        (id, word, definition, nativeDefinition, exampleSentence, sentenceTranslation,
          createdAt, noteId, deckName, modelName)
-        VALUES (:id, :word, :definition, :banglaDefinition, :exampleSentence,
+        VALUES (:id, :word, :definition, :nativeDefinition, :exampleSentence,
                 :sentenceTranslation, :createdAt, :noteId, :deckName, :modelName)""",
         card,
     )
@@ -235,7 +243,7 @@ def search_history(
         pattern = f"%{query.strip()}%"
         where = (
             "WHERE word LIKE ? OR definition LIKE ? "
-            "OR banglaDefinition LIKE ? OR sentenceTranslation LIKE ?"
+            "OR nativeDefinition LIKE ? OR sentenceTranslation LIKE ?"
         )
         params = [pattern] * 4
         total_row = db.execute(f"SELECT COUNT(*) as total FROM cards {where}", params).fetchone()
