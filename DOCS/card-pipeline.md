@@ -9,9 +9,9 @@ How a user's input becomes an Anki flashcard in a single LLM call.
 | **Single word**   | No spaces, <30 chars         | `বাজার`                                           |
 | **Focused words** | Sentence + highlighted words | Sentence: `ছেলেটা বাজারে যাচ্ছে`, Focus: `বাজারে` |
 
-Sentence mode without highlights is **blocked** — the client disables send and shows a
-hint to mark unknown words. Detection happens server-side in `chat.ts` and client-side
-in `MessageInput.tsx`.
+Sentence mode without highlights triggers **sentence translation** — the server returns
+a markdown breakdown instead of card JSON. Detection happens server-side in `chat.py`
+and client-side in `MessageInput.tsx`.
 
 ## Step-by-Step Flow
 
@@ -21,7 +21,7 @@ The server classifies the input:
 
 - **Single word**: no spaces, <30 chars → uses `single-word.json` prompt
 - **Focused words**: `highlightedWords` array non-empty → uses `focused-words.json` prompt
-- **Sentence without highlights** → returns error SSE event (blocked)
+- **Sentence without highlights** → sentence-translate mode (markdown breakdown, no cards)
 
 ### 2. JSON Completion (one LLM call)
 
@@ -34,7 +34,7 @@ non-streaming call. The prompt instructs the LLM to return JSON directly.
 {
   "word": "কাঁদা",
   "definition": "to cry, to weep",
-  "banglaDefinition": "চোখ থেকে জল পড়া",
+  "nativeDefinition": "চোখ থেকে জল পড়া",
   "exampleSentence": "মেয়েটা **কাঁদছে**।",
   "sentenceTranslation": "The girl is crying.",
   "spellingCorrection": null
@@ -48,7 +48,7 @@ non-streaming call. The prompt instructs the LLM to return JSON directly.
   {
     "word": "বাজার",
     "definition": "market, bazaar",
-    "banglaDefinition": "যেখানে জিনিস কেনা-বেচা হয়",
+    "nativeDefinition": "যেখানে জিনিস কেনা-বেচা হয়",
     "exampleSentence": "ছেলেটা **বাজারে** যাচ্ছে",
     "sentenceTranslation": "The boy is going to the market.",
     ...
@@ -97,7 +97,7 @@ sentence, each card gets the full sentence with only its word bolded.
 | ---------------- | ----------------------------------- | ------------------------- |
 | Word             | Lemmatized dictionary form          | Bangla                    |
 | Definition       | English meaning (under 10 words)    | Eng_trans                 |
-| BanglaDefinition | Bangla definition (simple, concise) | Bangla_definition         |
+| NativeDefinition | Target language definition (simple)  | bangla-def                |
 | Example          | Example sentence with **bold** word | example sentence          |
 | Translation      | English translation of example      | sentence-trans            |
 
@@ -124,4 +124,5 @@ context with `; ` separators.
 | `client/src/components/CardPreview.tsx`                    | Card UI, add/undo/edit, retry-with-context          |
 | `client/src/lib/utils.ts`                                  | `markdownBoldToHtml()`                              |
 | `shared/prompts/*.json`                                    | Prompt templates with `{{variable}}` substitution   |
-| `shared/prompts/variables.json`                            | Shared variables: preamble, outputRules, etc.       |
+| `shared/prompts/variables.json`                            | Universal variables (outputRules)                    |
+| `shared/languages/bn.json`                                 | Bangla language definition (rules, examples, etc.)  |
