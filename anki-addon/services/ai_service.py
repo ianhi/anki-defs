@@ -10,6 +10,7 @@ from anki_defs._services.ai import (  # noqa: F401
     get_json_completion,
     get_relemmatize_prompt,
     get_system_prompts,
+    get_text_completion,
     parse_json_response,
     reload_prompts,
     render_user_template,
