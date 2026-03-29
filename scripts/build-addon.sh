@@ -26,10 +26,11 @@ rm -rf "$ADDON_DIR/web"
 cp -r "$ROOT/client/dist" "$ADDON_DIR/web"
 
 echo "==> Copying shared data into addon package..."
-mkdir -p "$ADDON_DIR/_shared/prompts" "$ADDON_DIR/_shared/defaults" "$ADDON_DIR/_shared/data"
+mkdir -p "$ADDON_DIR/_shared/prompts" "$ADDON_DIR/_shared/defaults" "$ADDON_DIR/_shared/data" "$ADDON_DIR/_shared/languages"
 cp "$ROOT/shared/prompts/"*.json "$ADDON_DIR/_shared/prompts/"
 cp "$ROOT/shared/defaults/"*.json "$ADDON_DIR/_shared/defaults/"
 cp "$ROOT/shared/data/"*.json "$ADDON_DIR/_shared/data/"
+cp "$ROOT/shared/languages/"*.json "$ADDON_DIR/_shared/languages/"
 
 echo "==> Copying shared services from python-server..."
 rm -rf "$ADDON_DIR/_services"

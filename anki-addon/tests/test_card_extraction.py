@@ -49,14 +49,14 @@ class TestNoteToExistingCard:
         field_mapping = {
             "Word": "Bangla",
             "Definition": "Eng_trans",
-            "BanglaDefinition": "bangla-def",
+            "NativeDefinition": "bangla-def",
             "Example": "example sentence",
             "Translation": "sentence-trans",
         }
         result = _note_to_card_content(note, field_mapping)
         assert result["word"] == "কাঁদা"
         assert result["definition"] == "to cry"
-        assert result["banglaDefinition"] == "চোখ থেকে জল পড়া"
+        assert result["nativeDefinition"] == "চোখ থেকে জল পড়া"
         assert result["exampleSentence"] == "মেয়েটা কাঁদছে।"
         assert result["sentenceTranslation"] == "The girl is crying."
 
