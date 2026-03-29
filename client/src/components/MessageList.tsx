@@ -9,6 +9,7 @@ import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
 import { Eye, MessageSquare, Plus, Loader2 } from 'lucide-react';
+import Markdown from 'react-markdown';
 
 const log = createLogger('MessageList');
 
@@ -221,7 +222,17 @@ export function MessageList({ messages, isStreaming, retryWithContext }: Message
                       ))}
                     </div>
                   )}
-                  {showStreamingIndicator && !message.cardPreviews?.length && (
+                  {message.content && !message.cardPreviews?.length && (
+                    <div className="space-y-1.5">
+                      <span className="inline-block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground bg-background/50 border border-border rounded px-1.5 py-0.5">
+                        Sentence breakdown
+                      </span>
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                        <Markdown>{message.content}</Markdown>
+                      </div>
+                    </div>
+                  )}
+                  {showStreamingIndicator && !message.cardPreviews?.length && !message.content && (
                     <div className="flex gap-1 py-2" role="status" aria-label="Loading response">
                       <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
                       <span

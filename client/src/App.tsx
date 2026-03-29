@@ -9,7 +9,6 @@ import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ErrorModal } from './components/ErrorModal';
 import { SettingsIcon, X, RefreshCw, History, AlertTriangle, HelpCircle } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
@@ -179,7 +178,6 @@ function MainApp() {
       )}
       {showHelp && <HelpPage onClose={() => setShowHelp(false)} />}
       {showOnboarding && <OnboardingModal onComplete={() => setShowOnboarding(false)} />}
-      <ErrorModal />
     </div>
   );
 }
