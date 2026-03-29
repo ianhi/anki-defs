@@ -1,56 +1,76 @@
-# Planning Index
+# anki-defs — What's Next
 
-## Current Status
+## Pick something to work on
 
-All backends use JSON-first pipeline (single LLM call). Python server is the primary backend.
-Settings unified via shared `settings_base.py`. Structured logging throughout.
+### Ready now (no blockers)
 
-| Component                              | Status                           | Notes                                                                            |
-| -------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------- |
-| Web app (`client/` + `python-server/`) | Working                          | FastAPI + React, 3 AI providers, TTS, cloze support, onboarding, tabbed settings |
-| Android (`android/`)                   | Working                          | WebView + NanoHTTPd, still uses old two-call pipeline                            |
-| Anki add-on (`anki-addon/`)            | Working                          | Hardened, keyring+fallback, needs manual testing inside Anki                     |
-| Shared prompts (`shared/prompts/`)     | Working                          | JSON-format templates incl. english-to-bangla + distractor generation            |
-| Tests                                  | 65 vitest + 67 pytest + 46 addon | TypeScript + Python full coverage                                                |
-| CI                                     | Working                          | `.github/workflows/ci.yml` — web checks + python-server checks                   |
-| Docs site (`docs/`)                    | Deployed                         | Astro Starlight on GitHub Pages                                                  |
+1. **Test Anki add-on end-to-end** — Code is hardened but never verified inside
+   Anki Desktop. Run `install-dev.sh`, restart Anki, test all flows. High value.
+2. **Sentence translation without highlighting** — Currently shows a help message.
+   Should just translate naturally. Small change, good UX win.
+3. **Wire up error modal** — `useErrorModal.showError()` exists but nothing
+   triggers it. Quick polish.
+4. **Embedded audio in cards** — TTS at card creation time. Plan exists at
+   [audio-in-cards.md](audio-in-cards.md). Separate comparison tool at
+   `~/dev/tts-compare/` to pick the engine first.
 
-## Active Plans
+### Needs design/discussion first
 
-| Doc                                                  | Summary             | What's left                                      |
-| ---------------------------------------------------- | ------------------- | ------------------------------------------------ |
-| [next-steps.md](next-steps.md)                       | Feature roadmap     | Reader mode, TTS polish, addon testing, and more |
-| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research | Research complete, implementation in progress    |
-| [audio-in-cards.md](audio-in-cards.md)               | Embedded card audio | Planning — Google Cloud TTS recommended          |
+5. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
+   feature, needs UI planning. PDF/image import builds on this.
+6. **Language-agnostic prompts** — All prompts hardcoded to Bangla. Big refactor
+   to parameterize target language across types, prompts, and field names.
 
-## Completed Plans (reference only)
+### Medium effort
 
-| Doc                                                | Summary                         | Status |
-| -------------------------------------------------- | ------------------------------- | ------ |
-| [addon-hardening.md](addon-hardening.md)           | Post-migration cleanup & polish | DONE   |
-| [settings-unification.md](settings-unification.md) | Shared keyring/consent/settings | DONE   |
+7. **Migrate Android to JSON-first pipeline** — Still uses old two-call streaming.
+   Should match web's single JSON call.
+8. **Unmarked sentence mode** — Auto-detect unknown words in a sentence, generate
+   cards only for those. Different from sentence translation.
+9. **Per-message streaming indicator** — Loading indicator only shows on last
+   message during concurrent streaming.
 
-## Reference (keep, don't modify)
+### Low priority / future
 
-| Doc                                      | Purpose                                     |
-| ---------------------------------------- | ------------------------------------------- |
-| [security-audit.md](security-audit.md)   | Security findings — all 9 fixes implemented |
-| [team-workflow.md](team-workflow.md)     | Coordinator playbook for multi-agent work   |
-| [repo-structure.md](repo-structure.md)   | Monorepo layout explanation                 |
-| [anki-addon.md](anki-addon.md)           | Add-on architecture (can bundle deps)       |
-| [android-backend.md](android-backend.md) | NanoHTTPd server design                     |
-| [quick-translate.md](quick-translate.md) | Future: native Android popup for quick defs |
+10. Gemini grounding with web search ($35/1K — opt-in only)
+11. Bangla disambiguation for homonyms
 
-## Subproject Planning
+## Component status
 
-- `android/PLANNING/` — Android-specific plans and future features
-- `client/PLANNING/` — Client-specific plans (currently empty)
-- `python-server/PLANNING/` — Python server plans
-- `shared/PLANNING/` — Shared type plans (currently empty)
+| Component                              | Status  | Notes                                                    |
+| -------------------------------------- | ------- | -------------------------------------------------------- |
+| Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, cloze, onboarding |
+| Android (`android/`)                   | Working | Still on old two-call pipeline                           |
+| Anki add-on (`anki-addon/`)            | Working | Hardened but untested inside Anki                        |
+| Shared prompts (`shared/prompts/`)     | Working | JSON templates incl. english-to-bangla + distractors     |
+| Tests                                  | 65+67+46 | vitest + python-server pytest + addon pytest            |
+| CI                                     | Working | `.github/workflows/ci.yml`                               |
+| Docs site (`docs/`)                    | Deployed | Astro Starlight on GitHub Pages                         |
 
-## For Agents
+## Detailed plans
 
-- **Read this file first**, then the relevant plan doc for your task.
-- **Update docs in the same commit** as code changes.
-- When a plan is **fully done**: delete the file and remove from this index.
-- When you **discover new work**: create a `.md` and add it here.
+| Doc                                                  | What it covers                        |
+| ---------------------------------------------------- | ------------------------------------- |
+| [next-steps.md](next-steps.md)                       | Full feature list with details        |
+| [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan                  |
+| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)     |
+
+## Completed plans
+
+[addon-hardening.md](addon-hardening.md) ·
+[settings-unification.md](settings-unification.md)
+
+## Reference docs
+
+[security-audit.md](security-audit.md) ·
+[team-workflow.md](team-workflow.md) ·
+[repo-structure.md](repo-structure.md) ·
+[anki-addon.md](anki-addon.md) ·
+[android-backend.md](android-backend.md) ·
+[quick-translate.md](quick-translate.md)
+
+## For agents
+
+- Read this file first, then the relevant plan doc for your task.
+- Update docs in the same commit as code changes.
+- Subproject plans: `android/PLANNING/`, `client/PLANNING/`, `python-server/PLANNING/`, `shared/PLANNING/`
