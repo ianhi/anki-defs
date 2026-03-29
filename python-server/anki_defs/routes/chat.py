@@ -79,13 +79,13 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
 
         system_prompt = selection.system_prompt
         user_message = selection.user_message
-        is_english_to_bangla = selection.mode.startswith("english-to-bangla")
+        is_english_to_target = selection.mode.startswith("english-to-target")
         has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
         log.info("Mode: %s", selection.mode)
 
         # Pre-check Anki for input words
         words_to_check: list[str] = []
-        if not is_english_to_bangla:
+        if not is_english_to_target:
             words_to_check = (highlighted_words or []) if has_highlighted else [new_message]
 
         anki_results: dict[str, Any | None] = {}

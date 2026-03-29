@@ -10,7 +10,7 @@ Settings unified via shared `settings_base.py`. Structured logging throughout.
 | Web app (`client/` + `python-server/`) | Working                          | FastAPI + React, 3 AI providers, TTS, cloze support, onboarding, tabbed settings |
 | Android (`android/`)                   | Working                          | WebView + NanoHTTPd, still uses old two-call pipeline                            |
 | Anki add-on (`anki-addon/`)            | Working                          | Hardened, keyring+fallback, needs manual testing inside Anki                     |
-| Shared prompts (`shared/prompts/`)     | Working                          | JSON-format templates incl. english-to-bangla + distractor generation            |
+| Shared prompts (`shared/prompts/`)     | Working                          | Parameterized templates + language files in `shared/languages/`                  |
 | Tests                                  | 65 vitest + 67 pytest + 46 addon | TypeScript + Python full coverage                                                |
 | CI                                     | Working                          | `.github/workflows/ci.yml` — web checks + python-server checks                   |
 | Docs site (`docs/`)                    | Deployed                         | Astro Starlight on GitHub Pages                                                  |

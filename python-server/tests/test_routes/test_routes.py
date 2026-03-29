@@ -118,10 +118,10 @@ class TestPrompts:
     def test_preview_english_to_bangla(self, client):
         resp = client.post(
             "/api/prompts/preview",
-            json={"newMessage": "market", "mode": "english-to-bangla"},
+            json={"newMessage": "market", "mode": "english-to-target"},
         )
         assert resp.status_code == 200
-        assert resp.json()["mode"] == "english-to-bangla"
+        assert resp.json()["mode"] == "english-to-target"
 
     def test_preview_missing_message(self, client):
         resp = client.post("/api/prompts/preview", json={})
