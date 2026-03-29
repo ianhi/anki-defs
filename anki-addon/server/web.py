@@ -270,14 +270,17 @@ class ClientBuffer:
         method = tokens[0] if len(tokens) > 0 else "GET"
         raw_path = tokens[1] if len(tokens) > 1 else "/"
 
-        # Strip query string for routing
+        # Strip query string for routing, preserve it for handlers
         path = raw_path.split("?")[0]
+        query_string = raw_path.split("?", 1)[1] if "?" in raw_path else ""
 
         headers = {}
         for line in lines[1:]:
             if ":" in line:
                 key, value = line.split(":", 1)
                 headers[key.strip().lower()] = value.strip()
+
+        headers["query_string"] = query_string
 
         return method, path, headers, body.decode("utf-8", errors="replace")
 

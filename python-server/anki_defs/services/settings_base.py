@@ -108,7 +108,7 @@ def read_secret(field: str, fallback_read: Callable[[str], str]) -> str:
             if value:
                 return value
         except keyring.errors.KeyringError:
-            pass
+            log.debug("Keyring read failed for %s, using fallback", field)
     return fallback_read(field)
 
 
@@ -133,7 +133,7 @@ def write_secret(
                     pass
             return
         except keyring.errors.KeyringError:
-            pass
+            log.debug("Keyring write failed for %s, using fallback", field)
     fallback_write(field, value)
 
 

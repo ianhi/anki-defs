@@ -56,4 +56,10 @@ def handle_put_settings(_params, _headers, body):
     except RuntimeError as e:
         return Response.error("Failed to update settings: {}".format(e))
 
+    # Reset AI clients if provider or API key settings changed
+    if any(key in updates for key in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")):
+        from ..services import ai_service
+
+        ai_service.reset_clients()
+
     return Response.json(_response_settings())

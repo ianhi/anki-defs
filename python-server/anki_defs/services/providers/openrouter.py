@@ -108,7 +108,7 @@ def stream_completion(
                 }
             )
         on_done()
-    except Exception as e:
+    except (httpx.HTTPError, ValueError, OSError) as e:
         log.error("Stream error: %s", e, exc_info=True)
         on_error(str(e))
 

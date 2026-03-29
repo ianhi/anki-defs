@@ -77,7 +77,7 @@ def stream_completion(
                     break
                 try:
                     event = json.loads(payload)
-                except Exception:
+                except json.JSONDecodeError:
                     continue
 
                 event_type = event.get("type", "")
@@ -104,7 +104,7 @@ def stream_completion(
                 }
             )
         on_done()
-    except Exception as e:
+    except (httpx.HTTPError, ValueError, OSError) as e:
         log.error("streamCompletion error: %s", e, exc_info=True)
         on_error(str(e))
 

@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         save_settings({"apiToken": token})
         log.info("Generated API token: %s", token)
     else:
-        log.info("API token: %s", current["apiToken"])
+        log.info("API token: ...%s", current["apiToken"][-4:])
     yield
 
 

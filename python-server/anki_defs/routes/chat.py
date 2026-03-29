@@ -8,6 +8,7 @@ import logging
 import os
 from typing import Any
 
+import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
@@ -95,7 +96,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
                     anki_connect.search_word_cached, word, target_deck
                 )
                 anki_results[word] = note
-            except Exception as e:
+            except (RuntimeError, ValueError, httpx.HTTPError) as e:
                 log.error("Anki search failed: %s", e)
                 anki_results[word] = None
 
@@ -121,7 +122,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
             try:
                 parsed = ai.parse_json_response(raw_response)
                 cards = card_extraction.validate_card_responses(parsed)
-            except Exception:
+            except (json.JSONDecodeError, ValueError):
                 # Retry with healing prompt
                 log.warning("JSON parse failed, retrying with healing prompt")
                 try:
@@ -137,7 +138,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
                         await asyncio.to_thread(session.record_usage, retry_usage, cost)
                     parsed = ai.parse_json_response(retry_result.get("text", ""))
                     cards = card_extraction.validate_card_responses(parsed)
-                except Exception:
+                except (json.JSONDecodeError, ValueError):
                     yield _sse_event({
                         "type": "error",
                         "data": "Failed to parse AI response as JSON",
@@ -164,7 +165,7 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
 
             yield _sse_event({"type": "done", "data": None})
 
-        except Exception as e:
+        except (RuntimeError, ValueError, OSError) as e:
             log.error("Unexpected error: %s", e, exc_info=True)
             yield _sse_event({
                 "type": "error",
@@ -236,6 +237,6 @@ async def relemmatize(request: Request) -> JSONResponse:
             "lemma": parsed.get("lemma", word),
             "definition": parsed.get("definition", ""),
         })
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError) as e:
         log.error("Error relemmatizing word: %s", e)
         return JSONResponse({"error": "Failed to relemmatize word"}, status_code=500)
