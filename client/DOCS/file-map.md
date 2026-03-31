@@ -29,7 +29,7 @@
 ## Hooks (`src/hooks/`)
 
 - `useChat.ts` -- Chat state + SSE streaming + input draft persistence (Zustand + persist)
-- `useAnki.ts` -- TanStack Query hooks for Anki API calls (sync invalidates all queries)
+- `useAnki.ts` -- TanStack Query hooks for Anki API calls (sync invalidates all queries), `useLanguages()` for language list
 - `useSettings.ts` -- Zustand settings store (persisted)
 - `useSessionCards.ts` -- Session card tracking + pending queue
 - `useTokenUsage.ts` -- Token/cost accumulation
@@ -37,7 +37,7 @@
 
 ## Lib (`src/lib/`)
 
-- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation)
+- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation + `languageApi`)
 - `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, `isEnglishToTarget` detection)
 - `utils.ts` -- Utilities: `buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`,
   `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`

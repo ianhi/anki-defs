@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useDecks, useModels, useModelFields } from '@/hooks/useAnki';
+import { useDecks, useModels, useModelFields, useLanguages } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
@@ -10,7 +10,7 @@ import { Button } from './ui/Button';
 import type { AIProvider, CardType, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
-import { Loader2, Volume2 } from 'lucide-react';
+import { Loader2, Volume2, X, Plus } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 import { useTheme, type Theme } from '@/hooks/useTheme';
 import {
@@ -20,6 +20,14 @@ import {
   speak,
   hasTTS,
 } from '@/lib/tts';
+
+// Local type until Agent A merges CustomLanguage into shared/types.ts
+interface CustomLanguage {
+  code: string;
+  name: string;
+}
+
+const CUSTOM_LANGUAGE_SENTINEL = '__custom__';
 
 type SettingsTab = 'ai' | 'anki' | 'preferences';
 
@@ -94,6 +102,329 @@ function TtsVoicePicker() {
   );
 }
 
+/** Build combined language options from server languages + custom languages */
+function buildLanguageOptions(
+  languages: Array<{ code: string; name: string; nativeName: string }> | undefined,
+  customLanguages: CustomLanguage[]
+) {
+  const options: Array<{ code: string; label: string }> = [];
+
+  // Server-provided languages
+  if (languages) {
+    for (const lang of languages) {
+      options.push({
+        code: lang.code,
+        label: lang.nativeName ? `${lang.name} (${lang.nativeName})` : lang.name,
+      });
+    }
+  }
+
+  // User-defined custom languages (not already in server list)
+  const serverCodes = new Set(languages?.map((l) => l.code) ?? []);
+  for (const cl of customLanguages) {
+    if (!serverCodes.has(cl.code)) {
+      options.push({ code: cl.code, label: cl.name });
+    }
+  }
+
+  return options;
+}
+
+function LanguageDropdown({
+  id,
+  value,
+  languages,
+  customLanguages,
+  onChange,
+  onCustom,
+  className,
+}: {
+  id?: string;
+  value: string;
+  languages: Array<{ code: string; name: string; nativeName: string }> | undefined;
+  customLanguages: CustomLanguage[];
+  onChange: (code: string) => void;
+  onCustom: () => void;
+  className?: string;
+}) {
+  const options = buildLanguageOptions(languages, customLanguages);
+  return (
+    <Select
+      id={id}
+      value={value}
+      onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+        if (e.target.value === CUSTOM_LANGUAGE_SENTINEL) {
+          onCustom();
+        } else {
+          onChange(e.target.value);
+        }
+      }}
+      className={className}
+    >
+      <option value="">-- select --</option>
+      {options.map((opt) => (
+        <option key={opt.code} value={opt.code}>
+          {opt.label}
+        </option>
+      ))}
+      <option value={CUSTOM_LANGUAGE_SENTINEL}>Custom...</option>
+    </Select>
+  );
+}
+
+function LanguageSection({
+  localSettings,
+  languages,
+  decks,
+  handleChange,
+}: {
+  localSettings: SettingsType & {
+    targetLanguage?: string;
+    deckLanguages?: Record<string, string>;
+    customLanguages?: CustomLanguage[];
+  };
+  languages: Array<{ code: string; name: string; nativeName: string }> | undefined;
+  decks: string[] | undefined;
+  handleChange: (
+    key: string,
+    value: string | boolean | string[] | Record<string, string> | CustomLanguage[]
+  ) => void;
+}) {
+  const targetLanguage = localSettings.targetLanguage ?? '';
+  const deckLanguages = localSettings.deckLanguages ?? {};
+  const customLanguages = localSettings.customLanguages ?? [];
+
+  const [showCustomDefault, setShowCustomDefault] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customCode, setCustomCode] = useState('');
+
+  // For adding deck overrides
+  const [newOverrideDeck, setNewOverrideDeck] = useState('');
+  const [showCustomOverride, setShowCustomOverride] = useState<string | null>(null);
+  const [overrideCustomName, setOverrideCustomName] = useState('');
+  const [overrideCustomCode, setOverrideCustomCode] = useState('');
+
+  const mappedDecks = new Set(Object.keys(deckLanguages));
+  const availableDecks = decks?.filter((d) => !mappedDecks.has(d)) ?? [];
+
+  const addCustomLanguage = (name: string, code: string): string => {
+    if (!customLanguages.some((cl) => cl.code === code)) {
+      handleChange('customLanguages', [...customLanguages, { code, name }]);
+    }
+    return code;
+  };
+
+  const handleDefaultCustomSave = () => {
+    if (customName.trim() && customCode.trim()) {
+      const code = addCustomLanguage(customName.trim(), customCode.trim());
+      handleChange('targetLanguage', code);
+      setShowCustomDefault(false);
+      setCustomName('');
+      setCustomCode('');
+    }
+  };
+
+  const handleOverrideCustomSave = (deck: string) => {
+    if (overrideCustomName.trim() && overrideCustomCode.trim()) {
+      const code = addCustomLanguage(overrideCustomName.trim(), overrideCustomCode.trim());
+      handleChange('deckLanguages', { ...deckLanguages, [deck]: code });
+      setShowCustomOverride(null);
+      setOverrideCustomName('');
+      setOverrideCustomCode('');
+    }
+  };
+
+  const addDeckOverride = (deck: string, langCode: string) => {
+    handleChange('deckLanguages', { ...deckLanguages, [deck]: langCode });
+    setNewOverrideDeck('');
+  };
+
+  const removeDeckOverride = (deck: string) => {
+    const updated = { ...deckLanguages };
+    delete updated[deck];
+    handleChange('deckLanguages', updated);
+  };
+
+  const languageLabel = (code: string) => {
+    const serverLang = languages?.find((l) => l.code === code);
+    if (serverLang) {
+      return serverLang.nativeName
+        ? `${serverLang.name} (${serverLang.nativeName})`
+        : serverLang.name;
+    }
+    const custom = customLanguages.find((cl) => cl.code === code);
+    return custom?.name ?? code;
+  };
+
+  return (
+    <>
+      {/* Default Language */}
+      <div className="space-y-2">
+        <Label htmlFor="default-language">Default Language</Label>
+        <LanguageDropdown
+          id="default-language"
+          value={targetLanguage}
+          languages={languages}
+          customLanguages={customLanguages}
+          onChange={(code) => handleChange('targetLanguage', code)}
+          onCustom={() => setShowCustomDefault(true)}
+        />
+        {showCustomDefault && (
+          <div className="space-y-2 rounded-md border border-input p-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Language name"
+                value={customName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomName(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Code (e.g. hi)"
+                value={customCode}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCode(e.target.value)}
+                className="w-28"
+              />
+            </div>
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+              Custom languages use generic prompts without language-specific rules.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleDefaultCustomSave}
+                disabled={!customName.trim() || !customCode.trim()}
+              >
+                Add
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCustomDefault(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Deck Language Overrides */}
+      <div className="space-y-2">
+        <Label>Deck language overrides</Label>
+        <p className="text-xs text-muted-foreground">
+          Subdecks inherit their parent deck&apos;s language.
+        </p>
+
+        {/* Existing overrides */}
+        {Object.entries(deckLanguages).map(([deck, langCode]) => (
+          <div key={deck} className="flex items-center gap-2">
+            <span className="text-sm truncate flex-shrink min-w-0" title={deck}>
+              {deck}
+            </span>
+            <span className="text-muted-foreground text-sm flex-shrink-0">&rarr;</span>
+            <span className="text-sm flex-shrink-0">{languageLabel(langCode)}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 flex-shrink-0"
+              onClick={() => removeDeckOverride(deck)}
+              title="Remove override"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+
+        {/* Custom language inline form for override */}
+        {showCustomOverride && (
+          <div className="space-y-2 rounded-md border border-input p-3">
+            <p className="text-xs font-medium">
+              Custom language for &ldquo;{showCustomOverride}&rdquo;
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Language name"
+                value={overrideCustomName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOverrideCustomName(e.target.value)
+                }
+                className="flex-1"
+              />
+              <Input
+                placeholder="Code (e.g. hi)"
+                value={overrideCustomCode}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOverrideCustomCode(e.target.value)
+                }
+                className="w-28"
+              />
+            </div>
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+              Custom languages use generic prompts without language-specific rules.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => handleOverrideCustomSave(showCustomOverride)}
+                disabled={!overrideCustomName.trim() || !overrideCustomCode.trim()}
+              >
+                Add
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCustomOverride(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Add new override row */}
+        {availableDecks.length > 0 && !showCustomOverride && (
+          <div className="flex items-center gap-2">
+            <Select
+              value={newOverrideDeck}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => setNewOverrideDeck(e.target.value)}
+              className="flex-1"
+            >
+              <option value="">Select deck...</option>
+              {availableDecks.map((deck) => (
+                <option key={deck} value={deck}>
+                  {deck}
+                </option>
+              ))}
+            </Select>
+            {newOverrideDeck && (
+              <>
+                <span className="text-muted-foreground text-sm flex-shrink-0">&rarr;</span>
+                <LanguageDropdown
+                  value=""
+                  languages={languages}
+                  customLanguages={customLanguages}
+                  onChange={(code) => addDeckOverride(newOverrideDeck, code)}
+                  onCustom={() => {
+                    setShowCustomOverride(newOverrideDeck);
+                    setOverrideCustomName('');
+                    setOverrideCustomCode('');
+                  }}
+                  className="flex-1"
+                />
+              </>
+            )}
+            {!newOverrideDeck && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => {
+                  if (availableDecks.length > 0) setNewOverrideDeck(availableDecks[0] ?? '');
+                }}
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'ai', label: 'AI Provider' },
   { id: 'anki', label: 'Anki' },
@@ -139,6 +470,7 @@ export function Settings() {
   });
 
   const { data: decks } = useDecks();
+  const { data: languages } = useLanguages();
   const { data: models } = useModels();
   const { data: modelFields } = useModelFields(localSettings.defaultModel);
   const { data: clozeFields } = useModelFields(localSettings.clozeNoteType || undefined);
@@ -155,10 +487,10 @@ export function Settings() {
   }, [serverSettings, loadSettings]);
 
   const handleChange = (
-    key: keyof SettingsType,
-    value: string | boolean | string[] | Record<string, string>
+    key: string,
+    value: string | boolean | string[] | Record<string, string> | CustomLanguage[]
   ) => {
-    setLocalSettings((prev) => ({ ...prev, [key]: value }));
+    setLocalSettings((prev) => ({ ...prev, [key]: value }) as SettingsType);
     setHasChanges(true);
   };
 
@@ -340,6 +672,14 @@ export function Settings() {
                 )) ?? <option>No decks available</option>}
               </Select>
             </div>
+
+            {/* Default Language */}
+            <LanguageSection
+              localSettings={localSettings}
+              languages={languages}
+              decks={decks}
+              handleChange={handleChange}
+            />
 
             <div className="space-y-2">
               <Label htmlFor="default-model">Default Note Type</Label>

@@ -138,6 +138,14 @@ export const chatApi = {
   },
 };
 
+// Language API
+export const languageApi = {
+  getLanguages: () =>
+    fetchJson<{
+      languages: Array<{ code: string; name: string; nativeName: string }>;
+    }>('/languages').then((r) => r.languages),
+};
+
 // Session API
 export const sessionApi = {
   getState: () => fetchJson<SessionState>('/session'),
