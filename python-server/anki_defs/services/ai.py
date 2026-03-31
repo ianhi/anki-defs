@@ -3,8 +3,9 @@
 Loads all 6 prompt templates from shared/prompts/*.json. Implements selectPrompt()
 logic matching Express ai.ts, plus provider dispatch to Claude/Gemini/OpenRouter.
 
-Language-specific content is loaded from shared/languages/<code>.json and substituted
-into parameterized prompt templates at render time.
+Language resolution: each deck can map to a language via deckLanguages setting.
+Deck hierarchy is walked (e.g. "A::B::C" checks "A::B::C", then "A::B", then "A")
+before falling back to the global targetLanguage setting.
 """
 
 from __future__ import annotations
@@ -20,22 +21,113 @@ from .settings import get_settings
 
 log = logging.getLogger(__name__)
 
+# --- Language loading ---
+
+
+def _load_all_languages() -> dict[str, dict[str, Any]]:
+    """Load all language files from shared/languages/."""
+    langs: dict[str, dict[str, Any]] = {}
+    if not LANGUAGES_DIR.exists():
+        return langs
+    for path in LANGUAGES_DIR.glob("*.json"):
+        try:
+            with open(path, encoding="utf-8") as f:
+                lang = json.load(f)
+                langs[lang["code"]] = lang
+        except (json.JSONDecodeError, KeyError, OSError) as e:
+            log.warning("Failed to load language file %s: %s", path, e)
+    return langs
+
+
+def _default_language(code: str, name: str) -> dict[str, Any]:
+    """Generate a minimal language config for languages without a dedicated file."""
+    return {
+        "code": code,
+        "name": name,
+        "nativeName": name,
+        "preamble": f"You are a {name} language expert helping a learner build Anki flashcards.",
+        "lemmatizationRules": (
+            "**Lemmatization**: Always use the dictionary/base form "
+            "of the word, not the inflected form from the sentence."
+        ),
+        "spellingRules": "",
+        "colloquialRules": "",
+        "transliteration": {
+            "instruction": {
+                "true": (
+                    f" Include romanized transliteration in parentheses"
+                    f" after each {name} word."
+                ),
+                "false": " Do NOT include romanized transliteration/pronunciation.",
+            },
+            "marker": {"true": " ([transliteration])", "false": ""},
+        },
+        "lemmaExamples": {"inline": "", "relemmatize": "Use the dictionary/base form."},
+        "sentenceAnalysis": {"skipParticles": ""},
+        "translationGuidelines": (
+            f"- Pick the MOST NATURAL {name} word \u2014 what a native speaker "
+            f"would actually say in conversation.\n"
+            f"- Prefer colloquial/spoken forms over formal/literary."
+        ),
+    }
+
+
+def _resolve_language(code: str, settings: dict[str, Any]) -> dict[str, Any]:
+    """Look up language by code -- file-backed first, then custom, then generate default."""
+    if code in _languages:
+        return _languages[code]
+    for custom in settings.get("customLanguages", []):
+        if custom.get("code") == code:
+            return _default_language(code, custom["name"])
+    return _default_language(code, code)
+
+
+def _get_default_language() -> dict[str, Any]:
+    """Get the default language (from targetLanguage setting)."""
+    settings = get_settings()
+    code = settings.get("targetLanguage", "bn")
+    return _resolve_language(code, settings)
+
+
+def get_language_for_deck(deck: str) -> dict[str, Any]:
+    """Resolve language for a deck using :: hierarchy inheritance."""
+    settings = get_settings()
+    deck_langs = settings.get("deckLanguages", {})
+
+    # Walk up deck hierarchy
+    parts = deck.split("::")
+    while parts:
+        name = "::".join(parts)
+        if name in deck_langs:
+            code = deck_langs[name]
+            return _resolve_language(code, settings)
+        parts.pop()
+
+    # Fallback to global targetLanguage
+    code = settings.get("targetLanguage", "bn")
+    return _resolve_language(code, settings)
+
+
+def get_available_languages() -> list[dict[str, str]]:
+    """Return list of available file-backed languages."""
+    return [
+        {"code": lang["code"], "name": lang["name"], "nativeName": lang.get("nativeName", "")}
+        for lang in _languages.values()
+    ]
+
+
 # --- Prompt loading and rendering ---
 
-def _load_json(filename: str, directory: Any = None) -> Any:
-    """Load a JSON file from the given directory (defaults to prompts)."""
-    path = (directory or PROMPTS_DIR) / filename
+
+def _load_json(filename: str) -> Any:
+    """Load a JSON file from the shared prompts directory."""
+    path = PROMPTS_DIR / filename
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
 def _load_variables() -> dict[str, Any]:
     return _load_json("variables.json")
-
-
-def _load_language(code: str) -> dict[str, Any]:
-    """Load a language definition file from shared/languages/."""
-    return _load_json(f"{code}.json", LANGUAGES_DIR)
 
 
 def _build_language_rules(lang: dict[str, Any]) -> str:
@@ -65,53 +157,59 @@ def _load_all_prompts() -> dict[str, Any]:
 
 # Cached at startup; reload_prompts() refreshes from disk
 _variables: dict[str, Any] = _load_variables()
-_language: dict[str, Any] = _load_language(get_settings().get("targetLanguage", "bn"))
+_languages: dict[str, dict[str, Any]] = _load_all_languages()
 _prompt_templates: dict[str, Any] = _load_all_prompts()
 
 
 def reload_prompts() -> None:
-    """Reload prompt templates, variables, and language from disk."""
-    global _variables, _prompt_templates, _language
+    """Reload prompt templates, variables, and languages from disk."""
+    global _variables, _prompt_templates, _languages
     _variables = _load_variables()
-    _language = _load_language(get_settings().get("targetLanguage", "bn"))
+    _languages = _load_all_languages()
     _prompt_templates = _load_all_prompts()
 
 
-def _render_prompt(template: str, transliteration: bool) -> str:
+def _render_prompt(
+    template: str, transliteration: bool, language: dict[str, Any] | None = None
+) -> str:
     """Apply variable and language substitutions to a prompt template."""
+    lang = language or _get_default_language()
     key = "true" if transliteration else "false"
     result = template
     # Language substitutions
-    result = result.replace("{{preamble}}", _language["preamble"])
-    result = result.replace("{{targetLanguage}}", _language["name"])
-    result = result.replace("{{languageRules}}", _build_language_rules(_language))
+    result = result.replace("{{preamble}}", lang["preamble"])
+    result = result.replace("{{targetLanguage}}", lang["name"])
+    result = result.replace("{{languageRules}}", _build_language_rules(lang))
+    translit = lang.get("transliteration", {})
     result = result.replace(
-        "{{transliterationInstruction}}", _language["transliteration"]["instruction"][key]
+        "{{transliterationInstruction}}", translit.get("instruction", {}).get(key, "")
     )
-    result = result.replace("{{translitMarker}}", _language["transliteration"]["marker"][key])
-    result = result.replace("{{lemmaExample}}", _language["lemmaExamples"]["inline"])
-    result = result.replace("{{relemmatizeRules}}", _language["lemmaExamples"]["relemmatize"])
-    result = result.replace("{{skipParticles}}", _language["sentenceAnalysis"]["skipParticles"])
-    result = result.replace("{{translationGuidelines}}", _language["translationGuidelines"])
+    result = result.replace("{{translitMarker}}", translit.get("marker", {}).get(key, ""))
+    result = result.replace("{{lemmaExample}}", lang.get("lemmaExamples", {}).get("inline", ""))
+    result = result.replace("{{relemmatizeRules}}", lang.get("lemmaExamples", {}).get("relemmatize", ""))
+    result = result.replace("{{skipParticles}}", lang.get("sentenceAnalysis", {}).get("skipParticles", ""))
+    result = result.replace("{{translationGuidelines}}", lang.get("translationGuidelines", ""))
     # Global substitutions
     result = result.replace("{{outputRules}}", _variables["outputRules"])
     return result
 
 
-def get_system_prompts(transliteration: bool) -> dict[str, str]:
+def get_system_prompts(
+    transliteration: bool, language: dict[str, Any] | None = None
+) -> dict[str, str]:
     """Get rendered system prompts for all modes."""
     et = _prompt_templates["englishToTarget"]
     return {
-        "word": _render_prompt(_prompt_templates["word"]["system"], transliteration),
+        "word": _render_prompt(_prompt_templates["word"]["system"], transliteration, language),
         "focusedWords": _render_prompt(
-            _prompt_templates["focusedWords"]["system"], transliteration
+            _prompt_templates["focusedWords"]["system"], transliteration, language
         ),
-        "englishToTarget": _render_prompt(et["system"], transliteration),
+        "englishToTarget": _render_prompt(et["system"], transliteration, language),
         "englishToTargetFocused": _render_prompt(
-            et.get("system_focused", et["system"]), transliteration
+            et.get("system_focused", et["system"]), transliteration, language
         ),
         "sentence": _render_prompt(
-            _prompt_templates["sentence"]["system"], transliteration
+            _prompt_templates["sentence"]["system"], transliteration, language
         ),
     }
 
@@ -235,8 +333,11 @@ def select_prompt(
     )
 
 
-def get_relemmatize_prompt(word: str, sentence: str | None = None) -> str:
+def get_relemmatize_prompt(
+    word: str, sentence: str | None = None, language: dict[str, Any] | None = None
+) -> str:
     """Build the relemmatize prompt with word/context and language substitution."""
+    lang = language or _get_default_language()
     context = f"\nContext sentence: {sentence}" if sentence else ""
     raw = (
         _prompt_templates["relemmatize"]["system"]
@@ -244,8 +345,8 @@ def get_relemmatize_prompt(word: str, sentence: str | None = None) -> str:
         .replace("{{context}}", context)
     )
     # Apply language substitutions
-    raw = raw.replace("{{targetLanguage}}", _language["name"])
-    raw = raw.replace("{{relemmatizeRules}}", _language["lemmaExamples"]["relemmatize"])
+    raw = raw.replace("{{targetLanguage}}", lang["name"])
+    raw = raw.replace("{{relemmatizeRules}}", lang.get("lemmaExamples", {}).get("relemmatize", ""))
     return raw
 
 

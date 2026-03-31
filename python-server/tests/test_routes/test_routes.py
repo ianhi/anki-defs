@@ -65,7 +65,7 @@ class TestSession:
             "id": "c1",
             "word": "বাজার",
             "definition": "market",
-            "nativeDefinition": "",
+            "banglaDefinition": "",
             "exampleSentence": "",
             "sentenceTranslation": "",
             "createdAt": 1000,
@@ -118,11 +118,25 @@ class TestPrompts:
     def test_preview_english_to_bangla(self, client):
         resp = client.post(
             "/api/prompts/preview",
-            json={"newMessage": "market", "mode": "english-to-target"},
+            json={"newMessage": "market", "mode": "english-to-bangla"},
         )
         assert resp.status_code == 200
-        assert resp.json()["mode"] == "english-to-target"
+        assert resp.json()["mode"] == "english-to-bangla"
 
     def test_preview_missing_message(self, client):
         resp = client.post("/api/prompts/preview", json={})
         assert resp.status_code == 400
+
+
+class TestLanguages:
+    def test_get_languages(self, client):
+        resp = client.get("/api/anki/languages")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "languages" in data
+        assert isinstance(data["languages"], list)
+        # Each language should have code, name, nativeName
+        for lang in data["languages"]:
+            assert "code" in lang
+            assert "name" in lang
+            assert "nativeName" in lang

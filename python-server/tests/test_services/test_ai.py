@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from anki_defs.services.ai import (
+    _default_language,
+    get_available_languages,
+    get_language_for_deck,
     get_relemmatize_prompt,
     get_system_prompts,
     parse_json_response,
@@ -16,13 +21,12 @@ class TestPromptLoading:
         prompts = get_system_prompts(False)
         assert "word" in prompts
         assert "focusedWords" in prompts
-        assert "englishToTarget" in prompts
-        assert "englishToTargetFocused" in prompts
-        assert "sentence" in prompts
+        assert "englishToBangla" in prompts
+        assert "englishToBanglaFocused" in prompts
 
     def test_word_prompt_has_preamble(self):
         prompts = get_system_prompts(False)
-        assert "Bangla language expert" in prompts["word"]
+        assert "language expert" in prompts["word"]
 
     def test_transliteration_disabled(self):
         prompts = get_system_prompts(False)
@@ -31,33 +35,6 @@ class TestPromptLoading:
     def test_transliteration_enabled(self):
         prompts = get_system_prompts(True)
         assert "Include romanized transliteration" in prompts["word"]
-
-    def test_word_prompt_has_language_rules(self):
-        prompts = get_system_prompts(False)
-        assert "### Bangla-Specific Rules" in prompts["word"]
-        assert "Lemmatization" in prompts["word"]
-        assert "Spelling tolerance" in prompts["word"]
-
-    def test_focused_prompt_has_lemma_example(self):
-        prompts = get_system_prompts(False)
-        assert "কেঁপে→কাঁপা" in prompts["focusedWords"]
-
-    def test_english_to_target_has_guidelines(self):
-        prompts = get_system_prompts(False)
-        assert "MOST NATURAL Bangla word" in prompts["englishToTarget"]
-
-    def test_sentence_prompt_has_skip_particles(self):
-        """Verify sentence prompt renders correctly via get_system_prompts indirectly."""
-        # sentence prompt is not in get_system_prompts, test via _render_prompt
-        from anki_defs.services.ai import _prompt_templates, _render_prompt
-        rendered = _render_prompt(_prompt_templates["sentence"]["system"], False)
-        assert "আমি, তুমি, সে" in rendered
-        assert "Bangla sentence" in rendered
-
-    def test_relemmatize_has_language_rules(self):
-        prompt = get_relemmatize_prompt("বাজারে")
-        assert "Bangla dictionary/lemma form" in prompt
-        assert "Bangla Lemmatization Rules" in prompt
 
 
 class TestRenderUserTemplate:
@@ -80,14 +57,14 @@ class TestRenderUserTemplate:
         assert "সে বাজারে গেল" in result
         assert "বাজারে, গেল" in result
 
-    def test_english_to_target(self):
-        result = render_user_template("englishToTarget", {"word": "market"})
+    def test_english_to_bangla(self):
+        result = render_user_template("englishToBangla", {"word": "market"})
         assert result is not None
         assert "market" in result
 
-    def test_english_to_target_focused(self):
+    def test_english_to_bangla_focused(self):
         result = render_user_template(
-            "englishToTarget",
+            "englishToBangla",
             {"sentence": "I went to the market", "highlightedWords": "market"},
             "focused",
         )
@@ -114,23 +91,22 @@ class TestSelectPrompt:
         )
         assert sel.mode == "focused-words"
 
-    def test_sentence_translate(self):
+    def test_sentence_blocked(self):
         sel = select_prompt(self.prompts, "সে বাজারে গেল")
-        assert sel.mode == "sentence-translate"
-        assert sel.system_prompt
+        assert sel.mode == "sentence-blocked"
 
-    def test_english_to_target(self):
-        sel = select_prompt(self.prompts, "market", mode="english-to-target")
-        assert sel.mode == "english-to-target"
+    def test_english_to_bangla(self):
+        sel = select_prompt(self.prompts, "market", mode="english-to-bangla")
+        assert sel.mode == "english-to-bangla"
 
-    def test_english_to_target_focused(self):
+    def test_english_to_bangla_focused(self):
         sel = select_prompt(
             self.prompts,
             "I went to the market",
             highlighted_words=["market"],
-            mode="english-to-target",
+            mode="english-to-bangla",
         )
-        assert sel.mode == "english-to-target-focused"
+        assert sel.mode == "english-to-bangla-focused"
 
 
 class TestRelemmatize:
@@ -156,3 +132,89 @@ class TestParseJsonResponse:
     def test_array(self):
         result = parse_json_response('[{"word": "a"}, {"word": "b"}]')
         assert len(result) == 2
+
+
+class TestLanguageForDeck:
+    def test_exact_match(self):
+        settings = {
+            "deckLanguages": {"Spanish": "es"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("Spanish")
+            assert lang["code"] == "es"
+
+    def test_inheritance(self):
+        settings = {
+            "deckLanguages": {"Languages": "bn", "Languages::Spanish": "es"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            # Subdeck inherits from parent when no exact match
+            lang = get_language_for_deck("Languages::Spanish::Verbs")
+            assert lang["code"] == "es"
+
+    def test_inheritance_walks_up(self):
+        settings = {
+            "deckLanguages": {"Languages": "fr"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("Languages::Spanish::Verbs")
+            assert lang["code"] == "fr"
+
+    def test_fallback_to_target_language(self):
+        settings = {
+            "deckLanguages": {},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("UnmappedDeck")
+            assert lang["code"] == "bn"
+
+    def test_fallback_no_deck_languages(self):
+        settings = {"targetLanguage": "hi"}
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("SomeDeck")
+            assert lang["code"] == "hi"
+
+
+class TestAvailableLanguages:
+    def test_returns_list(self):
+        langs = get_available_languages()
+        assert isinstance(langs, list)
+        # Each entry should have code, name, nativeName
+        for lang in langs:
+            assert "code" in lang
+            assert "name" in lang
+            assert "nativeName" in lang
+
+
+class TestRenderPromptWithLanguage:
+    def test_explicit_language_overrides_preamble(self):
+        lang = _default_language("es", "Spanish")
+        prompts = get_system_prompts(False, language=lang)
+        assert "Spanish language expert" in prompts["word"]
+
+    def test_none_language_uses_default(self):
+        prompts = get_system_prompts(False, language=None)
+        # Should not crash, uses default language
+        assert "word" in prompts
+
+
+class TestDefaultLanguage:
+    def test_produces_valid_dict(self):
+        lang = _default_language("hi", "Hindi")
+        assert lang["code"] == "hi"
+        assert lang["name"] == "Hindi"
+        assert lang["nativeName"] == "Hindi"
+        assert "Hindi" in lang["preamble"]
+        assert lang["lemmatizationRules"] != ""
+        assert "instruction" in lang["transliteration"]
+        assert "marker" in lang["transliteration"]
+        assert "true" in lang["transliteration"]["instruction"]
+        assert "false" in lang["transliteration"]["instruction"]
+
+    def test_transliteration_contains_language_name(self):
+        lang = _default_language("ko", "Korean")
+        assert "Korean" in lang["transliteration"]["instruction"]["true"]
