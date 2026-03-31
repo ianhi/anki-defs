@@ -21,6 +21,8 @@
   "translationPrefix": "bn:",
   "targetLanguage": "bn",
   "autoDetectEnglish": true,
+  "deckLanguages": {},
+  "customLanguages": [],
   "defaultCardTypes": ["vocab"],
   "clozeNoteType": "",
   "clozeFieldMapping": {},

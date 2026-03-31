@@ -95,6 +95,11 @@ export type FieldMapping = Record<string, string>;
 
 export type CardType = 'vocab' | 'cloze' | 'mcCloze';
 
+export interface CustomLanguage {
+  code: string;
+  name: string;
+}
+
 export interface Settings {
   aiProvider: AIProvider;
   claudeApiKey: string;
@@ -111,6 +116,9 @@ export interface Settings {
   apiToken: string;
   translationPrefix: string;
   autoDetectEnglish: boolean;
+  // Per-deck language settings
+  deckLanguages: Record<string, string>; // Maps deck names to language codes
+  customLanguages: CustomLanguage[]; // User-defined languages without .json files
   // Cloze card settings
   defaultCardTypes: CardType[];
   clozeNoteType: string;
@@ -152,6 +160,8 @@ export const DEFAULT_SETTINGS: Settings = {
   translationPrefix: 'bn:',
   targetLanguage: 'bn',
   autoDetectEnglish: true,
+  deckLanguages: {},
+  customLanguages: [],
   defaultCardTypes: ['vocab'],
   clozeNoteType: '',
   clozeFieldMapping: {},

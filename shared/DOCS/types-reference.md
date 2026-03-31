@@ -29,7 +29,8 @@ Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 ## Settings & Models
 
 - `AIProvider` -- `'claude' | 'gemini' | 'openrouter'`
-- `Settings` -- Full settings (aiProvider, API keys, geminiModel, openRouterModel, showTransliteration, leftHanded, defaultDeck, defaultModel, ankiConnectUrl, fieldMapping, apiToken, translationPrefix, targetLanguage)
+- `CustomLanguage` -- `{ code, name }` for user-defined languages without .json prompt files
+- `Settings` -- Full settings (aiProvider, API keys, geminiModel, openRouterModel, showTransliteration, leftHanded, defaultDeck, defaultModel, ankiConnectUrl, fieldMapping, apiToken, translationPrefix, targetLanguage, deckLanguages, customLanguages)
 - `DEFAULT_SETTINGS` -- Const with sensible defaults for all Settings fields
 - `CARD_DATA_FIELDS` -- `['Word', 'Definition', 'NativeDefinition', 'Example', 'Translation']`
 - `FieldMapping` -- Maps card data fields to Anki note type field names
