@@ -10,6 +10,7 @@ def create_router():
     # Health / platform
     router.get("/api/health", platform_routes.handle_health)
     router.get("/api/platform", platform_routes.handle_platform)
+    router.get("/api/languages", platform_routes.handle_languages)
 
     # Anki collection routes
     router.get("/api/anki/decks", anki_routes.handle_get_decks)
