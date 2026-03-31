@@ -20,6 +20,8 @@
   "apiToken": "",
   "englishToBanglaPrefix": "bn:",
   "autoDetectEnglish": true,
+  "deckLanguages": {},
+  "customLanguages": [],
   "defaultCardTypes": ["vocab"],
   "clozeNoteType": "",
   "clozeFieldMapping": {},
