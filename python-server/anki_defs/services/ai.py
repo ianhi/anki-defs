@@ -186,8 +186,10 @@ def _render_prompt(
     )
     result = result.replace("{{translitMarker}}", translit.get("marker", {}).get(key, ""))
     result = result.replace("{{lemmaExample}}", lang.get("lemmaExamples", {}).get("inline", ""))
-    result = result.replace("{{relemmatizeRules}}", lang.get("lemmaExamples", {}).get("relemmatize", ""))
-    result = result.replace("{{skipParticles}}", lang.get("sentenceAnalysis", {}).get("skipParticles", ""))
+    lemma_ex = lang.get("lemmaExamples", {})
+    result = result.replace("{{relemmatizeRules}}", lemma_ex.get("relemmatize", ""))
+    sentence_cfg = lang.get("sentenceAnalysis", {})
+    result = result.replace("{{skipParticles}}", sentence_cfg.get("skipParticles", ""))
     result = result.replace("{{translationGuidelines}}", lang.get("translationGuidelines", ""))
     # Global substitutions
     result = result.replace("{{outputRules}}", _variables["outputRules"])

@@ -68,25 +68,35 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
             mode=mode,
         )
 
-        if selection.mode == "sentence-blocked":
-            yield _sse_event({
-                "type": "error",
-                "data": "Highlight the words you want cards for. "
-                "On mobile: tap the crosshair icon then tap words. "
-                "On desktop: select text and press Ctrl+B.",
-            })
-            yield _sse_event({"type": "done", "data": None})
+        if selection.mode == "sentence-translate":
+            try:
+                result = await asyncio.to_thread(
+                    ai.get_text_completion,
+                    selection.system_prompt,
+                    selection.user_message,
+                )
+                usage = result.get("usage")
+                if usage:
+                    yield _sse_event({"type": "usage", "data": usage})
+                    cost = _compute_cost(usage)
+                    await asyncio.to_thread(session.record_usage, usage, cost)
+                yield _sse_event({"type": "text", "data": result.get("text", "")})
+                yield _sse_event({"type": "done", "data": None})
+            except (RuntimeError, ValueError, OSError) as e:
+                log.error("Sentence translate error: %s", e, exc_info=True)
+                yield _sse_event({"type": "error", "data": str(e)})
+                yield _sse_event({"type": "done", "data": None})
             return
 
         system_prompt = selection.system_prompt
         user_message = selection.user_message
-        is_english_to_bangla = selection.mode.startswith("english-to-bangla")
+        is_english_to_target = selection.mode.startswith("english-to-target")
         has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
         log.info("Mode: %s", selection.mode)
 
         # Pre-check Anki for input words
         words_to_check: list[str] = []
-        if not is_english_to_bangla:
+        if not is_english_to_target:
             words_to_check = (highlighted_words or []) if has_highlighted else [new_message]
 
         anki_results: dict[str, Any | None] = {}
@@ -227,7 +237,9 @@ async def relemmatize(request: Request) -> JSONResponse:
         return JSONResponse({"error": "word is required"}, status_code=400)
 
     try:
-        language = ai.get_language_for_deck(deck) if deck else None
+        settings = get_settings()
+        target_deck = deck or settings.get("defaultDeck", "Bangla")
+        language = ai.get_language_for_deck(target_deck)
         prompt = ai.get_relemmatize_prompt(word, sentence, language)
         response = await asyncio.to_thread(ai.get_completion, prompt, word)
 

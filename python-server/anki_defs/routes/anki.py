@@ -100,7 +100,7 @@ async def create_note(request: Request) -> JSONResponse:
             model=model_name,
             word=fields.get("Word", ""),
             definition=fields.get("Definition", ""),
-            bangla_definition=fields.get("BanglaDefinition", ""),
+            native_definition=fields.get("NativeDefinition", ""),
             example_sentence=fields.get("Example", ""),
             sentence_translation=fields.get("Translation", ""),
             tags=tags,
@@ -181,4 +181,5 @@ async def get_status() -> JSONResponse:
 
 @router.get("/languages")
 async def get_languages() -> JSONResponse:
+    """Return available language definitions."""
     return JSONResponse({"languages": ai.get_available_languages()})
