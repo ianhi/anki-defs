@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ankiApi } from '@/lib/api';
+import { ankiApi, languageApi } from '@/lib/api';
 import type { CreateNoteRequest } from 'shared';
 
 export function useAnkiStatus() {
@@ -52,6 +52,14 @@ export function useAnkiSync() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['anki'] });
     },
+  });
+}
+
+export function useLanguages() {
+  return useQuery({
+    queryKey: ['languages'],
+    queryFn: languageApi.getLanguages,
+    staleTime: Infinity, // Language list doesn't change at runtime
   });
 }
 
