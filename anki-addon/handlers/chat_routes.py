@@ -34,7 +34,8 @@ def handle_stream(_params, _headers, body):
     settings = get_settings()
     target_deck = deck or settings.get("defaultDeck", "Bangla")
     field_mapping = settings.get("fieldMapping") or {}
-    prompts = ai_service.get_system_prompts(settings.get("showTransliteration", False))
+    language = ai_service.get_language_for_deck(target_deck)
+    prompts = ai_service.get_system_prompts(settings.get("showTransliteration", False), language)
 
     # Use shared selectPrompt logic (handles all modes including EN→BN)
     selection = ai_service.select_prompt(
@@ -204,7 +205,10 @@ def handle_prompt_preview(_params, _headers, body):
         return Response.error("newMessage is required", 400)
 
     settings = get_settings()
-    prompts = ai_service.get_system_prompts(settings.get("showTransliteration", False))
+    deck = data.get("deck")
+    target_deck = deck or settings.get("defaultDeck", "Bangla")
+    language = ai_service.get_language_for_deck(target_deck)
+    prompts = ai_service.get_system_prompts(settings.get("showTransliteration", False), language)
 
     selection = ai_service.select_prompt(
         prompts,
