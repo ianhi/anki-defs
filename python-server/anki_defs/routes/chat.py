@@ -57,7 +57,8 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
             ai.reload_prompts()
         settings = get_settings()
         target_deck = deck or settings.get("defaultDeck", "Bangla")
-        prompts = ai.get_system_prompts(settings.get("showTransliteration", False))
+        language = ai.get_language_for_deck(target_deck)
+        prompts = ai.get_system_prompts(settings.get("showTransliteration", False), language)
 
         selection = ai.select_prompt(
             prompts,
@@ -220,12 +221,14 @@ async def relemmatize(request: Request) -> JSONResponse:
     body = await request.json()
     word: str = body.get("word", "")
     sentence: str | None = body.get("sentence")
+    deck: str | None = body.get("deck")
 
     if not word:
         return JSONResponse({"error": "word is required"}, status_code=400)
 
     try:
-        prompt = ai.get_relemmatize_prompt(word, sentence)
+        language = ai.get_language_for_deck(deck) if deck else None
+        prompt = ai.get_relemmatize_prompt(word, sentence, language)
         response = await asyncio.to_thread(ai.get_completion, prompt, word)
 
         try:

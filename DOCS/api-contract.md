@@ -31,6 +31,7 @@ is missing and prints warnings for extra routes not in the contract.
 | DELETE | `/notes/:id`           | Delete a note                |
 | POST   | `/sync`                | Trigger Anki sync            |
 | GET    | `/status`              | Check AnkiConnect connection |
+| GET    | `/languages`           | List available languages     |
 
 Note creation uses `allowDuplicate: true` so users can add multiple cards for the
 same word with different definitions.
@@ -100,6 +101,9 @@ Settings include cloze card configuration:
 ```json
 {
   "aiProvider": "gemini",
+  "targetLanguage": "bn",
+  "deckLanguages": { "Spanish": "es", "Languages::Hindi": "hi" },
+  "customLanguages": [{ "code": "tl", "name": "Tagalog" }],
   "defaultCardTypes": ["vocab"],
   "clozeNoteType": "",
   "clozeFieldMapping": {},
@@ -107,4 +111,14 @@ Settings include cloze card configuration:
   "mcClozeFieldMapping": {},
   ...
 }
+```
+
+Language resolution for a deck walks the `::` hierarchy (e.g. `A::B::C` checks
+`A::B::C`, then `A::B`, then `A`) before falling back to `targetLanguage`.
+Languages can come from `shared/languages/*.json` files, `customLanguages`
+setting, or be auto-generated from the language code.
+
+`GET /api/anki/languages` returns the list of file-backed languages:
+```json
+{ "languages": [{ "code": "bn", "name": "Bangla", "nativeName": "বাংলা" }] }
 ```

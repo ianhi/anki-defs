@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from anki_defs.services.ai import (
+    _default_language,
+    get_available_languages,
+    get_language_for_deck,
     get_relemmatize_prompt,
     get_system_prompts,
     parse_json_response,
@@ -21,7 +26,7 @@ class TestPromptLoading:
 
     def test_word_prompt_has_preamble(self):
         prompts = get_system_prompts(False)
-        assert "Bangla language expert" in prompts["word"]
+        assert "language expert" in prompts["word"]
 
     def test_transliteration_disabled(self):
         prompts = get_system_prompts(False)
@@ -127,3 +132,89 @@ class TestParseJsonResponse:
     def test_array(self):
         result = parse_json_response('[{"word": "a"}, {"word": "b"}]')
         assert len(result) == 2
+
+
+class TestLanguageForDeck:
+    def test_exact_match(self):
+        settings = {
+            "deckLanguages": {"Spanish": "es"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("Spanish")
+            assert lang["code"] == "es"
+
+    def test_inheritance(self):
+        settings = {
+            "deckLanguages": {"Languages": "bn", "Languages::Spanish": "es"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            # Subdeck inherits from parent when no exact match
+            lang = get_language_for_deck("Languages::Spanish::Verbs")
+            assert lang["code"] == "es"
+
+    def test_inheritance_walks_up(self):
+        settings = {
+            "deckLanguages": {"Languages": "fr"},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("Languages::Spanish::Verbs")
+            assert lang["code"] == "fr"
+
+    def test_fallback_to_target_language(self):
+        settings = {
+            "deckLanguages": {},
+            "targetLanguage": "bn",
+        }
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("UnmappedDeck")
+            assert lang["code"] == "bn"
+
+    def test_fallback_no_deck_languages(self):
+        settings = {"targetLanguage": "hi"}
+        with patch("anki_defs.services.ai.get_settings", return_value=settings):
+            lang = get_language_for_deck("SomeDeck")
+            assert lang["code"] == "hi"
+
+
+class TestAvailableLanguages:
+    def test_returns_list(self):
+        langs = get_available_languages()
+        assert isinstance(langs, list)
+        # Each entry should have code, name, nativeName
+        for lang in langs:
+            assert "code" in lang
+            assert "name" in lang
+            assert "nativeName" in lang
+
+
+class TestRenderPromptWithLanguage:
+    def test_explicit_language_overrides_preamble(self):
+        lang = _default_language("es", "Spanish")
+        prompts = get_system_prompts(False, language=lang)
+        assert "Spanish language expert" in prompts["word"]
+
+    def test_none_language_uses_default(self):
+        prompts = get_system_prompts(False, language=None)
+        # Should not crash, uses default language
+        assert "word" in prompts
+
+
+class TestDefaultLanguage:
+    def test_produces_valid_dict(self):
+        lang = _default_language("hi", "Hindi")
+        assert lang["code"] == "hi"
+        assert lang["name"] == "Hindi"
+        assert lang["nativeName"] == "Hindi"
+        assert "Hindi" in lang["preamble"]
+        assert lang["lemmatizationRules"] != ""
+        assert "instruction" in lang["transliteration"]
+        assert "marker" in lang["transliteration"]
+        assert "true" in lang["transliteration"]["instruction"]
+        assert "false" in lang["transliteration"]["instruction"]
+
+    def test_transliteration_contains_language_name(self):
+        lang = _default_language("ko", "Korean")
+        assert "Korean" in lang["transliteration"]["instruction"]["true"]

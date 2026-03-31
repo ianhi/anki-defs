@@ -9,7 +9,7 @@ import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ..services import anki_connect
+from ..services import ai, anki_connect
 
 log = logging.getLogger(__name__)
 
@@ -177,3 +177,8 @@ async def get_status() -> JSONResponse:
         return JSONResponse({"connected": connected})
     except (httpx.HTTPError, RuntimeError):
         return JSONResponse({"connected": False})
+
+
+@router.get("/languages")
+async def get_languages() -> JSONResponse:
+    return JSONResponse({"languages": ai.get_available_languages()})

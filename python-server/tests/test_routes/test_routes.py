@@ -126,3 +126,17 @@ class TestPrompts:
     def test_preview_missing_message(self, client):
         resp = client.post("/api/prompts/preview", json={})
         assert resp.status_code == 400
+
+
+class TestLanguages:
+    def test_get_languages(self, client):
+        resp = client.get("/api/anki/languages")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "languages" in data
+        assert isinstance(data["languages"], list)
+        # Each language should have code, name, nativeName
+        for lang in data["languages"]:
+            assert "code" in lang
+            assert "name" in lang
+            assert "nativeName" in lang
