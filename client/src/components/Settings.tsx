@@ -7,7 +7,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
-import type { AIProvider, CardType, Settings as SettingsType } from 'shared';
+import type { AIProvider, CardType, CustomLanguage, Settings as SettingsType } from 'shared';
 import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
 import { Loader2, Volume2, X, Plus } from 'lucide-react';
@@ -20,12 +20,6 @@ import {
   speak,
   hasTTS,
 } from '@/lib/tts';
-
-// Local type until Agent A merges CustomLanguage into shared/types.ts
-interface CustomLanguage {
-  code: string;
-  name: string;
-}
 
 const CUSTOM_LANGUAGE_SENTINEL = '__custom__';
 

@@ -143,7 +143,7 @@ export const languageApi = {
   getLanguages: () =>
     fetchJson<{
       languages: Array<{ code: string; name: string; nativeName: string }>;
-    }>('/languages').then((r) => r.languages),
+    }>('/anki/languages').then((r) => r.languages),
 };
 
 // Session API
