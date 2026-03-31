@@ -14,8 +14,8 @@
 
 3. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
    feature, needs UI planning. PDF/image import builds on this.
-4. **Language picker UI** — `targetLanguage` setting exists but no UI to change it.
-   Add language selector to Settings + create language files for other languages.
+4. **Create language files** — Language picker + per-deck mapping works. Add `.json`
+   language files for Hindi, Tamil, etc. to enable those languages.
 
 ### Medium effort
 

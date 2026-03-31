@@ -75,3 +75,5 @@
 - Input draft persistence
 - Sentence translation mode (replaced sentence-blocked with sentence-translate)
 - Removed dead ErrorModal code (component + hook were never wired up)
+- Language-agnostic prompts: composable language files + parameterized templates
+- Per-deck language picker with subdeck inheritance and custom language support
