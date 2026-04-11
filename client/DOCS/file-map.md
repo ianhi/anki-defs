@@ -12,8 +12,8 @@
 - `Chat.tsx` -- Primary chat interface, passes draft persistence to MessageInput
 - `MessageList.tsx` -- Message rendering (no avatar icons, full-width on mobile)
 - `MessageInput.tsx` -- Text input with word focus UI (Focus bar, Ctrl+B, auto-resize, draft persistence)
-- `CardPreview.tsx` -- Flashcard preview with editing, TTS, cloze checkboxes, add/skip/queue
-- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences)
+- `CardPreview.tsx` -- Flashcard preview with editing, TTS, card-type checkboxes (vocab/cloze/mcCloze) plus per-card vocab template overrides (recognition/production/listening), add/skip/queue. Sends the new domain `CreateNoteRequest` payload (deck, cardType, word, definition, etc.)
+- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences). The Anki tab has: default deck, per-deck language picker, default card types, and a "Vocab card templates" section with recognition/production/listening checkboxes. No model picker or field mapping UI — note types are auto-created server-side on first use.
 - `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker)
 - `OnboardingModal.tsx` -- First-run setup wizard (3 steps: provider, deck, usage tips)
 - `HelpPage.tsx` -- In-app help/documentation page
@@ -37,10 +37,9 @@
 
 ## Lib (`src/lib/`)
 
-- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation + `languageApi`)
+- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation + `languageApi`). No `getModels`/`getModelFields` — the client no longer picks note types.
 - `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, `isEnglishToTarget` detection)
-- `utils.ts` -- Utilities: `buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`,
-  `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`
+- `utils.ts` -- Utilities: `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`. Field-building helpers (`buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`) were removed — field mapping is now server-side.
 - `logger.ts` -- Structured console logging with levels (`createLogger`)
 - `tts.ts` -- Text-to-speech using browser SpeechSynthesis API (voice detection, selection)
 

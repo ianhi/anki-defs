@@ -2,14 +2,19 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useDecks, useModels, useModelFields, useLanguages } from '@/hooks/useAnki';
+import { useDecks, useLanguages } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Button } from './ui/Button';
-import type { AIProvider, CardType, CustomLanguage, Settings as SettingsType } from 'shared';
-import { CARD_DATA_FIELDS, GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
-import { CLOZE_DATA_FIELDS, MC_CLOZE_DATA_FIELDS } from '@/lib/utils';
+import type {
+  AIProvider,
+  CardType,
+  CustomLanguage,
+  Settings as SettingsType,
+  VocabCardTemplates,
+} from 'shared';
+import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Loader2, Volume2, X, Plus } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 import { useTheme, type Theme } from '@/hooks/useTheme';
@@ -465,10 +470,6 @@ export function Settings() {
 
   const { data: decks } = useDecks();
   const { data: languages } = useLanguages();
-  const { data: models } = useModels();
-  const { data: modelFields } = useModelFields(localSettings.defaultModel);
-  const { data: clozeFields } = useModelFields(localSettings.clozeNoteType || undefined);
-  const { data: mcClozeFields } = useModelFields(localSettings.mcClozeNoteType || undefined);
 
   useEffect(() => {
     if (serverSettings) {
@@ -482,7 +483,13 @@ export function Settings() {
 
   const handleChange = (
     key: string,
-    value: string | boolean | string[] | Record<string, string> | CustomLanguage[]
+    value:
+      | string
+      | boolean
+      | string[]
+      | Record<string, string>
+      | CustomLanguage[]
+      | VocabCardTemplates
   ) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }) as SettingsType);
     setHasChanges(true);
@@ -675,57 +682,6 @@ export function Settings() {
               handleChange={handleChange}
             />
 
-            <div className="space-y-2">
-              <Label htmlFor="default-model">Default Note Type</Label>
-              <Select
-                id="default-model"
-                value={localSettings.defaultModel}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  handleChange('defaultModel', e.target.value)
-                }
-                disabled={!models || models.length === 0}
-              >
-                {models?.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                )) ?? <option>No models available</option>}
-              </Select>
-            </div>
-
-            {modelFields && modelFields.length > 0 && (
-              <div className="space-y-2">
-                <Label>Field Mapping</Label>
-                <p className="text-xs text-muted-foreground">Map card data to note type fields</p>
-                <div className="space-y-1.5">
-                  {CARD_DATA_FIELDS.map((cardField) => (
-                    <div key={cardField} className="flex items-center gap-2">
-                      <span className="text-sm w-24 flex-shrink-0">{cardField}</span>
-                      <span className="text-muted-foreground text-sm">&rarr;</span>
-                      <Select
-                        value={localSettings.fieldMapping?.[cardField] || ''}
-                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                          const newMapping = {
-                            ...localSettings.fieldMapping,
-                            [cardField]: e.target.value,
-                          };
-                          handleChange('fieldMapping', newMapping);
-                        }}
-                        className="flex-1"
-                      >
-                        <option value="">-- not mapped --</option>
-                        {modelFields.map((field) => (
-                          <option key={field} value={field}>
-                            {field}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Default Card Types */}
             <div className="space-y-2">
               <Label>Default Card Types</Label>
@@ -749,111 +705,53 @@ export function Settings() {
               </div>
             </div>
 
-            {/* Cloze Note Type */}
+            {/* Vocab Card Templates */}
             <div className="space-y-2">
-              <Label htmlFor="cloze-model">Cloze Note Type</Label>
-              <Select
-                id="cloze-model"
-                value={localSettings.clozeNoteType}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  handleChange('clozeNoteType', e.target.value)
-                }
-                disabled={!models || models.length === 0}
-              >
-                <option value="">-- not configured --</option>
-                {models?.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
+              <Label>Vocab card templates</Label>
+              <div className="flex flex-col gap-1.5">
+                {(
+                  [
+                    {
+                      key: 'recognition',
+                      label: 'Recognition',
+                      hint: 'see word in target language → recall meaning',
+                    },
+                    {
+                      key: 'production',
+                      label: 'Production',
+                      hint: 'see English → recall target language',
+                    },
+                    {
+                      key: 'listening',
+                      label: 'Listening',
+                      hint: 'hear word → recall meaning + spelling',
+                    },
+                  ] as { key: keyof VocabCardTemplates; label: string; hint: string }[]
+                ).map(({ key, label, hint }) => (
+                  <label key={key} className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localSettings.vocabCardTemplates[key]}
+                      onChange={() =>
+                        handleChange('vocabCardTemplates', {
+                          ...localSettings.vocabCardTemplates,
+                          [key]: !localSettings.vocabCardTemplates[key],
+                        })
+                      }
+                      className="h-3.5 w-3.5 mt-0.5"
+                    />
+                    <span className="flex-1">
+                      <span className="font-medium">{label}</span>
+                      <span className="text-muted-foreground"> — {hint}</span>
+                    </span>
+                  </label>
                 ))}
-              </Select>
-            </div>
-
-            {/* Cloze Field Mapping */}
-            {localSettings.clozeNoteType && clozeFields && clozeFields.length > 0 && (
-              <div className="space-y-2">
-                <Label>Cloze Field Mapping</Label>
-                <div className="space-y-1.5">
-                  {CLOZE_DATA_FIELDS.map((cardField) => (
-                    <div key={cardField} className="flex items-center gap-2">
-                      <span className="text-sm w-28 flex-shrink-0">{cardField}</span>
-                      <span className="text-muted-foreground text-sm">&rarr;</span>
-                      <Select
-                        value={localSettings.clozeFieldMapping?.[cardField] || ''}
-                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                          const newMapping = {
-                            ...localSettings.clozeFieldMapping,
-                            [cardField]: e.target.value,
-                          };
-                          handleChange('clozeFieldMapping', newMapping);
-                        }}
-                        className="flex-1"
-                      >
-                        <option value="">-- not mapped --</option>
-                        {clozeFields.map((field) => (
-                          <option key={field} value={field}>
-                            {field}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
               </div>
-            )}
-
-            {/* MC Cloze Note Type */}
-            <div className="space-y-2">
-              <Label htmlFor="mc-cloze-model">MC Cloze Note Type</Label>
-              <Select
-                id="mc-cloze-model"
-                value={localSettings.mcClozeNoteType}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  handleChange('mcClozeNoteType', e.target.value)
-                }
-                disabled={!models || models.length === 0}
-              >
-                <option value="">-- not configured --</option>
-                {models?.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </Select>
+              <p className="text-xs text-muted-foreground">
+                These are the defaults applied when adding new cards. You can override them per-card
+                before adding. Note types are auto-created in Anki on first use.
+              </p>
             </div>
-
-            {/* MC Cloze Field Mapping */}
-            {localSettings.mcClozeNoteType && mcClozeFields && mcClozeFields.length > 0 && (
-              <div className="space-y-2">
-                <Label>MC Cloze Field Mapping</Label>
-                <div className="space-y-1.5">
-                  {MC_CLOZE_DATA_FIELDS.map((cardField) => (
-                    <div key={cardField} className="flex items-center gap-2">
-                      <span className="text-sm w-28 flex-shrink-0">{cardField}</span>
-                      <span className="text-muted-foreground text-sm">&rarr;</span>
-                      <Select
-                        value={localSettings.mcClozeFieldMapping?.[cardField] || ''}
-                        onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                          const newMapping = {
-                            ...localSettings.mcClozeFieldMapping,
-                            [cardField]: e.target.value,
-                          };
-                          handleChange('mcClozeFieldMapping', newMapping);
-                        }}
-                        className="flex-1"
-                      >
-                        <option value="">-- not mapped --</option>
-                        {mcClozeFields.map((field) => (
-                          <option key={field} value={field}>
-                            {field}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
 

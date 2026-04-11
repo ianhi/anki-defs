@@ -10,7 +10,6 @@ interface SettingsState {
   settings: Settings;
   isLoaded: boolean;
   setDefaultDeck: (deck: string) => void;
-  setDefaultModel: (model: string) => void;
   loadSettings: (settings: Settings) => void;
   updateSettings: (updates: Partial<Settings>) => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -26,15 +25,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }));
     settingsApi.update({ defaultDeck: deck }).catch((err) => {
       log.error('Failed to persist deck selection:', err);
-    });
-  },
-
-  setDefaultModel: (model) => {
-    set((state) => ({
-      settings: { ...state.settings, defaultModel: model },
-    }));
-    settingsApi.update({ defaultModel: model }).catch((err) => {
-      log.error('Failed to persist model selection:', err);
     });
   },
 

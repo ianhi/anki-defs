@@ -48,11 +48,6 @@ export const settingsApi = {
 // Anki API
 export const ankiApi = {
   getDecks: () => fetchJson<{ decks: string[] }>('/anki/decks').then((r) => r.decks),
-  getModels: () => fetchJson<{ models: string[] }>('/anki/models').then((r) => r.models),
-  getModelFields: (modelName: string) =>
-    fetchJson<{ fields: string[] }>(`/anki/models/${encodeURIComponent(modelName)}/fields`).then(
-      (r) => r.fields
-    ),
   search: (query: string) =>
     fetchJson<{ notes: AnkiNote[] }>('/anki/search', {
       method: 'POST',

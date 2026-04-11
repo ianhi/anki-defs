@@ -1,14 +1,13 @@
 import { useState, useMemo } from 'react';
 import { createLogger } from '@/lib/logger';
 import type React from 'react';
-import type { CardPreview as CardPreviewType, CardType } from 'shared';
+import type { CardPreview as CardPreviewType, CardType, VocabCardTemplates } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { buildNoteFields, buildClozeFields, buildMCClozeFields } from '@/lib/utils';
 import { chatApi } from '@/lib/api';
 import {
   Check,
@@ -47,7 +46,10 @@ function highlightBoldMarkers(sentence: string): React.ReactNode {
       {parts.map((part, i) => {
         const match = part.match(/^\*\*([^*]+)\*\*$/);
         return match ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-500/30 dark:text-yellow-200 px-0.5 rounded">
+          <mark
+            key={i}
+            className="bg-yellow-200 dark:bg-yellow-500/30 dark:text-yellow-200 px-0.5 rounded"
+          >
             {match[1]}
           </mark>
         ) : (
@@ -123,6 +125,10 @@ export function CardPreview({
   const [selectedTypes, setSelectedTypes] = useState<Set<CardType>>(
     () => new Set(settings.defaultCardTypes)
   );
+  // Per-card override of vocab template gates (defaults from settings).
+  const [vocabTemplates, setVocabTemplates] = useState<VocabCardTemplates>(() => ({
+    ...settings.vocabCardTemplates,
+  }));
 
   const toggleType = (type: CardType) => {
     setSelectedTypes((prev) => {
@@ -133,8 +139,10 @@ export function CardPreview({
     });
   };
 
-  const hasClozeConfig = !!settings.clozeNoteType;
-  const hasMCClozeConfig = !!settings.mcClozeNoteType;
+  const toggleVocabTemplate = (key: keyof VocabCardTemplates) => {
+    setVocabTemplates((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const { addCard, addToPendingQueue, removeCard, removeFromPendingQueue, hasWord } = sessionCards;
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
@@ -157,60 +165,65 @@ export function CardPreview({
     }
 
     const targetDeck = settings.defaultDeck;
-    const targetModel = settings.defaultModel;
     const cardPreview = { ...preview, word: currentWord, definition: currentDefinition };
+    // Server resolves deck language → note type name; used only for session display.
+    const displayModel = '';
 
     // If Anki is not connected, add to pending queue
     if (!ankiConnected) {
-      addToPendingQueue(cardPreview, targetDeck, targetModel);
+      addToPendingQueue(cardPreview, targetDeck, displayModel);
       return;
     }
 
     if (addError) setAddError(null);
-
-    const createOneNote = async (modelName: string, fields: Record<string, string>) => {
-      const noteId = await createNote.mutateAsync({
-        deckName: targetDeck,
-        modelName,
-        fields,
-        tags: ['auto-generated'],
-      });
-      return noteId;
-    };
 
     try {
       let firstNoteId: number | undefined;
 
       // Vocab card
       if (selectedTypes.has('vocab')) {
-        firstNoteId = await createOneNote(
-          targetModel,
-          buildNoteFields(preview, { word: currentWord, definition: currentDefinition })
-        );
+        firstNoteId = await createNote.mutateAsync({
+          deck: targetDeck,
+          cardType: 'vocab',
+          word: currentWord,
+          definition: currentDefinition,
+          nativeDefinition: preview.nativeDefinition,
+          example: preview.exampleSentence,
+          translation: preview.sentenceTranslation,
+          vocabTemplates,
+          tags: ['auto-generated'],
+        });
       }
 
       // Basic cloze card
-      if (selectedTypes.has('cloze') && settings.clozeNoteType) {
-        const clozeNoteId = await createOneNote(
-          settings.clozeNoteType,
-          buildClozeFields(cardPreview, settings.clozeFieldMapping)
-        );
+      if (selectedTypes.has('cloze')) {
+        const clozeNoteId = await createNote.mutateAsync({
+          deck: targetDeck,
+          cardType: 'cloze',
+          word: currentWord,
+          definition: currentDefinition,
+          nativeDefinition: preview.nativeDefinition,
+          example: preview.exampleSentence,
+          translation: preview.sentenceTranslation,
+          tags: ['auto-generated'],
+        });
         if (!firstNoteId) firstNoteId = clozeNoteId;
       }
 
-      // MC cloze card (needs on-demand AI call for distractors)
-      if (selectedTypes.has('mcCloze') && settings.mcClozeNoteType) {
+      // MC cloze card (needs on-demand AI call for distractors — server handles it)
+      if (selectedTypes.has('mcCloze')) {
         setGeneratingMC(true);
         try {
-          const { distractors } = await chatApi.generateDistractors({
+          const mcNoteId = await createNote.mutateAsync({
+            deck: targetDeck,
+            cardType: 'mcCloze',
             word: currentWord,
-            sentence: preview.exampleSentence,
             definition: currentDefinition,
+            nativeDefinition: preview.nativeDefinition,
+            example: preview.exampleSentence,
+            translation: preview.sentenceTranslation,
+            tags: ['auto-generated'],
           });
-          const mcNoteId = await createOneNote(
-            settings.mcClozeNoteType,
-            buildMCClozeFields(cardPreview, distractors, settings.mcClozeFieldMapping)
-          );
           if (!firstNoteId) firstNoteId = mcNoteId;
         } finally {
           setGeneratingMC(false);
@@ -218,7 +231,7 @@ export function CardPreview({
       }
 
       if (firstNoteId) {
-        addCard(cardPreview, targetDeck, targetModel, firstNoteId);
+        addCard(cardPreview, targetDeck, displayModel, firstNoteId);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -227,7 +240,7 @@ export function CardPreview({
         message.includes('Could not connect') ||
         message.includes('Request failed')
       ) {
-        addToPendingQueue(cardPreview, targetDeck, targetModel);
+        addToPendingQueue(cardPreview, targetDeck, displayModel);
       } else {
         setAddError(message);
       }
@@ -344,7 +357,7 @@ export function CardPreview({
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
-                )}
+                  )}
                 </div>
                 <span className="text-sm sm:text-base w-full">{currentDefinition}</span>
               </>
@@ -496,17 +509,17 @@ export function CardPreview({
           </>
         ) : (
           <>
-            <div className="flex items-center gap-3 mr-auto text-xs">
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedTypes.has('vocab')}
-                  onChange={() => toggleType('vocab')}
-                  className="h-3 w-3"
-                />
-                Vocab
-              </label>
-              {hasClozeConfig && (
+            <div className="flex flex-col gap-1 mr-auto text-xs">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.has('vocab')}
+                    onChange={() => toggleType('vocab')}
+                    className="h-3 w-3"
+                  />
+                  Vocab
+                </label>
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="checkbox"
@@ -516,8 +529,6 @@ export function CardPreview({
                   />
                   Cloze
                 </label>
-              )}
-              {hasMCClozeConfig && (
                 <label className="flex items-center gap-1 cursor-pointer">
                   <input
                     type="checkbox"
@@ -528,6 +539,37 @@ export function CardPreview({
                   MC
                   {generatingMC && <Loader2 className="h-3 w-3 animate-spin" />}
                 </label>
+              </div>
+              {selectedTypes.has('vocab') && (
+                <div className="flex items-center gap-3 pl-4 text-muted-foreground">
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={vocabTemplates.recognition}
+                      onChange={() => toggleVocabTemplate('recognition')}
+                      className="h-3 w-3"
+                    />
+                    Recognition
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={vocabTemplates.production}
+                      onChange={() => toggleVocabTemplate('production')}
+                      className="h-3 w-3"
+                    />
+                    Production
+                  </label>
+                  <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={vocabTemplates.listening}
+                      onChange={() => toggleVocabTemplate('listening')}
+                      className="h-3 w-3"
+                    />
+                    Listening
+                  </label>
+                </div>
               )}
             </div>
             <Button

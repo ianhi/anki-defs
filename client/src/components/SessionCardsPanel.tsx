@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Badge } from './ui/Badge';
 import { Trash2, Check, Clock, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
-import { buildNoteFields } from '@/lib/utils';
 import { sessionApi } from '@/lib/api';
+import { useSettingsStore } from '@/hooks/useSettings';
 import { useCallback, useEffect, useState } from 'react';
 
 const log = createLogger('SessionCards');
@@ -112,6 +112,7 @@ export function SessionCardsPanel() {
   const { cards, pendingQueue, removeCard, removeFromPendingQueue, clearCards } = useSessionCards();
   const { data: ankiConnected } = useAnkiStatus();
   const createNote = useCreateNote();
+  const { settings } = useSettingsStore();
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
   const [syncAllState, setSyncAllState] = useState<SyncAllState>({
     active: false,
@@ -129,9 +130,14 @@ export function SessionCardsPanel() {
     setSyncingIds((prev) => new Set(prev).add(card.id));
     try {
       const noteId = await createNote.mutateAsync({
-        deckName: card.deckName,
-        modelName: card.modelName,
-        fields: buildNoteFields(card),
+        deck: card.deckName,
+        cardType: 'vocab',
+        word: card.word,
+        definition: card.definition,
+        nativeDefinition: card.nativeDefinition,
+        example: card.exampleSentence,
+        translation: card.sentenceTranslation,
+        vocabTemplates: settings.vocabCardTemplates,
         tags: ['auto-generated'],
       });
       await sessionApi.promotePending(card.id, noteId);

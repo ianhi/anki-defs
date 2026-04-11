@@ -17,21 +17,6 @@ export function useDecks() {
   });
 }
 
-export function useModels() {
-  return useQuery({
-    queryKey: ['anki', 'models'],
-    queryFn: ankiApi.getModels,
-  });
-}
-
-export function useModelFields(modelName: string | undefined) {
-  return useQuery({
-    queryKey: ['anki', 'models', modelName, 'fields'],
-    queryFn: () => (modelName ? ankiApi.getModelFields(modelName) : Promise.resolve([])),
-    enabled: !!modelName,
-  });
-}
-
 export function useCreateNote() {
   const queryClient = useQueryClient();
 

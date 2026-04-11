@@ -4,7 +4,7 @@ import { computeCost } from 'shared';
 import { createLogger } from '@/lib/logger';
 import { CardPreview } from './CardPreview';
 import { Button } from './ui/Button';
-import { cn, buildNoteFields } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
@@ -80,24 +80,31 @@ function CardPreviewList({
   const handleAddAll = async () => {
     setAddingAll(true);
     const targetDeck = settings.defaultDeck;
-    const targetModel = settings.defaultModel;
+    // Server resolves deck language → note type; we only know the name after the fact.
+    // Until the server returns it in the response, use a placeholder for session display.
+    const displayModel = '';
 
     for (const preview of unadded) {
       if (!ankiConnected) {
-        sessionCards.addToPendingQueue(preview, targetDeck, targetModel);
+        sessionCards.addToPendingQueue(preview, targetDeck, displayModel);
         continue;
       }
       try {
         const noteId = await createNote.mutateAsync({
-          deckName: targetDeck,
-          modelName: targetModel,
-          fields: buildNoteFields(preview),
+          deck: targetDeck,
+          cardType: 'vocab',
+          word: preview.word,
+          definition: preview.definition,
+          nativeDefinition: preview.nativeDefinition,
+          example: preview.exampleSentence,
+          translation: preview.sentenceTranslation,
+          vocabTemplates: settings.vocabCardTemplates,
           tags: ['auto-generated'],
         });
-        sessionCards.addCard(preview, targetDeck, targetModel, noteId);
+        sessionCards.addCard(preview, targetDeck, displayModel, noteId);
       } catch (error) {
         log.error('Failed to create card, adding to queue:', error);
-        sessionCards.addToPendingQueue(preview, targetDeck, targetModel);
+        sessionCards.addToPendingQueue(preview, targetDeck, displayModel);
       }
     }
     setAddingAll(false);
