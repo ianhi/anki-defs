@@ -76,28 +76,23 @@ export interface AnkiNote {
   fields: Record<string, { value: string; order: number }>;
 }
 
-export interface CreateCardParams {
-  deck: string;
-  model: string;
-  word: string;
-  definition: string;
-  nativeDefinition: string;
-  exampleSentence: string;
-  sentenceTranslation: string;
-  tags?: string[];
-}
-
 // Settings types
 export type AIProvider = 'claude' | 'gemini' | 'openrouter';
-
-// Maps card data fields (Word, Definition, Example, Translation) to note type field names
-export type FieldMapping = Record<string, string>;
 
 export type CardType = 'vocab' | 'cloze' | 'mcCloze';
 
 export interface CustomLanguage {
   code: string;
   name: string;
+}
+
+// Per-card-template gates for the vocab note type. Populating only the
+// matching EnableXxx field on a note tells Anki which of the 3 vocab card
+// templates (Recognition / Production / Listening) to generate from it.
+export interface VocabCardTemplates {
+  recognition: boolean;
+  production: boolean;
+  listening: boolean;
 }
 
 export interface Settings {
@@ -110,22 +105,20 @@ export interface Settings {
   showTransliteration: boolean;
   leftHanded: boolean;
   defaultDeck: string;
-  defaultModel: string;
   ankiConnectUrl: string;
-  fieldMapping: FieldMapping;
   apiToken: string;
   translationPrefix: string;
   autoDetectEnglish: boolean;
   // Per-deck language settings
   deckLanguages: Record<string, string>; // Maps deck names to language codes
   customLanguages: CustomLanguage[]; // User-defined languages without .json files
-  // Cloze card settings
+  // Card type defaults
   defaultCardTypes: CardType[];
-  clozeNoteType: string;
-  clozeFieldMapping: FieldMapping;
-  mcClozeNoteType: string;
+  vocabCardTemplates: VocabCardTemplates;
   targetLanguage: string;
-  mcClozeFieldMapping: FieldMapping;
+  // Note type prefix used when auto-creating language-specific note types
+  // (e.g. `${noteTypePrefix}-es-MX`, `${noteTypePrefix}-es-MX-cloze`)
+  noteTypePrefix: string;
 }
 
 export const CARD_DATA_FIELDS = [
@@ -147,26 +140,20 @@ export const DEFAULT_SETTINGS: Settings = {
   openRouterApiKey: '',
   openRouterModel: 'google/gemini-2.5-flash',
   defaultDeck: 'Bangla',
-  defaultModel: 'Bangla (and reversed)',
   ankiConnectUrl: 'http://localhost:8765',
-  fieldMapping: {
-    Word: 'Bangla',
-    Definition: 'Eng_trans',
-    NativeDefinition: 'bangla-def',
-    Example: 'example sentence',
-    Translation: 'sentence-trans',
-  },
   apiToken: '',
   translationPrefix: 'bn:',
-  targetLanguage: 'bn',
+  targetLanguage: 'bn-IN',
   autoDetectEnglish: true,
   deckLanguages: {},
   customLanguages: [],
   defaultCardTypes: ['vocab'],
-  clozeNoteType: '',
-  clozeFieldMapping: {},
-  mcClozeNoteType: '',
-  mcClozeFieldMapping: {},
+  vocabCardTemplates: {
+    recognition: true,
+    production: false,
+    listening: true,
+  },
+  noteTypePrefix: 'anki-defs',
 };
 
 // Model options per provider
@@ -217,10 +204,19 @@ export interface SearchNotesRequest {
   query: string;
 }
 
+// Domain payload for creating a note. The server resolves the deck's
+// language, ensures the right note type exists, and builds the field map.
+// The client never deals with model names or field mapping directly.
 export interface CreateNoteRequest {
-  deckName: string;
-  modelName: string;
-  fields: Record<string, string>;
+  deck: string;
+  cardType: CardType;
+  word: string;
+  definition: string;
+  nativeDefinition: string;
+  example: string;
+  translation: string;
+  // Vocab cards only — overrides the global vocabCardTemplates default for this note.
+  vocabTemplates?: VocabCardTemplates;
   tags?: string[];
 }
 

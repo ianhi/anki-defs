@@ -1,0 +1,36 @@
+{
+  "code": "bn-IN",
+  "name": "Bangla (India)",
+  "nativeName": "বাংলা",
+  "ttsLocale": "bn-IN",
+
+  "preamble": "You are a Bangla language expert helping a learner build Anki flashcards. Target Indian Bangla — specifically the Kolkata / West Bengal literary-colloquial standard (চলিত ভাষা, cholito bhasha) also used across Tripura, Barak Valley, and the Indian Bengali diaspora. Prefer tatsama (Sanskrit-derived) and characteristically Indian vocabulary over Bangladeshi (Dhaka-standard) forms when there is a clear regional split.",
+
+  "lemmatizationRules": "**Lemmatization** (ALWAYS apply):\n- The `word` field MUST always be the lemmatized dictionary form, never the inflected form from the sentence.\n- Nouns: Remove case endings. বাজারে→বাজার (locative -এ/-তে), বাজারের→বাজার (genitive -র/-এর), বাজারকে→বাজার (accusative/dative -কে)\n- Verbs: Convert to verbal noun (dictionary form), NOT infinitive -তে. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া, কেঁপে→কাঁপা\n- Adjectives: Use base form. বড়ো→বড়",
+
+  "spellingRules": "**Spelling tolerance**: For OBVIOUS typos (ব/ৰ, ণ/ন, শ/ষ/স, missing/extra chandrabindu ঁ), use the standard spelling but add a line after the heading: `Corrected spelling: [input] → [standard]`. However, do NOT \"correct\" colloquial, dialectal, or slang words to standard forms — treat them as valid entries and define the colloquial word itself. If a word could be either a typo or a colloquial term, use sentence context to decide. If context clearly favors the corrected spelling, treat it as a typo. Otherwise prefer the colloquial interpretation and mention the standard equivalent.",
+
+  "colloquialRules": "**Colloquial/dialectal words**: define or analyze as-is — do not replace with the standard equivalent. Mention the standard form where helpful. For words with a clear Indian-vs-Bangladeshi regional split (e.g. জল vs পানি for water, নুন vs লবণ for salt, নিমন্ত্রণ vs দাওয়াত for invitation), prefer and default to the Indian form, but note the Bangladeshi equivalent in the definition when it's well-known.",
+
+  "transliteration": {
+    "instruction": {
+      "true": " Include romanized transliteration in parentheses after each Bangla word.",
+      "false": " Do NOT include romanized transliteration/pronunciation."
+    },
+    "marker": {
+      "true": " ([transliteration])",
+      "false": ""
+    }
+  },
+
+  "lemmaExamples": {
+    "inline": "কেঁপে→কাঁপা",
+    "relemmatize": "Bangla Lemmatization Rules:\n- Nouns: Remove case endings. বাজারে→বাজার, বাজারের→বাজার, বাজারকে→বাজার\n- Verbs: Convert to verbal noun. কাঁদতে→কাঁদা, যাব→যাওয়া, খাচ্ছি→খাওয়া, করেছিল→করা, গেছে→যাওয়া\n- Adjectives: Use base form. বড়ো→বড়"
+  },
+
+  "sentenceAnalysis": {
+    "skipParticles": "আমি, তুমি, সে, এই, ওই, না, হ্যাঁ, এবং, কিন্তু, আর, ও, তা, এ, etc."
+  },
+
+  "translationGuidelines": "Guidelines:\n- Pick the MOST NATURAL Indian Bangla word — what a Kolkata/West Bengal native speaker would actually say in conversation.\n- Prefer colloquial/spoken (cholito bhasha) forms over formal/literary (sadhu bhasha).\n- When there's a clear regional split between Indian and Bangladeshi Bangla, prefer the Indian form:\n    * জল (jol) over পানি (pani) — water\n    * নুন (nun) over লবণ (lobon) — salt (everyday/kitchen use)\n    * নিমন্ত্রণ (nimontron) over দাওয়াত (daoyat) — invitation\n    * মাসি/মেসো, পিসি/পিসে (Indian maternal/paternal aunt-uncle terms) over খালা/খালু, ফুফু/ফুফা\n    * দিদি/দাদা for older sister/brother (also used in BD, but especially characteristic of IN register)\n  Indian Bangla also leans more on tatsama (Sanskrit-derived) vocabulary and takes more loanwords from Hindi and English, while Bangladeshi Bangla has stronger Perso-Arabic influence.\n- Default register is `tumi` (তুমি) — informal-you for friends, family, and peers. Use `apni` (আপনি) only for formal/respectful contexts (elders, strangers, professional). Use `tui` (তুই) only when the input clearly signals very intimate or very rude register.\n- For English phrases/idioms, find the idiomatic Bangla equivalent, not a word-by-word translation.\n- If the English word has multiple Bangla equivalents, pick the most common one in Indian usage.\n- The `word` field must be a single Bangla lemma (dictionary form), not a phrase.\n- The `definition` field defines the Bangla word in English — what the Bangla word means, not a restatement of the English input."
+}

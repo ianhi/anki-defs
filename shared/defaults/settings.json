@@ -8,24 +8,18 @@
   "openRouterApiKey": "",
   "openRouterModel": "google/gemini-2.5-flash",
   "defaultDeck": "Bangla",
-  "defaultModel": "Bangla (and reversed)",
   "ankiConnectUrl": "http://localhost:8765",
-  "fieldMapping": {
-    "Word": "Bangla",
-    "Definition": "Eng_trans",
-    "NativeDefinition": "bangla-def",
-    "Example": "example sentence",
-    "Translation": "sentence-trans"
-  },
   "apiToken": "",
   "translationPrefix": "bn:",
-  "targetLanguage": "bn",
+  "targetLanguage": "bn-IN",
   "autoDetectEnglish": true,
   "deckLanguages": {},
   "customLanguages": [],
   "defaultCardTypes": ["vocab"],
-  "clozeNoteType": "",
-  "clozeFieldMapping": {},
-  "mcClozeNoteType": "",
-  "mcClozeFieldMapping": {}
+  "vocabCardTemplates": {
+    "recognition": true,
+    "production": false,
+    "listening": true
+  },
+  "noteTypePrefix": "anki-defs"
 }
