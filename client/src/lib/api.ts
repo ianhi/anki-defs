@@ -54,10 +54,10 @@ export const ankiApi = {
       body: JSON.stringify({ query }),
     }).then((r) => r.notes),
   createNote: (note: CreateNoteRequest) =>
-    fetchJson<{ noteId: number }>('/anki/notes', {
+    fetchJson<{ noteId: number; modelName: string }>('/anki/notes', {
       method: 'POST',
       body: JSON.stringify(note),
-    }).then((r) => r.noteId),
+    }),
   getNote: (id: number) => fetchJson<{ note: AnkiNote }>(`/anki/notes/${id}`).then((r) => r.note),
   deleteNote: (id: number) =>
     fetchJson<{ success: boolean }>(`/anki/notes/${id}`, { method: 'DELETE' }),

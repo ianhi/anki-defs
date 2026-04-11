@@ -5,7 +5,8 @@ from urllib.parse import unquote
 
 from ..server.web import Response
 from ..services import anki_service
-from ..services.settings_service import get_settings
+
+_VALID_CARD_TYPES = ("vocab", "cloze", "mcCloze")
 
 
 def handle_get_decks(_params, _headers, _body):
@@ -51,45 +52,42 @@ def handle_search(_params, _headers, body):
 
 
 def handle_create_note(_params, _headers, body):
+    """Create a note from a domain payload.
+
+    The handler accepts the new `CreateNoteRequest` shape: the client sends
+    deck + cardType + card content, and the server resolves the language,
+    ensures the matching auto-created note type exists, and builds the
+    field map.
+    """
     try:
         data = json.loads(body) if body else {}
     except json.JSONDecodeError:
         return Response.error("Invalid JSON", 400)
-    deck_name = data.get("deckName", "")
-    model_name = data.get("modelName", "")
-    fields = data.get("fields", {})
-    tags = data.get("tags")
 
-    if not deck_name or not model_name or not fields:
-        return Response.error("deckName, modelName, and fields are required", 400)
+    deck = data.get("deck", "")
+    card_type = data.get("cardType", "vocab")
+    word = data.get("word", "")
 
-    # Apply field mapping (same logic as Express server)
-    settings = get_settings()
-    mapping = settings.get("fieldMapping", {})
-
-    mapped_fields = {}
-    if fields.get("Word"):
-        mapped_fields[mapping.get("Word", "Word")] = fields["Word"]
-    if fields.get("Definition"):
-        mapped_fields[mapping.get("Definition", "Definition")] = fields["Definition"]
-    if fields.get("NativeDefinition"):
-        mapped_fields[mapping.get("NativeDefinition", "NativeDefinition")] = fields[
-            "NativeDefinition"
-        ]
-    if fields.get("Example"):
-        mapped_fields[mapping.get("Example", "Example")] = fields["Example"]
-    if fields.get("Translation"):
-        mapped_fields[mapping.get("Translation", "Translation")] = fields["Translation"]
-
-    # Also pass through any fields not in the standard set
-    standard_fields = ("Word", "Definition", "NativeDefinition", "Example", "Translation")
-    for key, value in fields.items():
-        if key not in standard_fields:
-            mapped_fields[key] = value
+    if not deck:
+        return Response.error("deck is required", 400)
+    if card_type not in _VALID_CARD_TYPES:
+        return Response.error("Invalid cardType: {}".format(card_type), 400)
+    if card_type == "vocab" and not word:
+        return Response.error("word is required for vocab cards", 400)
 
     try:
-        note_id = anki_service.create_note(deck_name, model_name, mapped_fields, tags)
-        return Response.json({"noteId": note_id})
+        note_id, model_name = anki_service.create_card(
+            deck=deck,
+            card_type=card_type,
+            word=word,
+            definition=data.get("definition", ""),
+            native_definition=data.get("nativeDefinition", ""),
+            example=data.get("example", ""),
+            translation=data.get("translation", ""),
+            vocab_templates=data.get("vocabTemplates"),
+            tags=data.get("tags"),
+        )
+        return Response.json({"noteId": note_id, "modelName": model_name})
     except ValueError as e:
         return Response.error(str(e), 400)
     except RuntimeError as e:

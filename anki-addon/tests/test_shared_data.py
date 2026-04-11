@@ -17,14 +17,9 @@ class TestSharedPrompts:
 
     def test_variables_json(self):
         data = self._load("variables.json")
-        assert "preamble" in data
+        # variables.json now only holds global output rules — all language
+        # specifics live in shared/languages/*.json.
         assert "outputRules" in data
-        assert "languageRules" in data
-        assert "transliteration" in data
-        assert "instruction" in data["transliteration"]
-        assert "marker" in data["transliteration"]
-        assert "true" in data["transliteration"]["instruction"]
-        assert "false" in data["transliteration"]["instruction"]
 
     def test_single_word_prompt(self):
         data = self._load("single-word.json")
@@ -38,6 +33,10 @@ class TestSharedPrompts:
         assert "system" in data
         assert "user_template" in data
         assert "{{preamble}}" in data["system"]
+
+    def test_english_to_target_prompt(self):
+        data = self._load("english-to-target.json")
+        assert "system" in data
 
     def test_relemmatize_prompt(self):
         data = self._load("relemmatize.json")
@@ -58,9 +57,14 @@ class TestSharedSettingsDefaults:
         # Check key fields match the Settings type from shared/types.ts
         assert "aiProvider" in data
         assert "defaultDeck" in data
-        assert "defaultModel" in data
-        assert "fieldMapping" in data
-        assert isinstance(data["fieldMapping"], dict)
+        assert "noteTypePrefix" in data
+        assert "targetLanguage" in data
+        assert "vocabCardTemplates" in data
+        assert isinstance(data["vocabCardTemplates"], dict)
+        # Dead fields from the old manual note-type pipeline must not
+        # come back into shared defaults.
+        assert "defaultModel" not in data
+        assert "fieldMapping" not in data
 
 
 class TestPromptRendering:

@@ -90,14 +90,47 @@ else:
 # ---------------------------------------------------------------------------
 
 
+# Settings fields that belonged to the old manual-note-type pipeline.
+# When loading on-disk settings we delete these outright -- they are no
+# longer referenced anywhere in the codebase, and leaving them around only
+# confuses anyone reading the config file.
+_DEAD_FIELDS = (
+    "defaultModel",
+    "fieldMapping",
+    "clozeNoteType",
+    "clozeFieldMapping",
+    "mcClozeNoteType",
+    "mcClozeFieldMapping",
+)
+
+
 def _migrate_settings(data: dict[str, Any]) -> dict[str, Any]:
-    """Migrate legacy setting names to current names."""
-    fm = data.get("fieldMapping", {})
-    if isinstance(fm, dict):
-        if "BanglaDefinition" in fm and "NativeDefinition" not in fm:
-            fm["NativeDefinition"] = fm.pop("BanglaDefinition")
+    """Rewrite legacy on-disk settings to the current shape.
+
+    This is a one-shot cleanup, not a compatibility shim: dead fields from
+    the manual note-type pipeline are stripped, and pre-locale language
+    codes (``bn`` -> ``bn-IN``) are promoted to the BCP-47 form the shared
+    language files and TTS templates now expect.
+    """
     if "englishToBanglaPrefix" in data and "translationPrefix" not in data:
         data["translationPrefix"] = data.pop("englishToBanglaPrefix")
+
+    for field in _DEAD_FIELDS:
+        data.pop(field, None)
+
+    if data.get("targetLanguage") == "bn":
+        data["targetLanguage"] = "bn-IN"
+
+    if "noteTypePrefix" not in data:
+        data["noteTypePrefix"] = "anki-defs"
+
+    if "vocabCardTemplates" not in data:
+        data["vocabCardTemplates"] = {
+            "recognition": True,
+            "production": False,
+            "listening": True,
+        }
+
     return data
 
 

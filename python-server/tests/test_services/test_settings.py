@@ -9,7 +9,10 @@ def test_defaults_loaded():
     settings = get_settings()
     assert settings["aiProvider"] == "gemini"
     assert settings["defaultDeck"] == "Bangla"
-    assert settings["defaultModel"] == "Bangla (and reversed)"
+    assert settings["noteTypePrefix"] == "anki-defs"
+    assert settings["targetLanguage"] == "bn-IN"
+    assert "defaultModel" not in settings
+    assert "fieldMapping" not in settings
 
 
 def test_save_and_load(tmp_path, monkeypatch):
@@ -44,6 +47,64 @@ def test_mask_key():
     assert mask_key("") == ""
     assert mask_key("sk-1234567890abcdef") == "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022cdef"
     assert mask_key("ab") == "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022ab"
+
+
+class TestMigration:
+    def test_strips_dead_fields(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings(
+            {
+                "defaultModel": "Bangla (and reversed)",
+                "fieldMapping": {"Word": "Front"},
+                "clozeNoteType": "Cloze",
+                "clozeFieldMapping": {"Text": "Text"},
+                "mcClozeNoteType": "MC",
+                "mcClozeFieldMapping": {},
+                "aiProvider": "gemini",
+            }
+        )
+        assert "defaultModel" not in result
+        assert "fieldMapping" not in result
+        assert "clozeNoteType" not in result
+        assert "clozeFieldMapping" not in result
+        assert "mcClozeNoteType" not in result
+        assert "mcClozeFieldMapping" not in result
+        assert result["aiProvider"] == "gemini"
+
+    def test_renames_bn_to_bn_in(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings({"targetLanguage": "bn"})
+        assert result["targetLanguage"] == "bn-IN"
+
+    def test_preserves_non_bn_target_language(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings({"targetLanguage": "es-MX"})
+        assert result["targetLanguage"] == "es-MX"
+
+    def test_adds_note_type_prefix_if_missing(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings({})
+        assert result["noteTypePrefix"] == "anki-defs"
+
+    def test_adds_vocab_card_templates_if_missing(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings({})
+        assert result["vocabCardTemplates"] == {
+            "recognition": True,
+            "production": False,
+            "listening": True,
+        }
+
+    def test_preserves_existing_note_type_prefix(self):
+        from anki_defs.services.settings_base import _migrate_settings
+
+        result = _migrate_settings({"noteTypePrefix": "custom"})
+        assert result["noteTypePrefix"] == "custom"
 
 
 def test_file_permissions():

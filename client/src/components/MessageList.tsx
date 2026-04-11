@@ -80,17 +80,14 @@ function CardPreviewList({
   const handleAddAll = async () => {
     setAddingAll(true);
     const targetDeck = settings.defaultDeck;
-    // Server resolves deck language → note type; we only know the name after the fact.
-    // Until the server returns it in the response, use a placeholder for session display.
-    const displayModel = '';
 
     for (const preview of unadded) {
       if (!ankiConnected) {
-        sessionCards.addToPendingQueue(preview, targetDeck, displayModel);
+        sessionCards.addToPendingQueue(preview, targetDeck, '');
         continue;
       }
       try {
-        const noteId = await createNote.mutateAsync({
+        const result = await createNote.mutateAsync({
           deck: targetDeck,
           cardType: 'vocab',
           word: preview.word,
@@ -101,10 +98,10 @@ function CardPreviewList({
           vocabTemplates: settings.vocabCardTemplates,
           tags: ['auto-generated'],
         });
-        sessionCards.addCard(preview, targetDeck, displayModel, noteId);
+        sessionCards.addCard(preview, targetDeck, result.modelName, result.noteId);
       } catch (error) {
         log.error('Failed to create card, adding to queue:', error);
-        sessionCards.addToPendingQueue(preview, targetDeck, displayModel);
+        sessionCards.addToPendingQueue(preview, targetDeck, '');
       }
     }
     setAddingAll(false);

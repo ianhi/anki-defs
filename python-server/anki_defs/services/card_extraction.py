@@ -44,24 +44,32 @@ def apply_spelling_correction(sentence: str, correction: str) -> str:
     return result
 
 
-def _note_to_card_content(
-    note: dict[str, Any], field_mapping: dict[str, str]
-) -> dict[str, str]:
-    """Reverse-map an Anki note's fields to card content using the field mapping."""
+# Standard field names used by the auto-created note types. Legacy notes
+# that still use "Front" for the headword are handled as a fallback below.
+_STANDARD_FIELDS: dict[str, tuple[str, ...]] = {
+    "word": ("Word", "Front"),
+    "definition": ("Definition",),
+    "nativeDefinition": ("NativeDefinition",),
+    "exampleSentence": ("Example",),
+    "sentenceTranslation": ("Translation",),
+}
 
-    def get_field(standard_name: str) -> str:
-        mapped_name = field_mapping.get(standard_name, standard_name)
-        field_data = note.get("fields", {}).get(mapped_name)
-        if field_data:
-            return field_data.get("value", "")
+
+def _note_to_card_content(note: dict[str, Any]) -> dict[str, str]:
+    """Extract card content from an Anki note using the canonical field names."""
+    fields = note.get("fields", {})
+
+    def get_field(*candidates: str) -> str:
+        for name in candidates:
+            field_data = fields.get(name)
+            if field_data:
+                value = field_data.get("value", "")
+                if value:
+                    return value
         return ""
 
     return {
-        "word": get_field("Word"),
-        "definition": get_field("Definition"),
-        "nativeDefinition": get_field("NativeDefinition"),
-        "exampleSentence": get_field("Example"),
-        "sentenceTranslation": get_field("Translation"),
+        key: get_field(*names) for key, names in _STANDARD_FIELDS.items()
     }
 
 
@@ -69,7 +77,6 @@ def build_card_previews(
     cards: list[dict[str, Any]],
     target_deck: str,
     anki_results: dict[str, Any | None],
-    field_mapping: dict[str, str],
 ) -> list[dict[str, Any]]:
     """Build card preview dicts from parsed AI JSON cards + Anki duplicate checks."""
     previews = []
@@ -79,7 +86,7 @@ def build_card_previews(
 
         existing_card = None
         if existing_note and existing_note.get("noteId", 0) != 0:
-            existing_card = _note_to_card_content(existing_note, field_mapping)
+            existing_card = _note_to_card_content(existing_note)
 
         example_sentence = card.get("exampleSentence", "")
         spelling_correction = card.get("spellingCorrection")

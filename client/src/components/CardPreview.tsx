@@ -166,12 +166,10 @@ export function CardPreview({
 
     const targetDeck = settings.defaultDeck;
     const cardPreview = { ...preview, word: currentWord, definition: currentDefinition };
-    // Server resolves deck language → note type name; used only for session display.
-    const displayModel = '';
 
-    // If Anki is not connected, add to pending queue
+    // If Anki is not connected, add to pending queue (model name unknown until server runs)
     if (!ankiConnected) {
-      addToPendingQueue(cardPreview, targetDeck, displayModel);
+      addToPendingQueue(cardPreview, targetDeck, '');
       return;
     }
 
@@ -179,10 +177,11 @@ export function CardPreview({
 
     try {
       let firstNoteId: number | undefined;
+      let firstModelName: string | undefined;
 
       // Vocab card
       if (selectedTypes.has('vocab')) {
-        firstNoteId = await createNote.mutateAsync({
+        const result = await createNote.mutateAsync({
           deck: targetDeck,
           cardType: 'vocab',
           word: currentWord,
@@ -193,11 +192,13 @@ export function CardPreview({
           vocabTemplates,
           tags: ['auto-generated'],
         });
+        firstNoteId = result.noteId;
+        firstModelName = result.modelName;
       }
 
       // Basic cloze card
       if (selectedTypes.has('cloze')) {
-        const clozeNoteId = await createNote.mutateAsync({
+        const result = await createNote.mutateAsync({
           deck: targetDeck,
           cardType: 'cloze',
           word: currentWord,
@@ -207,14 +208,17 @@ export function CardPreview({
           translation: preview.sentenceTranslation,
           tags: ['auto-generated'],
         });
-        if (!firstNoteId) firstNoteId = clozeNoteId;
+        if (!firstNoteId) {
+          firstNoteId = result.noteId;
+          firstModelName = result.modelName;
+        }
       }
 
       // MC cloze card (needs on-demand AI call for distractors — server handles it)
       if (selectedTypes.has('mcCloze')) {
         setGeneratingMC(true);
         try {
-          const mcNoteId = await createNote.mutateAsync({
+          const result = await createNote.mutateAsync({
             deck: targetDeck,
             cardType: 'mcCloze',
             word: currentWord,
@@ -224,14 +228,17 @@ export function CardPreview({
             translation: preview.sentenceTranslation,
             tags: ['auto-generated'],
           });
-          if (!firstNoteId) firstNoteId = mcNoteId;
+          if (!firstNoteId) {
+            firstNoteId = result.noteId;
+            firstModelName = result.modelName;
+          }
         } finally {
           setGeneratingMC(false);
         }
       }
 
       if (firstNoteId) {
-        addCard(cardPreview, targetDeck, displayModel, firstNoteId);
+        addCard(cardPreview, targetDeck, firstModelName ?? '', firstNoteId);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -240,7 +247,7 @@ export function CardPreview({
         message.includes('Could not connect') ||
         message.includes('Request failed')
       ) {
-        addToPendingQueue(cardPreview, targetDeck, displayModel);
+        addToPendingQueue(cardPreview, targetDeck, '');
       } else {
         setAddError(message);
       }

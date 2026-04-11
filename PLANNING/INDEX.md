@@ -35,11 +35,12 @@
 
 | Component                              | Status  | Notes                                                    |
 | -------------------------------------- | ------- | -------------------------------------------------------- |
-| Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, cloze, onboarding |
+| Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, auto note-type creation per language |
 | Android (`android/`)                   | Working | Still on old two-call pipeline                           |
-| Anki add-on (`anki-addon/`)            | Working | Hardened but untested inside Anki                        |
+| Anki add-on (`anki-addon/`)            | Working | Hardened but untested inside Anki. Mirrors server's auto note-type logic via `anki_service.create_card` |
 | Shared prompts (`shared/prompts/`)     | Working | Parameterized templates + language files in `shared/languages/` |
-| Tests                                  | 65+67+46 | vitest + python-server pytest + addon pytest            |
+| Note-type templates (`shared/data/note-types.json`) | Working | Server renders vocab/cloze/mcCloze models per language; `{{LOCALE}}` substituted from `ttsLocale` |
+| Tests                                  | 65+111+48 | vitest + python-server pytest + addon pytest            |
 | CI                                     | Working | `.github/workflows/ci.yml`                               |
 | Docs site (`docs/`)                    | Deployed | Astro Starlight on GitHub Pages                         |
 

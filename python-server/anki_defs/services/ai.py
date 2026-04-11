@@ -73,9 +73,18 @@ def _default_language(code: str, name: str) -> dict[str, Any]:
 
 
 def _resolve_language(code: str, settings: dict[str, Any]) -> dict[str, Any]:
-    """Look up language by code -- file-backed first, then custom, then generate default."""
+    """Look up language by code -- file-backed first, then custom, then generate default.
+
+    Falls back through BCP-47 variants: a regional code like ``es-MX`` will
+    fall back to the bare language ``es`` if no region-specific file exists.
+    """
     if code in _languages:
         return _languages[code]
+    # Fallback: strip region subtag (es-MX -> es).
+    if "-" in code:
+        base = code.split("-", 1)[0]
+        if base in _languages:
+            return _languages[base]
     for custom in settings.get("customLanguages", []):
         if custom.get("code") == code:
             return _default_language(code, custom["name"])

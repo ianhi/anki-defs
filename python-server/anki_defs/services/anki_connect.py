@@ -1,7 +1,8 @@
 """AnkiConnect HTTP client for standalone server.
 
 Communicates with Anki Desktop via the AnkiConnect add-on API (localhost:8765).
-Includes an SQLite-backed word cache for offline duplicate detection.
+Includes an SQLite-backed word cache for offline duplicate detection, and
+auto-creates per-language note types on demand via `ensure_language_models`.
 """
 
 from __future__ import annotations
@@ -12,6 +13,8 @@ from typing import Any
 
 import httpx
 
+from . import ai, note_types
+from .note_types import CardType, build_card_fields, render_note_type
 from .session import add_word_to_db_cache, load_word_cache, replace_deck_cache
 from .settings import get_settings
 
@@ -28,6 +31,10 @@ if _word_cache:
 
 _last_cache_refresh = 0
 _CACHE_TTL_MS = 5 * 60 * 1000  # 5 minutes
+
+# Cache of (note_type_prefix, language_code, card_type) -> model_name for
+# models we have already verified exist in Anki this process lifetime.
+_ensured_models: dict[tuple[str, str, str], str] = {}
 
 
 def _get_client() -> tuple[httpx.Client, str]:
@@ -77,6 +84,74 @@ def get_model_fields(model_name: str) -> list[str]:
     return _invoke("modelFieldNames", modelName=model_name)
 
 
+def create_model(
+    model_name: str,
+    fields: list[str],
+    css: str,
+    is_cloze: bool,
+    templates: list[dict[str, str]],
+) -> None:
+    """Create a new note type via AnkiConnect's ``createModel`` action.
+
+    ``templates`` is a list of dicts with ``Name``/``Front``/``Back`` keys,
+    matching the AnkiConnect API shape.
+    """
+    _invoke(
+        "createModel",
+        modelName=model_name,
+        inOrderFields=fields,
+        css=css,
+        isCloze=is_cloze,
+        cardTemplates=templates,
+    )
+
+
+def ensure_language_models(
+    language: dict[str, Any],
+    note_type_prefix: str,
+    card_types: list[CardType] | None = None,
+) -> dict[str, str]:
+    """Ensure note types exist in Anki for the given language.
+
+    Returns a mapping ``{card_type: model_name}``. Idempotent: consults Anki
+    once per process for missing models, caches results in
+    ``_ensured_models``, and creates only what's missing.
+    """
+    wanted: tuple[CardType, ...] = tuple(card_types) if card_types else note_types.all_card_types()
+    code = language["code"]
+
+    result: dict[str, str] = {}
+    missing: list[CardType] = []
+    for ct in wanted:
+        key = (note_type_prefix, code, ct)
+        if key in _ensured_models:
+            result[ct] = _ensured_models[key]
+        else:
+            missing.append(ct)
+
+    if not missing:
+        return result
+
+    # Query Anki once for the full model list, then create whatever's absent.
+    existing_models = set(_invoke("modelNames") or [])
+    for ct in missing:
+        rendered = render_note_type(ct, language, note_type_prefix)
+        model_name = rendered["modelName"]
+        if model_name not in existing_models:
+            log.info("Auto-creating Anki note type: %s", model_name)
+            create_model(
+                model_name=model_name,
+                fields=rendered["fields"],
+                css=rendered["css"],
+                is_cloze=rendered["isCloze"],
+                templates=rendered["templates"],
+            )
+        _ensured_models[(note_type_prefix, code, ct)] = model_name
+        result[ct] = model_name
+
+    return result
+
+
 def search_notes(query: str) -> list[dict[str, Any]]:
     note_ids = _invoke("findNotes", query=query)
     if not note_ids:
@@ -100,12 +175,10 @@ def search_word(word: str, deck_name: str) -> dict[str, Any] | None:
     escaped_deck = root_deck.replace("\\", "\\\\").replace('"', '\\"')
     escaped_word = word.replace("\\", "\\\\").replace('"', '\\"')
 
-    settings = get_settings()
-    word_field = (settings.get("fieldMapping") or {}).get("Word")
-    word_fields = {"Front", "Word"}
-    if word_field:
-        word_fields.add(word_field)
-
+    # We now only use auto-created note types, which always name the
+    # headword field "Word". Still probe "Front" for legacy / user-authored
+    # note types so duplicate detection keeps working across deck migrations.
+    word_fields = ("Front", "Word")
     field_queries = " OR ".join(f'{f}:"{escaped_word}"' for f in word_fields)
     query = f'deck:"{escaped_deck}" ({field_queries})'
     notes = search_notes(query)
@@ -127,35 +200,54 @@ def get_note_by_id(note_id: int) -> dict[str, Any] | None:
 
 def create_card(
     deck: str,
-    model: str,
+    card_type: CardType,
     word: str,
     definition: str,
     native_definition: str,
-    example_sentence: str,
-    sentence_translation: str,
+    example: str,
+    translation: str,
+    vocab_templates: dict[str, bool] | None = None,
     tags: list[str] | None = None,
-) -> int:
-    """Create a new Anki note and return the note ID."""
+) -> tuple[int, str]:
+    """Create a new Anki note from a domain payload.
+
+    The server resolves the deck's language, ensures the right note type
+    exists in Anki (auto-creating it on first use), builds the field map,
+    and finally calls ``addNote``. The client never deals with model names.
+
+    Returns ``(note_id, model_name)`` so callers can record which note type
+    was used (for session card display, history, etc.).
+    """
     settings = get_settings()
-    mapping = settings.get("fieldMapping") or {}
+    note_type_prefix = settings.get("noteTypePrefix", "anki-defs")
 
-    fields = {
-        mapping.get("Word", "Word"): word,
-        mapping.get("Definition", "Definition"): definition,
-        mapping.get("NativeDefinition", "NativeDefinition"): native_definition,
-        mapping.get("Example", "Example"): example_sentence,
-        mapping.get("Translation", "Translation"): sentence_translation,
-    }
+    language = ai.get_language_for_deck(deck)
+    models = ensure_language_models(language, note_type_prefix, [card_type])
+    model_name = models[card_type]
 
-    log.info("Creating card with model: %s", model)
-    log.debug("Field mapping: %s", mapping)
+    # Fall back to the global vocabCardTemplates default when the caller
+    # didn't override per-note.
+    if card_type == "vocab" and vocab_templates is None:
+        vocab_templates = settings.get("vocabCardTemplates") or {}
+
+    fields = build_card_fields(
+        card_type,
+        word=word,
+        definition=definition,
+        native_definition=native_definition,
+        example=example,
+        translation=translation,
+        vocab_templates=vocab_templates,
+    )
+
+    log.info("Creating %s card with model: %s", card_type, model_name)
     log.debug("Fields: %s", fields)
 
     note_id = _invoke(
         "addNote",
         note={
             "deckName": deck,
-            "modelName": model,
+            "modelName": model_name,
             "fields": fields,
             "tags": tags or ["auto-generated"],
             "options": {"allowDuplicate": True},
@@ -164,14 +256,14 @@ def create_card(
 
     if note_id is None:
         raise RuntimeError(
-            f"Cannot create note. The first field of note type '{model}' may be empty."
+            f"Cannot create note. The first field of note type '{model_name}' may be empty."
         )
 
     # Add to word cache
     if word:
         add_word_to_cache(word, deck)
 
-    return note_id
+    return note_id, model_name
 
 
 def delete_note(note_id: int) -> None:
@@ -219,16 +311,15 @@ def _refresh_word_cache() -> None:
         return
 
     notes_info = _invoke("notesInfo", notes=note_ids)
-    word_field = (settings.get("fieldMapping") or {}).get("Word", "Word")
-    fallback_field = "Front"
 
     words: set[str] = set()
     for note in notes_info:
         if not note:
             continue
+        # auto-generated vocab notes use "Word"; legacy/user notes may use "Front".
         value = (
-            note.get("fields", {}).get(word_field, {}).get("value")
-            or note.get("fields", {}).get(fallback_field, {}).get("value")
+            note.get("fields", {}).get("Word", {}).get("value")
+            or note.get("fields", {}).get("Front", {}).get("value")
         )
         if value:
             words.add(value.lower())
@@ -257,3 +348,8 @@ def add_word_to_cache(word: str, deck_name: str) -> None:
         _word_cache[root_deck] = set()
     _word_cache[root_deck].add(lower)
     add_word_to_db_cache(lower, root_deck)
+
+
+def reset_ensured_models_cache() -> None:
+    """Drop the ensured-models cache (used by tests)."""
+    _ensured_models.clear()

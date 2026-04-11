@@ -4,7 +4,19 @@ All functions in this module run on the main thread (called from QTimer poll),
 so collection access is safe without any threading bridge.
 """
 
+from anki_defs._services import note_types as _note_types
+from anki_defs._services.ai import get_language_for_deck as _get_language_for_deck
+from anki_defs._services.note_types import (
+    build_card_fields as _build_card_fields,
+)
+from anki_defs._services.note_types import (
+    render_note_type as _render_note_type,
+)
 from aqt import mw
+
+# Cache of (note_type_prefix, language_code, card_type) -> model_name for
+# models we have already verified/created this process lifetime.
+_ensured_models = {}
 
 
 def get_decks():
@@ -42,16 +54,15 @@ def search_notes(query):
     return results
 
 
-def search_word(word, deck_name, field_mapping=None):
-    """Search for a word in specific fields within a deck."""
+def search_word(word, deck_name):
+    """Search for a word in the standard Word/Front fields within a deck."""
     col = _col()
     escaped_deck = deck_name.replace("\\", "\\\\").replace('"', '\\"')
     escaped_word = word.replace("\\", "\\\\").replace('"', '\\"')
 
-    word_fields = {"Front", "Word"}
-    if field_mapping and field_mapping.get("Word"):
-        word_fields.add(field_mapping["Word"])
-
+    # Auto-created note types always name the headword field "Word". Probe
+    # "Front" too so duplicate detection keeps working on legacy/user notes.
+    word_fields = ("Front", "Word")
     field_queries = " OR ".join('{}:"{}"'.format(f, escaped_word) for f in word_fields)
     query = 'deck:"{}" ({})'.format(escaped_deck, field_queries)
 
@@ -62,11 +73,11 @@ def search_word(word, deck_name, field_mapping=None):
     return _note_to_dict(col, note)
 
 
-def search_words(words, deck_name, field_mapping=None):
+def search_words(words, deck_name):
     """Search for multiple words, returning a dict of word -> note_dict."""
     results = {}
     for word in words:
-        note = search_word(word, deck_name, field_mapping)
+        note = search_word(word, deck_name)
         if note:
             results[word] = note
     return results
@@ -80,6 +91,115 @@ def get_note(note_id):
     except (ValueError, KeyError):
         return None
     return _note_to_dict(col, note)
+
+
+def create_model(model_name, fields, css, is_cloze, templates):
+    """Create a new note type in the Anki collection.
+
+    ``templates`` is a list of dicts with ``Name``/``Front``/``Back`` keys
+    (mirroring the AnkiConnect createModel shape used on the standalone
+    server side, so both backends share the same contract).
+    """
+    col = _col()
+    model = col.models.new(model_name)
+    if is_cloze:
+        # Anki's MODEL_CLOZE constant is 1.
+        model["type"] = 1
+    for field_name in fields:
+        field = col.models.new_field(field_name)
+        col.models.add_field(model, field)
+    model["css"] = css
+    for tmpl in templates:
+        template = col.models.new_template(tmpl["Name"])
+        template["qfmt"] = tmpl["Front"]
+        template["afmt"] = tmpl["Back"]
+        col.models.add_template(model, template)
+    col.models.add(model)
+    return model
+
+
+def ensure_language_models(language, note_type_prefix, card_types=None):
+    """Ensure note types exist in the Anki collection for the given language.
+
+    Returns a dict mapping card_type -> model name. Idempotent: checks the
+    collection once per language/card_type, then caches for subsequent calls.
+    """
+    wanted = tuple(card_types) if card_types else _note_types.all_card_types()
+    code = language["code"]
+
+    result = {}
+    missing = []
+    for ct in wanted:
+        key = (note_type_prefix, code, ct)
+        if key in _ensured_models:
+            result[ct] = _ensured_models[key]
+        else:
+            missing.append(ct)
+
+    if not missing:
+        return result
+
+    col = _col()
+    for ct in missing:
+        rendered = _render_note_type(ct, language, note_type_prefix)
+        model_name = rendered["modelName"]
+        if col.models.by_name(model_name) is None:
+            create_model(
+                model_name,
+                rendered["fields"],
+                rendered["css"],
+                rendered["isCloze"],
+                rendered["templates"],
+            )
+        _ensured_models[(note_type_prefix, code, ct)] = model_name
+        result[ct] = model_name
+    return result
+
+
+def create_card(
+    deck,
+    card_type,
+    word,
+    definition,
+    native_definition,
+    example,
+    translation,
+    vocab_templates=None,
+    tags=None,
+):
+    """Domain-payload wrapper around create_note.
+
+    Resolves the deck's language, ensures the matching auto-created note
+    type exists, builds the field map, then hands off to ``create_note``.
+    """
+    # Local import to avoid a circular import during addon startup.
+    from .settings_service import get_settings
+
+    settings = get_settings()
+    note_type_prefix = settings.get("noteTypePrefix", "anki-defs")
+    language = _get_language_for_deck(deck)
+    models = ensure_language_models(language, note_type_prefix, [card_type])
+    model_name = models[card_type]
+
+    if card_type == "vocab" and vocab_templates is None:
+        vocab_templates = settings.get("vocabCardTemplates") or {}
+
+    fields = _build_card_fields(
+        card_type,
+        word=word,
+        definition=definition,
+        native_definition=native_definition,
+        example=example,
+        translation=translation,
+        vocab_templates=vocab_templates,
+    )
+    note_id = create_note(deck, model_name, fields, tags)
+    return note_id, model_name
+
+
+def reset_ensured_models_cache():
+    """Drop the ensured-models cache (used by tests)."""
+    _ensured_models.clear()
 
 
 def create_note(deck_name, model_name, fields, tags=None):

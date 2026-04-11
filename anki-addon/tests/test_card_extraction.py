@@ -3,7 +3,6 @@
 import json
 
 import pytest
-
 from anki_defs._services.card_extraction import _note_to_card_content
 from anki_defs.services.ai_service import parse_json_response
 from anki_defs.services.card_extraction import apply_spelling_correction
@@ -37,31 +36,31 @@ class TestApplySpellingCorrection:
 
 class TestNoteToExistingCard:
     def test_basic_mapping(self):
+        """Canonical field names from an auto-created note type."""
         note = {
             "fields": {
-                "Bangla": {"value": "কাঁদা", "order": 0},
-                "Eng_trans": {"value": "to cry", "order": 1},
-                "bangla-def": {"value": "চোখ থেকে জল পড়া", "order": 2},
-                "example sentence": {"value": "মেয়েটা কাঁদছে।", "order": 3},
-                "sentence-trans": {"value": "The girl is crying.", "order": 4},
+                "Word": {"value": "কাঁদা", "order": 0},
+                "Definition": {"value": "to cry", "order": 1},
+                "NativeDefinition": {"value": "চোখ থেকে জল পড়া", "order": 2},
+                "Example": {"value": "মেয়েটা কাঁদছে।", "order": 3},
+                "Translation": {"value": "The girl is crying.", "order": 4},
             }
         }
-        field_mapping = {
-            "Word": "Bangla",
-            "Definition": "Eng_trans",
-            "NativeDefinition": "bangla-def",
-            "Example": "example sentence",
-            "Translation": "sentence-trans",
-        }
-        result = _note_to_card_content(note, field_mapping)
+        result = _note_to_card_content(note)
         assert result["word"] == "কাঁদা"
         assert result["definition"] == "to cry"
         assert result["nativeDefinition"] == "চোখ থেকে জল পড়া"
         assert result["exampleSentence"] == "মেয়েটা কাঁদছে।"
         assert result["sentenceTranslation"] == "The girl is crying."
 
+    def test_front_fallback(self):
+        """Legacy notes that use "Front" for the headword still resolve."""
+        note = {"fields": {"Front": {"value": "legacy", "order": 0}}}
+        result = _note_to_card_content(note)
+        assert result["word"] == "legacy"
+
     def test_empty_fields(self):
-        result = _note_to_card_content({"fields": {}}, {})
+        result = _note_to_card_content({"fields": {}})
         assert result["word"] == ""
         assert result["definition"] == ""
 

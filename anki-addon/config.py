@@ -19,6 +19,8 @@ _SHARED_REPO = _ADDON_DIR.parent / "shared"
 SHARED_DIR = _SHARED_PACKAGED if _SHARED_PACKAGED.is_dir() else _SHARED_REPO
 PROMPTS_DIR = SHARED_DIR / "prompts"
 DEFAULTS_DIR = SHARED_DIR / "defaults"
+LANGUAGES_DIR = SHARED_DIR / "languages"
+DATA_DIR = SHARED_DIR / "data"
 
 # User data stored in addon's user_files dir
 CONFIG_DIR = _ADDON_DIR / "user_files"

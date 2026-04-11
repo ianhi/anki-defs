@@ -33,7 +33,6 @@ def handle_stream(_params, _headers, body):
     # Gather context on main thread (collection access is safe here)
     settings = get_settings()
     target_deck = deck or settings.get("defaultDeck", "Bangla")
-    field_mapping = settings.get("fieldMapping") or {}
     language = ai_service.get_language_for_deck(target_deck)
     prompts = ai_service.get_system_prompts(settings.get("showTransliteration", False), language)
 
@@ -72,7 +71,7 @@ def handle_stream(_params, _headers, body):
     anki_results = {}
     for word in words_to_check:
         try:
-            existing = anki_service.search_word(word, target_deck, field_mapping)
+            existing = anki_service.search_word(word, target_deck)
             anki_results[word] = existing
         except (RuntimeError, ValueError):
             anki_results[word] = None
@@ -81,7 +80,7 @@ def handle_stream(_params, _headers, body):
     def sse_handler(sock):
         thread = threading.Thread(
             target=_json_pipeline_worker,
-            args=(sock, system_prompt, user_message, target_deck, anki_results, field_mapping),
+            args=(sock, system_prompt, user_message, target_deck, anki_results),
             daemon=True,
         )
         thread.start()
@@ -112,8 +111,7 @@ def _sentence_translate_worker(sock, system_prompt, user_message):
         pass
 
 
-def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_results,
-                          field_mapping):
+def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_results):
     """Runs in a daemon thread -- JSON-first card generation pipeline."""
     try:
         # Single non-streaming AI call
@@ -163,16 +161,12 @@ def _json_pipeline_worker(sock, system_prompt, user_message, target_deck, anki_r
                     word = card.get("word", "")
                     if word and word not in anki_results:
                         try:
-                            existing = anki_service.search_word(
-                                word, target_deck, field_mapping
-                            )
+                            existing = anki_service.search_word(word, target_deck)
                             anki_results[word] = existing
                         except (RuntimeError, ValueError):
                             anki_results[word] = None
 
-                previews = build_card_previews(
-                    cards, target_deck, anki_results, field_mapping
-                )
+                previews = build_card_previews(cards, target_deck, anki_results)
                 future.set_result(previews)
             except (RuntimeError, ValueError, KeyError) as e:
                 future.set_exception(e)

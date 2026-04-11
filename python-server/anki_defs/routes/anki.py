@@ -80,32 +80,51 @@ async def search_notes(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
+_VALID_CARD_TYPES = {"vocab", "cloze", "mcCloze"}
+
+
 @router.post("/notes")
 async def create_note(request: Request) -> JSONResponse:
+    """Create a note from a domain payload.
+
+    The client sends the card content and which deck/card type it belongs
+    to. The server resolves the language, ensures the matching auto-created
+    note type exists in Anki, and builds the field map.
+    """
     body = await request.json()
-    deck_name = body.get("deckName", "")
-    model_name = body.get("modelName", "")
-    fields = body.get("fields")
+    deck = body.get("deck", "")
+    card_type = body.get("cardType", "vocab")
+    word = body.get("word", "")
+    definition = body.get("definition", "")
+    native_definition = body.get("nativeDefinition", "")
+    example = body.get("example", "")
+    translation = body.get("translation", "")
+    vocab_templates = body.get("vocabTemplates")
     tags = body.get("tags")
 
-    if not deck_name or not model_name or not fields:
+    if not deck:
+        return JSONResponse({"error": "deck is required"}, status_code=400)
+    if card_type not in _VALID_CARD_TYPES:
         return JSONResponse(
-            {"error": "deckName, modelName, and fields are required"}, status_code=400
+            {"error": f"Invalid cardType: {card_type}"}, status_code=400
         )
+    if not word and card_type == "vocab":
+        return JSONResponse({"error": "word is required for vocab cards"}, status_code=400)
 
     try:
-        note_id = await asyncio.to_thread(
+        note_id, model_name = await asyncio.to_thread(
             anki_connect.create_card,
-            deck=deck_name,
-            model=model_name,
-            word=fields.get("Word", ""),
-            definition=fields.get("Definition", ""),
-            native_definition=fields.get("NativeDefinition", ""),
-            example_sentence=fields.get("Example", ""),
-            sentence_translation=fields.get("Translation", ""),
+            deck=deck,
+            card_type=card_type,
+            word=word,
+            definition=definition,
+            native_definition=native_definition,
+            example=example,
+            translation=translation,
+            vocab_templates=vocab_templates,
             tags=tags,
         )
-        return JSONResponse({"noteId": note_id})
+        return JSONResponse({"noteId": note_id, "modelName": model_name})
     except httpx.HTTPError as e:
         log.error("Error creating note: %s", e)
         return JSONResponse(

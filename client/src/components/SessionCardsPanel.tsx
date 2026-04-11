@@ -129,7 +129,7 @@ export function SessionCardsPanel() {
   const syncSingleCard = async (card: PendingCard): Promise<boolean> => {
     setSyncingIds((prev) => new Set(prev).add(card.id));
     try {
-      const noteId = await createNote.mutateAsync({
+      const result = await createNote.mutateAsync({
         deck: card.deckName,
         cardType: 'vocab',
         word: card.word,
@@ -140,7 +140,7 @@ export function SessionCardsPanel() {
         vocabTemplates: settings.vocabCardTemplates,
         tags: ['auto-generated'],
       });
-      await sessionApi.promotePending(card.id, noteId);
+      await sessionApi.promotePending(card.id, result.noteId);
       await useSessionCards.getState().fetchState();
       return true;
     } catch (error) {

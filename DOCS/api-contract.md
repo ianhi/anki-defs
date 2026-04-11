@@ -34,8 +34,39 @@ is missing and prints warnings for extra routes not in the contract.
 | GET    | `/status`              | Check AnkiConnect connection |
 | GET    | `/languages`           | List available languages     |
 
-Note creation uses `allowDuplicate: true` so users can add multiple cards for the
-same word with different definitions.
+`POST /api/anki/notes` takes a **domain payload**, not a pre-built field map.
+The server resolves the deck's language, ensures the matching auto-created
+note type exists in Anki (creating it on first use via AnkiConnect's
+`createModel`), and builds the field map from `shared/data/note-types.json`:
+
+```json
+{
+  "deck": "Bangla",
+  "cardType": "vocab",          // "vocab" | "cloze" | "mcCloze"
+  "word": "বাজার",
+  "definition": "market",
+  "nativeDefinition": "বাজার হলো...",
+  "example": "আমি বাজারে যাচ্ছি",
+  "translation": "I am going to the market",
+  "vocabTemplates": {            // optional; overrides settings default
+    "recognition": true,
+    "production": false,
+    "listening": true
+  },
+  "tags": ["auto-generated"]
+}
+```
+
+Response: `{ "noteId": 12345 }`.
+
+Model names follow the pattern `${noteTypePrefix}-${languageCode}` for vocab,
+with `-cloze` / `-mc-cloze` suffixes for the cloze variants — e.g.
+`anki-defs-bn-IN`, `anki-defs-es-MX-cloze`. `{{LOCALE}}` in the template
+strings is replaced with the Anki-style underscore form (`bn_IN`, `es_MX`)
+taken from the language file's `ttsLocale` field.
+
+Note creation uses `allowDuplicate: true` so users can add multiple cards for
+the same word with different definitions.
 
 ### Chat Routes (`/api/chat`)
 
@@ -97,22 +128,30 @@ Settings are stored per-platform:
 API keys stored in system keyring when available, with fallback to config
 file (requires user consent). See `settings_base.py` for shared logic.
 
-Settings include cloze card configuration:
+Settings include language and auto-created note-type configuration:
 
 ```json
 {
   "aiProvider": "gemini",
-  "targetLanguage": "bn",
-  "deckLanguages": { "Spanish": "es", "Languages::Hindi": "hi" },
+  "targetLanguage": "bn-IN",
+  "deckLanguages": { "Spanish": "es-MX", "Languages::Hindi": "hi" },
   "customLanguages": [{ "code": "tl", "name": "Tagalog" }],
   "defaultCardTypes": ["vocab"],
-  "clozeNoteType": "",
-  "clozeFieldMapping": {},
-  "mcClozeNoteType": "",
-  "mcClozeFieldMapping": {},
+  "vocabCardTemplates": {
+    "recognition": true,
+    "production": false,
+    "listening": true
+  },
+  "noteTypePrefix": "anki-defs",
   ...
 }
 ```
+
+The legacy fields `defaultModel`, `fieldMapping`, `clozeNoteType`,
+`clozeFieldMapping`, `mcClozeNoteType`, and `mcClozeFieldMapping` are gone:
+on-disk settings are stripped of them when loaded (see `_migrate_settings`
+in `settings_base.py`), and the client never sends model names or field
+maps to the server anymore.
 
 Language resolution for a deck walks the `::` hierarchy (e.g. `A::B::C` checks
 `A::B::C`, then `A::B`, then `A`) before falling back to `targetLanguage`.
@@ -121,5 +160,8 @@ setting, or be auto-generated from the language code.
 
 `GET /api/anki/languages` returns the list of file-backed languages:
 ```json
-{ "languages": [{ "code": "bn", "name": "Bangla", "nativeName": "বাংলা" }] }
+{ "languages": [{ "code": "bn-IN", "name": "Bangla (India)", "nativeName": "বাংলা" }] }
 ```
+
+Regional codes (e.g. `es-MX`) fall back to the bare language (`es`) if no
+region-specific language file exists, and then to a generated default.

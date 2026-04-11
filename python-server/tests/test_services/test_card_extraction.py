@@ -68,7 +68,7 @@ class TestBuildCardPreviews:
     def test_new_word(self):
         cards = [{"word": "বাজার", "definition": "market", "nativeDefinition": "",
                   "exampleSentence": "test", "sentenceTranslation": "test"}]
-        previews = build_card_previews(cards, "Bangla", {}, {})
+        previews = build_card_previews(cards, "Bangla", {})
         assert len(previews) == 1
         assert previews[0]["alreadyExists"] is False
 
@@ -76,7 +76,7 @@ class TestBuildCardPreviews:
         cards = [{"word": "বাজার", "definition": "market", "nativeDefinition": "",
                   "exampleSentence": "test", "sentenceTranslation": "test"}]
         anki_results = {"বাজার": {"noteId": 42, "fields": {}, "tags": [], "modelName": ""}}
-        previews = build_card_previews(cards, "Bangla", anki_results, {})
+        previews = build_card_previews(cards, "Bangla", anki_results)
         assert previews[0]["alreadyExists"] is True
 
     def test_spelling_correction_applied(self):
@@ -88,5 +88,5 @@ class TestBuildCardPreviews:
             "sentenceTranslation": "She is crying.",
             "spellingCorrection": "কাদছে → কাঁদছে",
         }]
-        previews = build_card_previews(cards, "Bangla", {}, {})
+        previews = build_card_previews(cards, "Bangla", {})
         assert "কাঁদছে" in previews[0]["exampleSentence"]

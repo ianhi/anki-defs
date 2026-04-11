@@ -166,9 +166,8 @@ async def stream(request: Request) -> StreamingResponse | JSONResponse:
                 await asyncio.gather(*[_check_word(w) for w in new_words])
 
             # Build card previews
-            field_mapping = settings.get("fieldMapping") or {}
             previews = card_extraction.build_card_previews(
-                cards, target_deck, anki_results, field_mapping
+                cards, target_deck, anki_results
             )
 
             for preview in previews:

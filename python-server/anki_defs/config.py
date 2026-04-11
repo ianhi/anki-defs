@@ -14,6 +14,7 @@ SHARED_DIR = PROJECT_ROOT / "shared"
 PROMPTS_DIR = SHARED_DIR / "prompts"
 LANGUAGES_DIR = SHARED_DIR / "languages"
 DEFAULTS_DIR = SHARED_DIR / "defaults"
+DATA_DIR = SHARED_DIR / "data"
 
 # User config
 CONFIG_DIR = Path.home() / ".config" / "bangla-anki"

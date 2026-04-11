@@ -137,4 +137,4 @@ class TestLanguages:
         assert isinstance(data["languages"], list)
         # At least Bangla should be available
         codes = [lang["code"] for lang in data["languages"]]
-        assert "bn" in codes
+        assert "bn-IN" in codes

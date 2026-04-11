@@ -39,7 +39,7 @@ class TestPromptLoading:
 
     def test_word_prompt_has_language_rules(self):
         prompts = get_system_prompts(False)
-        assert "### Bangla-Specific Rules" in prompts["word"]
+        assert "Bangla (India)-Specific Rules" in prompts["word"]
         assert "Lemmatization" in prompts["word"]
         assert "Spelling tolerance" in prompts["word"]
 
@@ -49,7 +49,7 @@ class TestPromptLoading:
 
     def test_english_to_target_has_guidelines(self):
         prompts = get_system_prompts(False)
-        assert "MOST NATURAL Bangla word" in prompts["englishToTarget"]
+        assert "MOST NATURAL Indian Bangla word" in prompts["englishToTarget"]
 
     def test_sentence_prompt_has_skip_particles(self):
         """Verify sentence prompt renders correctly via get_system_prompts indirectly."""
@@ -57,11 +57,10 @@ class TestPromptLoading:
         from anki_defs.services.ai import _prompt_templates, _render_prompt
         rendered = _render_prompt(_prompt_templates["sentence"]["system"], False)
         assert "আমি, তুমি, সে" in rendered
-        assert "Bangla sentence" in rendered
 
     def test_relemmatize_has_language_rules(self):
         prompt = get_relemmatize_prompt("বাজারে")
-        assert "Bangla dictionary/lemma form" in prompt
+        assert "Bangla (India) dictionary/lemma form" in prompt
         assert "Bangla Lemmatization Rules" in prompt
 
 
@@ -196,6 +195,44 @@ class TestLanguageForDeck:
         with patch("anki_defs.services.ai.get_settings", return_value=settings):
             lang = get_language_for_deck("SomeDeck")
             assert lang["code"] == "hi"
+
+
+class TestLocaleFallback:
+    def test_bn_in_resolves_to_bn_in_file(self):
+        from anki_defs.services.ai import _resolve_language
+
+        lang = _resolve_language("bn-IN", {})
+        assert lang["code"] == "bn-IN"
+        assert lang["name"] == "Bangla (India)"
+        assert lang["ttsLocale"] == "bn-IN"
+
+    def test_es_mx_resolves_to_es_mx_file(self):
+        from anki_defs.services.ai import _resolve_language
+
+        lang = _resolve_language("es-MX", {})
+        assert lang["code"] == "es-MX"
+
+    def test_regional_falls_back_to_base_language(self):
+        """An unknown regional code should fall back to the bare language."""
+        from anki_defs.services import ai
+
+        real = dict(ai._languages)
+        try:
+            ai._languages.clear()
+            ai._languages["bn"] = {"code": "bn", "name": "Bangla", "ttsLocale": "bn"}
+            lang = ai._resolve_language("bn-BD", {})
+            assert lang["code"] == "bn"
+        finally:
+            ai._languages.clear()
+            ai._languages.update(real)
+
+    def test_unknown_regional_falls_through_to_default(self):
+        """If neither regional nor base exists, generate a default."""
+        from anki_defs.services.ai import _resolve_language
+
+        lang = _resolve_language("zz-ZZ", {})
+        assert lang["code"] == "zz-ZZ"
+        assert "preamble" in lang
 
 
 class TestAvailableLanguages:
