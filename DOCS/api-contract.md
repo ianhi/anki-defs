@@ -17,7 +17,7 @@ is missing and prints warnings for extra routes not in the contract.
 | ------ | --------------- | ---------------------------- |
 | GET    | `/api/health`   | Returns `{ status: 'ok' }`   |
 | GET    | `/api/platform` | Returns `{ platform: '...'}` |
-| GET    | `/api/languages` | Returns `{ languages: [...] }` — available language definitions |
+| GET    | `/api/anki/languages` | Returns `{ languages: [...] }` — available language definitions |
 
 ### Anki Routes (`/api/anki`)
 

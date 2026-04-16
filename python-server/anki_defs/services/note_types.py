@@ -15,6 +15,7 @@ payload and the server routes that through `render_note_type` +
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Literal
 
 from ..config import DATA_DIR
@@ -61,15 +62,20 @@ def render_note_type(
     card_type: CardType,
     language: dict[str, Any],
     note_type_prefix: str,
+    anki_tts_locale_override: str | None = None,
 ) -> dict[str, Any]:
     """Return a concrete, ready-to-create Anki model definition for a language.
 
     The returned dict has keys: ``modelName``, ``fields``, ``css``, ``isCloze``,
     ``templates`` (list of ``{"Name", "Front", "Back"}``).
+
+    ``anki_tts_locale_override`` lets the user pin a different locale for the
+    Anki TTS template tag, e.g. an ``es-MX`` deck whose voices are installed
+    under ``es_US``. Accepts either ``es_US`` or ``es-US`` form.
     """
     definition = get_note_type_definition(card_type)
     code = language["code"]
-    tts_locale = language.get("ttsLocale") or code
+    tts_locale = anki_tts_locale_override or language.get("ttsLocale") or code
     anki_locale = locale_for_anki(tts_locale)
 
     suffix = definition.get("modelNameSuffix", "")
@@ -94,6 +100,14 @@ def render_note_type(
     }
 
 
+_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
+
+
+def _md_to_html(text: str) -> str:
+    """Convert markdown bold (**foo**) to <b> tags. Anki renders fields as HTML."""
+    return _BOLD_RE.sub(r"<b>\1</b>", text)
+
+
 def _flag(value: bool) -> str:
     """Anki uses non-empty strings as "true" for conditional fields."""
     return "1" if value else ""
@@ -116,15 +130,20 @@ def build_card_fields(
     to the global ``vocabCardTemplates`` setting before calling if nothing
     was overridden per-note.
     """
+    example_html = _md_to_html(example)
+    translation_html = _md_to_html(translation)
+
     if card_type == "vocab":
         tmpls = vocab_templates or {}
         return {
             "Word": word,
             "Definition": definition,
             "NativeDefinition": native_definition,
-            "Example": example,
-            "Translation": translation,
+            "Example": example_html,
+            "Translation": translation_html,
             "Image": "",
+            "WordAudio": "",
+            "ExampleAudio": "",
             "EnableRecognition": _flag(bool(tmpls.get("recognition", True))),
             "EnableProduction": _flag(bool(tmpls.get("production", False))),
             "EnableListening": _flag(bool(tmpls.get("listening", True))),
@@ -134,18 +153,19 @@ def build_card_fields(
         # Text is the cloze sentence (caller is expected to have inserted
         # {{c1::...}} markers around the target word if applicable).
         return {
-            "Text": example or word,
-            "English": translation,
-            "FullSentence": example,
+            "Text": example_html or word,
+            "English": translation_html,
+            "FullSentence": example_html,
             "ShowEnglish": "",
             "Tense": "",
             "Image": "",
+            "FullSentenceAudio": "",
         }
 
     if card_type == "mcCloze":
         return {
-            "Text": example or word,
-            "FullSentence": example,
+            "Text": example_html or word,
+            "FullSentence": example_html,
             "Answer": word,
             "AnswerDef": definition,
             "Distractor1": "",
@@ -159,6 +179,11 @@ def build_card_fields(
             "Level": "",
             "Focus": "",
             "TatoebaID": "",
+            "FullSentenceAudio": "",
+            "AnswerAudio": "",
+            "Distractor1Audio": "",
+            "Distractor2Audio": "",
+            "Distractor3Audio": "",
         }
 
     raise ValueError(f"Unknown card type: {card_type}")

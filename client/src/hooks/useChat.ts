@@ -7,11 +7,12 @@ import { parseHighlightedWords, getCleanText } from '@/lib/focus';
 import { useSettingsStore } from '@/hooks/useSettings';
 import type { Message } from 'shared';
 import { useTokenUsage } from './useTokenUsage';
+import { CHAT_STORAGE_KEY } from '@/lib/storage-keys';
 
 // Pre-read persisted state synchronously to avoid layout shift on hydration
 const _persisted = (() => {
   try {
-    const raw = localStorage.getItem('bangla-chat');
+    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return parsed?.state as { messages?: Message[]; inputDraft?: string } | undefined;
@@ -52,7 +53,7 @@ const useChatStore = create<ChatState>()(
         })),
     }),
     {
-      name: 'bangla-chat',
+      name: CHAT_STORAGE_KEY,
       partialize: (state) => ({
         messages: state.messages,
         inputDraft: state.inputDraft,

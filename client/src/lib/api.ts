@@ -137,7 +137,7 @@ export const chatApi = {
 export const languageApi = {
   getLanguages: () =>
     fetchJson<{
-      languages: Array<{ code: string; name: string; nativeName: string }>;
+      languages: Array<{ code: string; name: string; nativeName: string; script?: string }>;
     }>('/anki/languages').then((r) => r.languages),
 };
 

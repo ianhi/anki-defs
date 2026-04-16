@@ -6,10 +6,53 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
-    <title>Bangla Vocabulary Learning</title>
+    <title>anki-defs — Vocabulary Flashcards</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><p style="padding:2rem;font-family:sans-serif;color:#333;font-size:18px">Loading...</p></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      function showErr(msg) {
+        var el = document.getElementById('root');
+        var pre = document.createElement('pre');
+        pre.style.cssText = 'padding:1rem;color:#cc0000;font-size:16px;white-space:pre-wrap;background:#fff;border:2px solid #cc0000;margin:1rem;border-radius:8px;word-break:break-all';
+        pre.textContent = msg;
+        el.textContent = '';
+        el.appendChild(pre);
+      }
+      window.addEventListener('error', function(e) {
+        showErr('JS Error: ' + e.message + '\n' + (e.filename || '') + ':' + (e.lineno || ''));
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        showErr('Unhandled rejection: ' + (e.reason && e.reason.message || e.reason || 'unknown'));
+      });
+      setTimeout(function() {
+        var el = document.getElementById('root');
+        if (el && el.textContent.trim() === 'Loading...') {
+          var info = 'App failed to start after 10s.\n\n';
+          info += 'URL: ' + location.href + '\n';
+          info += 'Protocol: ' + location.protocol + '\n';
+          info += 'User-Agent: ' + navigator.userAgent.substr(0, 100) + '\n\n';
+          info += 'Checking API...\n';
+          var scripts = document.querySelectorAll('script[src]');
+          var srcList = [];
+          for (var i = 0; i < scripts.length; i++) srcList.push(scripts[i].src);
+          info += 'Scripts: ' + srcList.join(', ') + '\n\n';
+
+          fetch('/api/health').then(function(r) { return r.text(); }).then(function(t) {
+            info += 'API health: ' + t + '\n\n';
+            info += 'JS module failed to load or initialize.\n';
+            info += 'Try opening directly:\n';
+            for (var j = 0; j < srcList.length; j++) {
+              info += '  ' + srcList[j] + '\n';
+            }
+            info += '\nIf it loads: runtime error during init.\nIf it fails: serving or MIME type issue.';
+            showErr(info);
+          }).catch(function(e) {
+            showErr(info + 'API unreachable: ' + e.message + '\n\nServer may not be running.');
+          });
+        }
+      }, 3000);
+    </script>
   </body>
 </html>

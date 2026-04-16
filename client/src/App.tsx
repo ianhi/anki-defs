@@ -16,6 +16,7 @@ import { useSettingsStore } from './hooks/useSettings';
 import { useTokenUsage } from './hooks/useTokenUsage';
 import { useAnkiSync, useAnkiStatus } from './hooks/useAnki';
 import { usePlatform } from './hooks/usePlatform';
+import { ONBOARDED_STORAGE_KEY } from './lib/storage-keys';
 
 // Check for demo mode via URL search params
 const demoParam = new URLSearchParams(window.location.search).get('demo');
@@ -37,7 +38,7 @@ function needsOnboarding(settings: {
   geminiApiKey: string;
   openRouterApiKey: string;
 }): boolean {
-  if (localStorage.getItem('anki-defs-onboarded')) return false;
+  if (localStorage.getItem(ONBOARDED_STORAGE_KEY)) return false;
   const keyForProvider =
     settings.aiProvider === 'claude'
       ? settings.claudeApiKey

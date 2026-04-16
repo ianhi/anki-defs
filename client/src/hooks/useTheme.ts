@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { THEME_STORAGE_KEY } from '@/lib/storage-keys';
 
 export type Theme = 'light' | 'dark' | 'system';
 
@@ -11,7 +12,7 @@ interface ThemeState {
 // Pre-read to avoid flash of wrong theme
 const _persisted = (() => {
   try {
-    const raw = localStorage.getItem('anki-defs-theme');
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
     if (raw) return JSON.parse(raw)?.state?.theme as Theme | undefined;
   } catch {
     /* empty */
@@ -28,7 +29,7 @@ export const useTheme = create<ThemeState>()(
         applyTheme(theme);
       },
     }),
-    { name: 'anki-defs-theme' }
+    { name: THEME_STORAGE_KEY }
   )
 );
 

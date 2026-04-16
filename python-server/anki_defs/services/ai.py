@@ -120,7 +120,12 @@ def get_language_for_deck(deck: str) -> dict[str, Any]:
 def get_available_languages() -> list[dict[str, str]]:
     """Return list of available file-backed languages."""
     return [
-        {"code": lang["code"], "name": lang["name"], "nativeName": lang.get("nativeName", "")}
+        {
+            "code": lang["code"],
+            "name": lang["name"],
+            "nativeName": lang.get("nativeName", ""),
+            "script": lang.get("script", "latin"),
+        }
         for lang in _languages.values()
     ]
 
@@ -202,6 +207,7 @@ def _render_prompt(
     result = result.replace("{{translationGuidelines}}", lang.get("translationGuidelines", ""))
     # Global substitutions
     result = result.replace("{{outputRules}}", _variables["outputRules"])
+    result = result.replace("{{jsonOutputRule}}", _variables.get("jsonOutputRule", ""))
     return result
 
 

@@ -17,6 +17,8 @@ import type {
 import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Loader2, Volume2, X, Plus } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
+import { LanguageDropdown } from './LanguageDropdown';
+import { ONBOARDED_STORAGE_KEY, CHAT_STORAGE_KEY } from '@/lib/storage-keys';
 import { useTheme, type Theme } from '@/hooks/useTheme';
 import {
   getVoicesForLanguage,
@@ -26,9 +28,7 @@ import {
   hasTTS,
 } from '@/lib/tts';
 
-const CUSTOM_LANGUAGE_SENTINEL = '__custom__';
-
-type SettingsTab = 'ai' | 'anki' | 'preferences';
+type SettingsTab = 'ai' | 'anki' | 'preferences' | 'debug';
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -60,23 +60,52 @@ function ThemeSelector() {
   );
 }
 
-const TTS_PREVIEW_TEXT = 'আমি বাজারে যাচ্ছি।';
+const TTS_PREVIEW_TEXT_BY_PREFIX: Record<string, string> = {
+  bn: 'আমি বাজারে যাচ্ছি।',
+  es: 'Hola, ¿cómo estás?',
+  hi: 'नमस्ते, आप कैसे हैं?',
+  ta: 'வணக்கம், எப்படி இருக்கிறீர்கள்?',
+  fr: 'Bonjour, comment ça va?',
+  de: 'Hallo, wie geht es dir?',
+  ja: 'こんにちは、お元気ですか？',
+  zh: '你好，你好吗？',
+  ar: 'مرحبا، كيف حالك؟',
+};
+
+function previewTextFor(lang: string): string {
+  const prefix = lang.split('-')[0]?.toLowerCase() ?? '';
+  return TTS_PREVIEW_TEXT_BY_PREFIX[prefix] ?? 'Hello, how are you?';
+}
 
 function TtsVoicePicker() {
-  const voices = getVoicesForLanguage('bn');
-  const [selectedVoice, setSelectedVoice] = useState(getCurrentVoiceName() ?? '');
+  const { settings, resolveDeckLanguage } = useSettingsStore();
+  const activeLang = resolveDeckLanguage(settings.defaultDeck) ?? settings.targetLanguage;
+  const voices = getVoicesForLanguage(activeLang);
+  const [selectedVoice, setSelectedVoice] = useState(getCurrentVoiceName(activeLang) ?? '');
+  const previewText = previewTextFor(activeLang);
 
-  if (voices.length === 0) return null;
+  if (voices.length === 0) {
+    return (
+      <div className="space-y-2">
+        <Label>Text-to-speech voice</Label>
+        <p className="text-xs text-muted-foreground">
+          No installed voice found for <span className="font-medium">{activeLang}</span>. Speech
+          will fall back to whatever the OS chooses (often robotic). Install a system voice for
+          this language, or set up cloud TTS in a future release.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="tts-voice">Text-to-speech voice</Label>
+      <Label htmlFor="tts-voice">Text-to-speech voice ({activeLang})</Label>
       <div className="flex gap-2 items-center">
         <Select
           id="tts-voice"
           value={selectedVoice}
           onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            setVoiceByName(e.target.value);
+            setVoiceByName(activeLang, e.target.value);
             setSelectedVoice(e.target.value);
           }}
           className="flex-1"
@@ -90,84 +119,14 @@ function TtsVoicePicker() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => speak(TTS_PREVIEW_TEXT)}
+          onClick={() => speak(previewText, activeLang)}
           title="Preview voice"
         >
           <Volume2 className="h-4 w-4" />
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">Preview: &ldquo;{TTS_PREVIEW_TEXT}&rdquo;</p>
+      <p className="text-xs text-muted-foreground">Preview: &ldquo;{previewText}&rdquo;</p>
     </div>
-  );
-}
-
-/** Build combined language options from server languages + custom languages */
-function buildLanguageOptions(
-  languages: Array<{ code: string; name: string; nativeName: string }> | undefined,
-  customLanguages: CustomLanguage[]
-) {
-  const options: Array<{ code: string; label: string }> = [];
-
-  // Server-provided languages
-  if (languages) {
-    for (const lang of languages) {
-      options.push({
-        code: lang.code,
-        label: lang.nativeName ? `${lang.name} (${lang.nativeName})` : lang.name,
-      });
-    }
-  }
-
-  // User-defined custom languages (not already in server list)
-  const serverCodes = new Set(languages?.map((l) => l.code) ?? []);
-  for (const cl of customLanguages) {
-    if (!serverCodes.has(cl.code)) {
-      options.push({ code: cl.code, label: cl.name });
-    }
-  }
-
-  return options;
-}
-
-function LanguageDropdown({
-  id,
-  value,
-  languages,
-  customLanguages,
-  onChange,
-  onCustom,
-  className,
-}: {
-  id?: string;
-  value: string;
-  languages: Array<{ code: string; name: string; nativeName: string }> | undefined;
-  customLanguages: CustomLanguage[];
-  onChange: (code: string) => void;
-  onCustom: () => void;
-  className?: string;
-}) {
-  const options = buildLanguageOptions(languages, customLanguages);
-  return (
-    <Select
-      id={id}
-      value={value}
-      onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-        if (e.target.value === CUSTOM_LANGUAGE_SENTINEL) {
-          onCustom();
-        } else {
-          onChange(e.target.value);
-        }
-      }}
-      className={className}
-    >
-      <option value="">-- select --</option>
-      {options.map((opt) => (
-        <option key={opt.code} value={opt.code}>
-          {opt.label}
-        </option>
-      ))}
-      <option value={CUSTOM_LANGUAGE_SENTINEL}>Custom...</option>
-    </Select>
   );
 }
 
@@ -181,6 +140,7 @@ function LanguageSection({
     targetLanguage?: string;
     deckLanguages?: Record<string, string>;
     customLanguages?: CustomLanguage[];
+    ankiTtsLocaleByLanguage?: Record<string, string>;
   };
   languages: Array<{ code: string; name: string; nativeName: string }> | undefined;
   decks: string[] | undefined;
@@ -189,15 +149,13 @@ function LanguageSection({
     value: string | boolean | string[] | Record<string, string> | CustomLanguage[]
   ) => void;
 }) {
-  const targetLanguage = localSettings.targetLanguage ?? '';
   const deckLanguages = localSettings.deckLanguages ?? {};
   const customLanguages = localSettings.customLanguages ?? [];
+  const ankiTtsByLang = localSettings.ankiTtsLocaleByLanguage ?? {};
 
-  const [showCustomDefault, setShowCustomDefault] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customCode, setCustomCode] = useState('');
+  const usedLangCodes = Array.from(new Set(Object.values(deckLanguages)));
 
-  // For adding deck overrides
+  // For adding per-deck language entries
   const [newOverrideDeck, setNewOverrideDeck] = useState('');
   const [showCustomOverride, setShowCustomOverride] = useState<string | null>(null);
   const [overrideCustomName, setOverrideCustomName] = useState('');
@@ -211,16 +169,6 @@ function LanguageSection({
       handleChange('customLanguages', [...customLanguages, { code, name }]);
     }
     return code;
-  };
-
-  const handleDefaultCustomSave = () => {
-    if (customName.trim() && customCode.trim()) {
-      const code = addCustomLanguage(customName.trim(), customCode.trim());
-      handleChange('targetLanguage', code);
-      setShowCustomDefault(false);
-      setCustomName('');
-      setCustomCode('');
-    }
   };
 
   const handleOverrideCustomSave = (deck: string) => {
@@ -257,57 +205,12 @@ function LanguageSection({
 
   return (
     <>
-      {/* Default Language */}
+      {/* Deck Languages */}
       <div className="space-y-2">
-        <Label htmlFor="default-language">Default Language</Label>
-        <LanguageDropdown
-          id="default-language"
-          value={targetLanguage}
-          languages={languages}
-          customLanguages={customLanguages}
-          onChange={(code) => handleChange('targetLanguage', code)}
-          onCustom={() => setShowCustomDefault(true)}
-        />
-        {showCustomDefault && (
-          <div className="space-y-2 rounded-md border border-input p-3">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Language name"
-                value={customName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomName(e.target.value)}
-                className="flex-1"
-              />
-              <Input
-                placeholder="Code (e.g. hi)"
-                value={customCode}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomCode(e.target.value)}
-                className="w-28"
-              />
-            </div>
-            <p className="text-xs text-yellow-600 dark:text-yellow-400">
-              Custom languages use generic prompts without language-specific rules.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleDefaultCustomSave}
-                disabled={!customName.trim() || !customCode.trim()}
-              >
-                Add
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowCustomDefault(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Deck Language Overrides */}
-      <div className="space-y-2">
-        <Label>Deck language overrides</Label>
+        <Label>Deck languages</Label>
         <p className="text-xs text-muted-foreground">
-          Subdecks inherit their parent deck&apos;s language.
+          Set a language per deck. Subdecks inherit their parent deck&apos;s language automatically,
+          so you only need to set the top-level deck.
         </p>
 
         {/* Existing overrides */}
@@ -323,7 +226,7 @@ function LanguageSection({
               size="icon"
               className="h-7 w-7 flex-shrink-0"
               onClick={() => removeDeckOverride(deck)}
-              title="Remove override"
+              title="Remove deck language"
             >
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -420,6 +323,43 @@ function LanguageSection({
           </div>
         )}
       </div>
+
+      {usedLangCodes.length > 0 && (
+        <div className="space-y-2">
+          <Label>Anki TTS locale per language</Label>
+          <p className="text-xs text-muted-foreground">
+            Override the locale Anki passes to its built-in <code>{'{{tts}}'}</code> template tag —
+            useful when your installed voices are tagged with a different region than the language
+            (e.g. Mexican Spanish content but only <code>es_US</code> voices installed). Leave
+            blank to use the language default. Format: <code>es_US</code> (with underscore).
+          </p>
+          {usedLangCodes.map((code) => (
+            <div key={code} className="flex items-center gap-2">
+              <span className="text-sm w-32 truncate" title={code}>
+                {languageLabel(code)}
+              </span>
+              <span className="text-muted-foreground text-sm">&rarr;</span>
+              <Input
+                value={ankiTtsByLang[code] ?? ''}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const next = { ...ankiTtsByLang };
+                  if (e.target.value.trim()) {
+                    next[code] = e.target.value.trim();
+                  } else {
+                    delete next[code];
+                  }
+                  handleChange('ankiTtsLocaleByLanguage', next);
+                }}
+                placeholder="(default)"
+                className="flex-1"
+              />
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground">
+            Changes apply to newly created cards. Existing note types update on next card creation.
+          </p>
+        </div>
+      )}
     </>
   );
 }
@@ -428,7 +368,102 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'ai', label: 'AI Provider' },
   { id: 'anki', label: 'Anki' },
   { id: 'preferences', label: 'Preferences' },
+  { id: 'debug', label: 'Debug' },
 ];
+
+function DebugSection() {
+  const { updateSettings } = useSettingsStore();
+
+  const resetOnboarding = () => {
+    localStorage.removeItem(ONBOARDED_STORAGE_KEY);
+    window.location.reload();
+  };
+
+  const clearChatHistory = () => {
+    localStorage.removeItem(CHAT_STORAGE_KEY);
+    window.location.reload();
+  };
+
+  const clearDeckLanguages = () => {
+    void updateSettings({ deckLanguages: {} });
+  };
+
+  const clearAllLocalData = () => {
+    if (
+      !window.confirm(
+        'Clear all local app data (onboarding, chat history, theme)? Settings stored on the server are kept.'
+      )
+    ) {
+      return;
+    }
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith('anki-defs-') || k === CHAT_STORAGE_KEY);
+    for (const k of keys) localStorage.removeItem(k);
+    window.location.reload();
+  };
+
+  return (
+    <>
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">
+          Tools for re-testing the new-user flow. These only affect this browser&apos;s local
+          storage and the per-deck language mapping — your API keys and other server-side settings
+          are untouched.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Reset onboarding</p>
+            <p className="text-xs text-muted-foreground">
+              Clears the onboarded marker and reloads so the first-run wizard shows again.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={resetOnboarding}>
+            Reset
+          </Button>
+        </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Clear chat history</p>
+            <p className="text-xs text-muted-foreground">
+              Removes locally stored chat messages and drafts.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={clearChatHistory}>
+            Clear
+          </Button>
+        </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Forget deck languages</p>
+            <p className="text-xs text-muted-foreground">
+              Empties the per-deck language mapping so you&apos;ll be re-prompted the next time you
+              pick a deck.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={clearDeckLanguages}>
+            Clear
+          </Button>
+        </div>
+
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Clear all local data</p>
+            <p className="text-xs text-muted-foreground">
+              Onboarding marker, chat history, theme preference. Server-stored settings are kept.
+            </p>
+          </div>
+          <Button size="sm" variant="destructive" onClick={clearAllLocalData}>
+            Clear
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export function Settings() {
   const queryClient = useQueryClient();
@@ -815,6 +850,8 @@ export function Settings() {
             {hasTTS() && <TtsVoicePicker />}
           </>
         )}
+
+        {activeTab === 'debug' && <DebugSection />}
       </div>
 
       {/* Sticky footer — always visible */}

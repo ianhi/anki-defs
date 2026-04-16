@@ -4,18 +4,20 @@
 
 ### Ready now (no blockers)
 
-1. **Test Anki add-on end-to-end** — Code is hardened but never verified inside
-   Anki Desktop. Run `install-dev.sh`, restart Anki, test all flows. High value.
-2. **Embedded audio in cards** — TTS at card creation time. Plan exists at
-   [audio-in-cards.md](audio-in-cards.md). Separate comparison tool at
-   `~/dev/tts-compare/` to pick the engine first.
+1. **Commit + test the big batch** — Massive uncommitted changeset from addon
+   end-to-end testing session. See `PLANNING/addon-testing-session.md` for
+   complete list of changes, known issues, and what to verify.
+2. **Embedded audio in cards (Phase 2)** — Audio fields + fallback templates are
+   wired. Next: wire up Google Cloud TTS endpoint to actually populate them.
+   Plan exists at [audio-in-cards.md](audio-in-cards.md).
+3. **Refactor addon HTTP server** — Replace raw socket server with Bottle (single
+   file WSGI framework) for request parsing. Keep QTimer poll loop as the server
+   driver. Fixes fragile send/receive handling. See addon-testing-session.md.
 
 ### Needs design/discussion first
 
-3. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
+4. **Reader mode (tap-to-define)** — Paste text, tap words for definitions. Big
    feature, needs UI planning. PDF/image import builds on this.
-4. **Create language files** — Language picker + per-deck mapping works. Add `.json`
-   language files for Hindi, Tamil, etc. to enable those languages.
 
 ### Medium effort
 
@@ -37,17 +39,18 @@
 | -------------------------------------- | ------- | -------------------------------------------------------- |
 | Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, auto note-type creation per language |
 | Android (`android/`)                   | Working | Still on old two-call pipeline                           |
-| Anki add-on (`anki-addon/`)            | Working | Hardened but untested inside Anki. Mirrors server's auto note-type logic via `anki_service.create_card` |
-| Shared prompts (`shared/prompts/`)     | Working | Parameterized templates + language files in `shared/languages/` |
-| Note-type templates (`shared/data/note-types.json`) | Working | Server renders vocab/cloze/mcCloze models per language; `{{LOCALE}}` substituted from `ttsLocale` |
+| Anki add-on (`anki-addon/`)            | Testing | Tested inside Anki for first time. Many fixes landed. Mobile Tailscale access partially working (send bug fixed but untested). See `addon-testing-session.md` |
+| Shared prompts (`shared/prompts/`)     | Working | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced. |
+| Note-type templates (`shared/data/note-types.json`) | Updated | Audio fields added (WordAudio, ExampleAudio, FullSentenceAudio, etc.) with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion. |
 | Tests                                  | 65+111+48 | vitest + python-server pytest + addon pytest            |
 | CI                                     | Working | `.github/workflows/ci.yml`                               |
-| Docs site (`docs/`)                    | Deployed | Astro Starlight on GitHub Pages                         |
+| Docs site (`docs/`)                    | Updated | Tailscale docs rewritten with addon support + Chrome HTTP flag |
 
 ## Detailed plans
 
 | Doc                                                  | What it covers                        |
 | ---------------------------------------------------- | ------------------------------------- |
+| [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session    |
 | [next-steps.md](next-steps.md)                       | Full feature list with details        |
 | [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan                  |
 | [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)     |

@@ -2,7 +2,8 @@
   "code": "es-MX",
   "name": "Mexican Spanish",
   "nativeName": "Español mexicano",
-  "ttsLocale": "es-MX",
+  "ttsLocale": "es-US",
+  "script": "latin",
 
   "preamble": "You are a Mexican Spanish language expert helping a learner build Anki flashcards. Target the standard educated Mexico City (chilango) register unless the input clearly signals otherwise. Always prefer Latin American / Mexican forms over Castilian (Peninsular) forms.",
 

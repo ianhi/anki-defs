@@ -1,6 +1,9 @@
 /**
- * Text-to-speech using the browser's SpeechSynthesis API.
- * Uses device-installed voices (e.g. Google Bangla on Android).
+ * Browser SpeechSynthesis wrapper.
+ *
+ * Voice resolution is per-language: the user can pin a preferred voice for
+ * each language code, otherwise we look up the best available system voice.
+ * Pinned voices persist in localStorage.
  */
 /* global speechSynthesis, SpeechSynthesisVoice, SpeechSynthesisUtterance */
 
@@ -8,78 +11,77 @@ import { createLogger } from './logger';
 
 const log = createLogger('TTS');
 
-let banglaVoice: SpeechSynthesisVoice | null = null;
-let voicesLoaded = false;
+const VOICE_OVERRIDE_PREFIX = 'tts-voice-';
 
-/** Normalize lang code — browsers use both bn-IN and bn_IN. */
+const resolvedVoiceCache = new Map<string, SpeechSynthesisVoice | null>();
+
 function normLang(lang: string): string {
   return lang.replace('_', '-').toLowerCase();
 }
 
-/** Find the best available voice for a language. Prefers regional variants. */
-function findVoice(lang: string): SpeechSynthesisVoice | null {
-  const voices = speechSynthesis.getVoices();
+function loadOverride(lang: string): string | null {
+  try {
+    return localStorage.getItem(VOICE_OVERRIDE_PREFIX + normLang(lang));
+  } catch {
+    return null;
+  }
+}
+
+function saveOverride(lang: string, voiceName: string): void {
+  try {
+    localStorage.setItem(VOICE_OVERRIDE_PREFIX + normLang(lang), voiceName);
+  } catch {
+    /* ignore quota / privacy-mode failures */
+  }
+}
+
+function findVoiceForLang(lang: string): SpeechSynthesisVoice | null {
   const target = normLang(lang);
-  // Prefer exact regional match (e.g. bn-in)
+  const voices = speechSynthesis.getVoices();
+
+  const overrideName = loadOverride(target);
+  if (overrideName) {
+    const pinned = voices.find((v) => v.name === overrideName);
+    if (pinned) return pinned;
+  }
+
   const exact = voices.find((v) => normLang(v.lang) === target);
   if (exact) return exact;
-  // Then any voice starting with the language prefix (bn)
+
   const prefix = target.split('-')[0]!;
-  const prefixMatch = voices.find((v) => normLang(v.lang).startsWith(prefix));
-  if (prefixMatch) return prefixMatch;
-  // Fallback: check voice name
-  const nameMatch = voices.find(
-    (v) => v.name.toLowerCase().includes('bangla') || v.name.toLowerCase().includes('bengali')
-  );
-  return nameMatch ?? null;
+  return voices.find((v) => normLang(v.lang).startsWith(prefix + '-') || normLang(v.lang) === prefix) ?? null;
 }
 
-function ensureVoice(): SpeechSynthesisVoice | null {
-  if (!voicesLoaded) {
-    banglaVoice = findVoice('bn-IN');
-    voicesLoaded = true;
-    if (banglaVoice) {
-      log.info('TTS voice: %s (%s)', banglaVoice.name, banglaVoice.lang);
-    } else {
-      log.warn('No Bangla TTS voice found');
-    }
+function resolveVoice(lang: string): SpeechSynthesisVoice | null {
+  const key = normLang(lang);
+  if (resolvedVoiceCache.has(key)) return resolvedVoiceCache.get(key) ?? null;
+  const voice = findVoiceForLang(lang);
+  resolvedVoiceCache.set(key, voice);
+  if (voice) {
+    log.info('TTS [%s]: %s (%s)', lang, voice.name, voice.lang);
+  } else {
+    log.warn('No TTS voice found for %s', lang);
   }
-  return banglaVoice;
+  return voice;
 }
 
-// Voices may load asynchronously
 if (typeof speechSynthesis !== 'undefined') {
   speechSynthesis.addEventListener('voiceschanged', () => {
-    voicesLoaded = false;
-    ensureVoice();
-    // Debug: log all Bangla-related voices
-    const allVoices = speechSynthesis.getVoices();
-    const bnVoices = allVoices.filter(
-      (v) =>
-        v.lang.toLowerCase().includes('bn') ||
-        v.name.toLowerCase().includes('bangla') ||
-        v.name.toLowerCase().includes('bengali')
-    );
-    log.info(
-      'Available Bangla voices: %s',
-      bnVoices.map((v) => `${v.name} [${v.lang}]`).join(', ')
-    );
+    resolvedVoiceCache.clear();
   });
 }
 
-/** Strip markup (**, <b>, etc.) from text before speaking. */
 function stripMarkup(text: string): string {
   return text.replace(/\*\*/g, '').replace(/<[^>]*>/g, '');
 }
 
-/** Speak text using the device's TTS engine. Returns true if speech started. */
-export function speak(text: string, lang = 'bn'): boolean {
+/** Speak text in the given language. Returns true if speech started. */
+export function speak(text: string, lang: string): boolean {
   if (typeof speechSynthesis === 'undefined') return false;
 
-  // Cancel any ongoing speech
   speechSynthesis.cancel();
 
-  const voice = lang === 'bn' ? ensureVoice() : findVoice(lang);
+  const voice = resolveVoice(lang);
   const utterance = new SpeechSynthesisUtterance(stripMarkup(text));
   utterance.lang = voice?.lang ?? lang;
   if (voice) utterance.voice = voice;
@@ -89,38 +91,34 @@ export function speak(text: string, lang = 'bn'): boolean {
   return true;
 }
 
-/** Check if TTS is available. Returns true eagerly if speechSynthesis exists
- *  (voices may not have loaded yet but will be available when speak() is called). */
+/** Whether the SpeechSynthesis API itself is available. */
 export function hasTTS(): boolean {
   return typeof speechSynthesis !== 'undefined';
 }
 
-/** Get all available voices for a language prefix (e.g. 'bn'). */
-export function getVoicesForLanguage(langPrefix = 'bn'): SpeechSynthesisVoice[] {
+/** All voices that match the given language (exact or prefix). */
+export function getVoicesForLanguage(lang: string): SpeechSynthesisVoice[] {
   if (typeof speechSynthesis === 'undefined') return [];
+  const target = normLang(lang);
+  const prefix = target.split('-')[0]!;
   return speechSynthesis
     .getVoices()
-    .filter(
-      (v) =>
-        normLang(v.lang).startsWith(langPrefix) ||
-        v.name.toLowerCase().includes('bangla') ||
-        v.name.toLowerCase().includes('bengali')
-    );
+    .filter((v) => {
+      const vl = normLang(v.lang);
+      return vl === target || vl.startsWith(prefix + '-') || vl === prefix;
+    });
 }
 
-/** Set a specific voice by name. */
-export function setVoiceByName(name: string): void {
+/** Pin a voice for a language. */
+export function setVoiceByName(lang: string, name: string): void {
   if (typeof speechSynthesis === 'undefined') return;
-  const voice = speechSynthesis.getVoices().find((v) => v.name === name);
-  if (voice) {
-    banglaVoice = voice;
-    voicesLoaded = true;
-    log.info('TTS voice set to: %s (%s)', voice.name, voice.lang);
-  }
+  saveOverride(lang, name);
+  resolvedVoiceCache.delete(normLang(lang));
+  const voice = resolveVoice(lang);
+  if (voice) log.info('TTS voice for %s set to: %s (%s)', lang, voice.name, voice.lang);
 }
 
-/** Get the current voice name. */
-export function getCurrentVoiceName(): string | null {
-  const voice = ensureVoice();
-  return voice?.name ?? null;
+/** Currently resolved voice name for a language. */
+export function getCurrentVoiceName(lang: string): string | null {
+  return resolveVoice(lang)?.name ?? null;
 }

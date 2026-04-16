@@ -13,9 +13,11 @@
 - `MessageList.tsx` -- Message rendering (no avatar icons, full-width on mobile)
 - `MessageInput.tsx` -- Text input with word focus UI (Focus bar, Ctrl+B, auto-resize, draft persistence)
 - `CardPreview.tsx` -- Flashcard preview with editing, TTS, card-type checkboxes (vocab/cloze/mcCloze) plus per-card vocab template overrides (recognition/production/listening), add/skip/queue. Sends the new domain `CreateNoteRequest` payload (deck, cardType, word, definition, etc.)
-- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences). The Anki tab has: default deck, per-deck language picker, default card types, and a "Vocab card templates" section with recognition/production/listening checkboxes. No model picker or field mapping UI — note types are auto-created server-side on first use.
-- `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker)
-- `OnboardingModal.tsx` -- First-run setup wizard (3 steps: provider, deck, usage tips)
+- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences, Debug). The Anki tab has per-deck languages (default deck, language per deck with subdeck inheritance), default card types, and vocab card templates. The Debug tab provides controls to reset onboarding / clear chat history / forget deck languages for re-testing the new-user flow.
+- `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker). Refetches deck list on open; prompts for language via `DeckLanguagePrompt` when user picks a deck with no configured language (walks `::` ancestors first).
+- `DeckLanguagePrompt.tsx` -- Small modal asking which language a newly-selected deck is in; uses the shared `LanguageDropdown` and writes via `useSettingsStore.setDeckLanguage`.
+- `LanguageDropdown.tsx` -- Shared Select of languages (server-provided + custom) with an optional `Custom...` entry. Used by Settings, OnboardingModal, and DeckLanguagePrompt.
+- `OnboardingModal.tsx` -- First-run setup wizard (3 steps: provider + API key + inline keyring notice, deck + language, usage tips). Seeds `deckLanguages[defaultDeck]` on finish.
 - `HelpPage.tsx` -- In-app help/documentation page
 - `ErrorBoundary.tsx` -- React error boundary
 - `KeyringWarning.tsx` -- Reusable insecure storage consent dialog

@@ -3,13 +3,15 @@ import type { AIProvider, Settings } from 'shared';
 import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useDecks } from '@/hooks/useAnki';
+import { useDecks, useLanguages } from '@/hooks/useAnki';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Loader2 } from 'lucide-react';
-import { KeyringWarning } from './KeyringWarning';
+import { LanguageDropdown } from './LanguageDropdown';
+import { ONBOARDED_STORAGE_KEY } from '@/lib/storage-keys';
 
 const DEFAULT_MODELS: Record<string, string> = {
   gemini: 'gemini-2.5-flash',
@@ -42,14 +44,25 @@ interface OnboardingModalProps {
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const { settings, loadSettings } = useSettingsStore();
   const { data: decks } = useDecks();
+  const { data: languages } = useLanguages();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [provider, setProvider] = useState<AIProvider>(settings.aiProvider);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('');
   const [deck, setDeck] = useState(settings.defaultDeck);
+  const [deckLanguage, setDeckLanguageInput] = useState(settings.targetLanguage);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [showKeyringWarning, setShowKeyringWarning] = useState(false);
+
+  const { data: serverSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+  });
+
+  const keyringAvailable =
+    serverSettings && '_keyringAvailable' in serverSettings
+      ? (serverSettings._keyringAvailable as boolean)
+      : true;
 
   const effectiveModel = model || DEFAULT_MODELS[provider] || '';
   const costEstimate = estimateCostPer1000(effectiveModel);
@@ -79,6 +92,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
       aiProvider: provider,
       [keyField]: apiKey,
       defaultDeck: deck,
+      targetLanguage: deckLanguage,
+      deckLanguages: { ...settings.deckLanguages, [deck]: deckLanguage },
     };
 
     if (withConsent) updates._insecureStorageConsent = true;
@@ -91,22 +106,17 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     return updates;
   };
 
-  const handleFinish = async (withConsent = false) => {
+  const handleFinish = async () => {
     setSaving(true);
     setError('');
 
     try {
-      const saved = await settingsApi.update(buildUpdates(withConsent));
+      const saved = await settingsApi.update(buildUpdates(!keyringAvailable));
       loadSettings(saved);
-      localStorage.setItem('anki-defs-onboarded', '1');
+      localStorage.setItem(ONBOARDED_STORAGE_KEY, '1');
       onComplete();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save settings';
-      if (msg.includes('plain text') || msg.includes('insecure')) {
-        setShowKeyringWarning(true);
-      } else {
-        setError(msg);
-      }
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -127,7 +137,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           </p>
         </div>
 
-        <div className="px-6 py-4 space-y-4 flex-1">
+        <div className="px-6 py-4 space-y-4 flex-1 overflow-y-auto">
           {step === 1 && (
             <>
               <div className="space-y-2">
@@ -238,6 +248,16 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     </>
                   )}
                 </p>
+                {!keyringAvailable && (
+                  <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      <strong>Where your key will be stored:</strong> No system keyring (GNOME
+                      Keyring, macOS Keychain) was detected, so your API key will be saved in a
+                      local config file readable only by your OS user. Safe on personal machines;
+                      avoid on shared computers.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {provider !== 'claude' && (
@@ -265,23 +285,39 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           )}
 
           {step === 2 && (
-            <div className="space-y-2">
-              <Label htmlFor="ob-deck">Default Deck</Label>
-              <Select
-                id="ob-deck"
-                value={deck}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setDeck(e.target.value)}
-                disabled={!decks || decks.length === 0}
-              >
-                {decks?.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                )) ?? <option>No decks available</option>}
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                You can change this anytime from the header or in Settings.
-              </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ob-deck">Default Deck</Label>
+                <Select
+                  id="ob-deck"
+                  value={deck}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setDeck(e.target.value)}
+                  disabled={!decks || decks.length === 0}
+                >
+                  {decks?.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  )) ?? <option>No decks available</option>}
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  You can change this anytime from the header or in Settings.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ob-lang">Language for this deck</Label>
+                <LanguageDropdown
+                  id="ob-lang"
+                  value={deckLanguage}
+                  languages={languages}
+                  customLanguages={settings.customLanguages}
+                  onChange={setDeckLanguageInput}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Cards created in this deck will be generated in this language. You&apos;ll be
+                  asked again when you switch to a different deck for the first time.
+                </p>
+              </div>
             </div>
           )}
 
@@ -298,8 +334,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 <p className="font-medium text-foreground">Or type in English</p>
                 <p>
                   English input is auto-detected and generates cards in your target language. You
-                  can also prefix with <code className="bg-muted px-1 rounded">bn:</code> to force
-                  it.
+                  can also prefix with{' '}
+                  <code className="bg-muted px-1 rounded">{settings.translationPrefix}</code> to
+                  force it.
                 </p>
               </div>
               <div>
@@ -325,17 +362,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </div>
           )}
 
-          {showKeyringWarning && (
-            <KeyringWarning
-              onConfirm={() => {
-                setShowKeyringWarning(false);
-                handleFinish(true);
-              }}
-              onCancel={() => setShowKeyringWarning(false)}
-              saving={saving}
-            />
-          )}
-          {error && !showKeyringWarning && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <div className="px-6 pb-6 flex justify-between">
@@ -349,7 +376,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           {step < 3 ? (
             <Button onClick={handleNext}>Next</Button>
           ) : (
-            <Button onClick={() => handleFinish()} disabled={saving}>
+            <Button onClick={handleFinish} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Start'}
             </Button>
           )}

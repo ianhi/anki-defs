@@ -11,6 +11,7 @@ import {
   isEnglishToTarget as isEnglishToTargetMode,
 } from '../lib/focus';
 import { useSettingsStore } from '@/hooks/useSettings';
+import { useLanguages } from '@/hooks/useAnki';
 
 interface MessageInputProps {
   onSend: (message: string, mode?: 'english-to-target') => void;
@@ -23,7 +24,7 @@ interface MessageInputProps {
 export function MessageInput({
   onSend,
   disabled = false,
-  placeholder = 'Bangla word or sentence...',
+  placeholder,
   initialValue = '',
   onDraftChange,
 }: MessageInputProps) {
@@ -42,12 +43,23 @@ export function MessageInput({
   };
   const [cursorPos, setCursorPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { settings } = useSettingsStore();
+  const { settings, resolveDeckLanguage } = useSettingsStore();
+  const { data: languages } = useLanguages();
 
-  // Detect English→target-language mode
+  const activeLangCode =
+    resolveDeckLanguage(settings.defaultDeck) ?? settings.targetLanguage;
+  const activeLang = languages?.find((l) => l.code === activeLangCode);
+  const targetLanguageLabel = activeLang?.nativeName || activeLang?.name || activeLangCode;
+  const effectivePlaceholder = placeholder ?? `${targetLanguageLabel} word or sentence...`;
+
   const prefix = settings.translationPrefix || 'bn:';
   const hasPrefix = value.trimStart().toLowerCase().startsWith(prefix.toLowerCase());
-  const isEnglishToTarget = isEnglishToTargetMode(value, prefix, settings.autoDetectEnglish);
+  // Auto-detect ("Latin script → English") only makes sense when the target
+  // language uses a non-Latin script. For Latin-script targets (Spanish,
+  // French, ...) the user must use the explicit prefix to signal translation.
+  const targetIsLatinScript = (activeLang?.script ?? 'latin') === 'latin';
+  const effectiveAutoDetect = settings.autoDetectEnglish && !targetIsLatinScript;
+  const isEnglishToTarget = isEnglishToTargetMode(value, prefix, effectiveAutoDetect);
 
   // Auto-resize on mount if there's a persisted draft
   useEffect(() => {
@@ -214,7 +226,7 @@ export function MessageInput({
         {isEnglishToTarget && (
           <div className="flex items-center gap-1.5 text-xs">
             <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
-              EN → বাংলা
+              EN → {targetLanguageLabel}
             </span>
             <span className="text-muted-foreground">
               {hasPrefix ? 'prefix detected' : 'auto-detected'}
@@ -271,7 +283,7 @@ export function MessageInput({
             onKeyDown={handleKeyDown}
             onInput={handleInput}
             onSelect={handleSelectionChange}
-            placeholder={placeholder}
+            placeholder={effectivePlaceholder}
             disabled={disabled}
             rows={1}
             className={`flex-1 resize-none rounded-lg border bg-background px-3 py-2.5 sm:px-4 sm:py-3 text-base leading-relaxed max-h-[40vh] overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${isEnglishToTarget ? 'border-blue-400 dark:border-blue-600' : 'border-input'}`}

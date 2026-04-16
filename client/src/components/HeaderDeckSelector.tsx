@@ -3,6 +3,7 @@ import { useDecks, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { ChevronDown, Database, AlertCircle, Check, X, Search } from 'lucide-react';
 import { Button } from './ui/Button';
+import { DeckLanguagePrompt } from './DeckLanguagePrompt';
 
 /** Simple fuzzy match: all characters of query appear in order in target (case-insensitive) */
 function fuzzyMatch(query: string, target: string): boolean {
@@ -76,26 +77,34 @@ function DeckList({
 }
 
 export function HeaderDeckSelector() {
-  const { settings, setDefaultDeck } = useSettingsStore();
+  const { settings, setDefaultDeck, setDeckLanguage, resolveDeckLanguage } = useSettingsStore();
   const { data: connected } = useAnkiStatus();
-  const { data: decks, isLoading } = useDecks();
+  const { data: decks, isLoading, refetch } = useDecks();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
+  const [pendingLanguageDeck, setPendingLanguageDeck] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleDeckSelect = (deck: string) => {
+    setDefaultDeck(deck);
+    setOpen(false);
+    setPendingLanguageDeck(resolveDeckLanguage(deck) ? null : deck);
+  };
 
   const filtered = useMemo(
     () => decks?.filter((d) => (filter ? fuzzyMatch(filter, d) : true)) ?? [],
     [decks, filter]
   );
 
-  // Focus input when dropdown opens
   useEffect(() => {
     if (open) {
       setFilter('');
+      setPendingLanguageDeck(null);
+      void refetch();
       setTimeout(() => inputRef.current?.focus(), 0);
     }
-  }, [open]);
+  }, [open, refetch]);
 
   // Close on outside click (desktop only)
   useEffect(() => {
@@ -149,14 +158,23 @@ export function HeaderDeckSelector() {
               filter={filter}
               onFilterChange={setFilter}
               inputRef={inputRef}
-              onSelect={(deck) => {
-                setDefaultDeck(deck);
-                setOpen(false);
-              }}
+              onSelect={handleDeckSelect}
               onClose={() => setOpen(false)}
               itemClass="px-3 py-1.5"
             />
           </div>
+        )}
+
+        {pendingLanguageDeck && (
+          <DeckLanguagePrompt
+            deck={pendingLanguageDeck}
+            initialLanguage={settings.targetLanguage}
+            onConfirm={(lang) => {
+              setDeckLanguage(pendingLanguageDeck, lang);
+              setPendingLanguageDeck(null);
+            }}
+            onCancel={() => setPendingLanguageDeck(null)}
+          />
         )}
 
         {/* Mobile: full-screen overlay */}
@@ -179,10 +197,7 @@ export function HeaderDeckSelector() {
               filter={filter}
               onFilterChange={setFilter}
               inputRef={inputRef}
-              onSelect={(deck) => {
-                setDefaultDeck(deck);
-                setOpen(false);
-              }}
+              onSelect={handleDeckSelect}
               onClose={() => setOpen(false)}
               itemClass="px-4 py-3"
             />

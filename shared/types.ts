@@ -119,6 +119,12 @@ export interface Settings {
   // Note type prefix used when auto-creating language-specific note types
   // (e.g. `${noteTypePrefix}-es-MX`, `${noteTypePrefix}-es-MX-cloze`)
   noteTypePrefix: string;
+  // Override the locale used in Anki's `{{tts X:Field}}` template tag, per
+  // language code. Useful when the user has voices installed for a different
+  // region (e.g. Spanish deck tagged `es-MX` but only `es_US` voices installed).
+  // Keyed by the language code (e.g. `es-MX`); value is the locale Anki should
+  // ask for (e.g. `es_US`). When unset, the language file's `ttsLocale` is used.
+  ankiTtsLocaleByLanguage: Record<string, string>;
 }
 
 export const CARD_DATA_FIELDS = [
@@ -154,6 +160,7 @@ export const DEFAULT_SETTINGS: Settings = {
     listening: true,
   },
   noteTypePrefix: 'anki-defs',
+  ankiTtsLocaleByLanguage: {},
 };
 
 // Model options per provider

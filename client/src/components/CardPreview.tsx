@@ -121,7 +121,8 @@ export function CardPreview({
   const [showExisting, setShowExisting] = useState(true);
   const [generatingMC, setGeneratingMC] = useState(false);
 
-  const { settings } = useSettingsStore();
+  const { settings, resolveDeckLanguage } = useSettingsStore();
+  const cardLanguage = resolveDeckLanguage(settings.defaultDeck) ?? settings.targetLanguage;
   const [selectedTypes, setSelectedTypes] = useState<Set<CardType>>(
     () => new Set(settings.defaultCardTypes)
   );
@@ -348,7 +349,7 @@ export function CardPreview({
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7"
-                      onClick={() => speak(currentWord)}
+                      onClick={() => speak(currentWord, cardLanguage)}
                       title="Pronounce"
                     >
                       <Volume2 className="h-4 w-4" />
@@ -435,7 +436,7 @@ export function CardPreview({
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 flex-shrink-0 mt-0.5"
-                onClick={() => speak(preview.exampleSentence)}
+                onClick={() => speak(preview.exampleSentence, cardLanguage)}
                 title="Listen"
               >
                 <Volume2 className="h-4 w-4" />

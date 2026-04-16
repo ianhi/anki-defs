@@ -110,6 +110,7 @@ def ensure_language_models(
     language: dict[str, Any],
     note_type_prefix: str,
     card_types: list[CardType] | None = None,
+    anki_tts_locale_override: str | None = None,
 ) -> dict[str, str]:
     """Ensure note types exist in Anki for the given language.
 
@@ -135,7 +136,7 @@ def ensure_language_models(
     # Query Anki once for the full model list, then create whatever's absent.
     existing_models = set(_invoke("modelNames") or [])
     for ct in missing:
-        rendered = render_note_type(ct, language, note_type_prefix)
+        rendered = render_note_type(ct, language, note_type_prefix, anki_tts_locale_override)
         model_name = rendered["modelName"]
         if model_name not in existing_models:
             log.info("Auto-creating Anki note type: %s", model_name)
@@ -146,10 +147,39 @@ def ensure_language_models(
                 is_cloze=rendered["isCloze"],
                 templates=rendered["templates"],
             )
+        else:
+            _migrate_existing_model(model_name, rendered)
         _ensured_models[(note_type_prefix, code, ct)] = model_name
         result[ct] = model_name
 
     return result
+
+
+def _migrate_existing_model(model_name: str, rendered: dict[str, Any]) -> None:
+    """Bring an existing AnkiConnect model up to the current schema.
+
+    Appends missing fields, overwrites template Front/Back, and updates CSS.
+    Idempotent. Custom user template tweaks WILL be overwritten — deliberate
+    trade-off so template-level fixes (audio fallback, etc.) reach existing
+    users without forcing them to delete and recreate the model.
+    """
+    current = _invoke("modelFieldNames", modelName=model_name) or []
+    current_set = set(current)
+    for name in rendered["fields"]:
+        if name not in current_set:
+            log.info("Adding field %s to existing model %s", name, model_name)
+            _invoke("modelFieldAdd", modelName=model_name, fieldName=name, index=len(current))
+            current.append(name)
+            current_set.add(name)
+
+    templates_payload = {
+        t["Name"]: {"Front": t["Front"], "Back": t["Back"]} for t in rendered["templates"]
+    }
+    log.info("Updating templates on existing model %s", model_name)
+    _invoke("updateModelTemplates", model={"name": model_name, "templates": templates_payload})
+
+    log.info("Updating CSS on existing model %s", model_name)
+    _invoke("updateModelStyling", model={"name": model_name, "css": rendered["css"]})
 
 
 def search_notes(query: str) -> list[dict[str, Any]]:
@@ -222,7 +252,9 @@ def create_card(
     note_type_prefix = settings.get("noteTypePrefix", "anki-defs")
 
     language = ai.get_language_for_deck(deck)
-    models = ensure_language_models(language, note_type_prefix, [card_type])
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+    tts_override = tts_overrides.get(language["code"])
+    models = ensure_language_models(language, note_type_prefix, [card_type], tts_override)
     model_name = models[card_type]
 
     # Fall back to the global vocabCardTemplates default when the caller

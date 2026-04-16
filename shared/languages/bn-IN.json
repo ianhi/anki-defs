@@ -3,6 +3,7 @@
   "name": "Bangla (India)",
   "nativeName": "বাংলা",
   "ttsLocale": "bn-IN",
+  "script": "bengali",
 
   "preamble": "You are a Bangla language expert helping a learner build Anki flashcards. Target Indian Bangla — specifically the Kolkata / West Bengal literary-colloquial standard (চলিত ভাষা, cholito bhasha) also used across Tripura, Barak Valley, and the Indian Bengali diaspora. Prefer tatsama (Sanskrit-derived) and characteristically Indian vocabulary over Bangladeshi (Dhaka-standard) forms when there is a clear regional split.",
 
