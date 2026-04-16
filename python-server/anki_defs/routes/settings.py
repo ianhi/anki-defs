@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from bottle import Bottle, request, response
 
 from ..services.ai import reset_clients
 from ..services.settings import (
@@ -21,8 +20,6 @@ from ..services.settings import (
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/settings")
-
 
 def _response_settings(settings: dict) -> dict:
     """Mask keys and add keyring metadata to settings response."""
@@ -32,49 +29,45 @@ def _response_settings(settings: dict) -> dict:
     return result
 
 
-@router.get("")
-async def get() -> JSONResponse:
-    try:
-        settings = get_settings()
-        return JSONResponse(_response_settings(settings))
-    except RuntimeError as e:
-        log.error("Error fetching settings: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+def register(app: Bottle) -> None:
+    @app.get("/api/settings")
+    def get() -> dict:
+        try:
+            settings = get_settings()
+            return _response_settings(settings)
+        except RuntimeError as e:
+            log.error("Error fetching settings: %s", e)
+            response.status = 500
+            return {"error": str(e)}
 
+    @app.put("/api/settings")
+    def put() -> dict:
+        updates = request.json or {}
 
-@router.put("")
-async def put(request: Request) -> JSONResponse:
-    updates = await request.json()
+        updates = strip_masked_keys(updates)
 
-    # Strip masked keys (they haven't changed)
-    updates = strip_masked_keys(updates)
+        consent_flag = updates.pop("_insecureStorageConsent", None)
+        if consent_flag is not None:
+            set_insecure_consent(bool(consent_flag))
 
-    # Handle insecure storage consent toggle
-    consent_flag = updates.pop("_insecureStorageConsent", None)
-    if consent_flag is not None:
-        set_insecure_consent(bool(consent_flag))
-
-    # Check if saving secrets without keyring — require consent (once)
-    if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
-        return JSONResponse(
-            {
+        if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
+            response.status = 409
+            return {
                 "error": "No system keyring available. API keys would be stored in plain text "
                 "in the settings file. Confirm to proceed."
-            },
-            status_code=409,
-        )
+            }
 
-    try:
-        updated = save_settings(updates)
-    except RuntimeError as e:
-        log.error("Error updating settings: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
+        try:
+            updated = save_settings(updates)
+        except RuntimeError as e:
+            log.error("Error updating settings: %s", e)
+            response.status = 500
+            return {"error": str(e)}
 
-    # Reset AI clients if provider or keys changed
-    if any(
-        k in updates
-        for k in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")
-    ):
-        reset_clients()
+        if any(
+            k in updates
+            for k in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")
+        ):
+            reset_clients()
 
-    return JSONResponse(_response_settings(updated))
+        return _response_settings(updated)

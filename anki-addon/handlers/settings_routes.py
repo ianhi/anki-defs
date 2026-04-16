@@ -1,8 +1,9 @@
-"""Settings API handlers."""
+"""Settings API routes."""
 
-import json
+import logging
 
-from ..server.web import Response
+from bottle import request, response
+
 from ..services.settings_service import (
     get_masked_settings,
     has_insecure_consent,
@@ -13,6 +14,8 @@ from ..services.settings_service import (
     strip_masked_keys,
 )
 
+log = logging.getLogger(__name__)
+
 
 def _response_settings():
     """Get masked settings with keyring metadata."""
@@ -22,44 +25,46 @@ def _response_settings():
     return result
 
 
-def handle_get_settings(_params, _headers, _body):
-    try:
-        return Response.json(_response_settings())
-    except RuntimeError as e:
-        return Response.error("Failed to fetch settings: {}".format(e))
+def register(app):
+    @app.get("/api/settings")
+    def get_settings():
+        try:
+            return _response_settings()
+        except RuntimeError as e:
+            log.error("Error fetching settings: %s", e)
+            response.status = 500
+            return {"error": str(e)}
 
+    @app.put("/api/settings")
+    def put_settings():
+        updates = request.json or {}
 
-def handle_put_settings(_params, _headers, body):
-    try:
-        updates = json.loads(body) if body else {}
-    except json.JSONDecodeError:
-        return Response.error("Invalid JSON", 400)
+        updates = strip_masked_keys(updates)
 
-    # Strip masked keys (they haven't changed)
-    updates = strip_masked_keys(updates)
+        consent_flag = updates.pop("_insecureStorageConsent", None)
+        if consent_flag is not None:
+            set_insecure_consent(bool(consent_flag))
 
-    # Handle insecure storage consent toggle
-    consent_flag = updates.pop("_insecureStorageConsent", None)
-    if consent_flag is not None:
-        set_insecure_consent(bool(consent_flag))
+        if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
+            response.status = 409
+            return {
+                "error": "No system keyring available. API keys would be stored in plain text "
+                "in Anki's addon config. Confirm to proceed."
+            }
 
-    # Check if saving secrets without keyring — require consent (once)
-    if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
-        return Response.error(
-            "No system keyring available. API keys would be stored in plain text "
-            "in Anki's addon config. Confirm to proceed.",
-            409,
-        )
+        try:
+            save_settings(updates)
+        except RuntimeError as e:
+            log.error("Error updating settings: %s", e)
+            response.status = 500
+            return {"error": str(e)}
 
-    try:
-        save_settings(updates)
-    except RuntimeError as e:
-        return Response.error("Failed to update settings: {}".format(e))
+        if any(
+            key in updates
+            for key in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")
+        ):
+            from ..services import ai_service
 
-    # Reset AI clients if provider or API key settings changed
-    if any(key in updates for key in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")):
-        from ..services import ai_service
+            ai_service.reset_clients()
 
-        ai_service.reset_clients()
-
-    return Response.json(_response_settings())
+        return _response_settings()

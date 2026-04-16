@@ -1,114 +1,132 @@
-"""Session API handlers."""
+"""Session API routes."""
 
-import json
+import logging
 import sqlite3
 
-from ..server.web import Response
+from bottle import request, response
+
 from ..services import session_service
 
-
-def handle_get_session(_params, _headers, _body):
-    try:
-        state = session_service.get_state()
-        return Response.json(state)
-    except sqlite3.Error as e:
-        return Response.error("Failed to get session state: {}".format(e))
+log = logging.getLogger(__name__)
 
 
-def handle_add_card(_params, _headers, body):
-    data = json.loads(body) if body else {}
-    if not data.get("id") or not data.get("word"):
-        return Response.error("id and word are required", 400)
-    try:
-        session_service.add_card(data)
-        return Response.json({"success": True})
-    except sqlite3.Error as e:
-        return Response.error("Failed to add card: {}".format(e))
+def register(app):
+    @app.get("/api/session")
+    def get_session():
+        try:
+            return session_service.get_state()
+        except sqlite3.Error as e:
+            log.error("Error getting state: %s", e)
+            response.status = 500
+            return {"error": "Failed to get session state"}
 
+    @app.post("/api/session/cards")
+    def add_card():
+        card = request.json or {}
+        if not card.get("id") or not card.get("word"):
+            response.status = 400
+            return {"error": "id and word are required"}
+        try:
+            session_service.add_card(card)
+            return {"success": True}
+        except sqlite3.Error as e:
+            log.error("Error adding card: %s", e)
+            response.status = 500
+            return {"error": "Failed to add card"}
 
-def handle_remove_card(params, _headers, _body):
-    try:
-        removed = session_service.remove_card(params["id"])
-        return Response.json({"success": removed})
-    except sqlite3.Error as e:
-        return Response.error("Failed to remove card: {}".format(e))
+    @app.delete("/api/session/cards/<card_id>")
+    def remove_card(card_id):
+        try:
+            removed = session_service.remove_card(card_id)
+            return {"success": removed}
+        except sqlite3.Error as e:
+            log.error("Error removing card: %s", e)
+            response.status = 500
+            return {"error": "Failed to remove card"}
 
+    @app.post("/api/session/pending")
+    def add_pending():
+        card = request.json or {}
+        if not card.get("id") or not card.get("word"):
+            response.status = 400
+            return {"error": "id and word are required"}
+        try:
+            session_service.add_pending(card)
+            return {"success": True}
+        except sqlite3.Error as e:
+            log.error("Error adding pending card: %s", e)
+            response.status = 500
+            return {"error": "Failed to add pending card"}
 
-def handle_add_pending(_params, _headers, body):
-    data = json.loads(body) if body else {}
-    if not data.get("id") or not data.get("word"):
-        return Response.error("id and word are required", 400)
-    try:
-        session_service.add_pending(data)
-        return Response.json({"success": True})
-    except sqlite3.Error as e:
-        return Response.error("Failed to add pending card: {}".format(e))
+    @app.delete("/api/session/pending/<card_id>")
+    def remove_pending(card_id):
+        try:
+            removed = session_service.remove_pending(card_id)
+            return {"success": removed}
+        except sqlite3.Error as e:
+            log.error("Error removing pending card: %s", e)
+            response.status = 500
+            return {"error": "Failed to remove pending card"}
 
+    @app.post("/api/session/pending/<pending_id>/promote")
+    def promote_pending(pending_id):
+        body = request.json or {}
+        note_id = body.get("noteId")
+        if not note_id:
+            response.status = 400
+            return {"error": "noteId is required"}
+        try:
+            card = session_service.promote_pending(pending_id, note_id)
+            if card is None:
+                response.status = 404
+                return {"error": "Pending card not found"}
+            return {"success": True, "card": card}
+        except sqlite3.Error as e:
+            log.error("Error promoting pending card: %s", e)
+            response.status = 500
+            return {"error": "Failed to promote pending card"}
 
-def handle_remove_pending(params, _headers, _body):
-    try:
-        removed = session_service.remove_pending(params["id"])
-        return Response.json({"success": removed})
-    except sqlite3.Error as e:
-        return Response.error("Failed to remove pending card: {}".format(e))
+    @app.post("/api/session/clear")
+    def clear_session():
+        try:
+            session_service.clear_all()
+            return {"success": True}
+        except sqlite3.Error as e:
+            log.error("Error clearing session: %s", e)
+            response.status = 500
+            return {"error": "Failed to clear session"}
 
+    @app.get("/api/session/usage")
+    def get_usage():
+        try:
+            return session_service.get_usage_totals()
+        except sqlite3.Error as e:
+            log.error("Error getting usage: %s", e)
+            response.status = 500
+            return {"error": "Failed to get usage"}
 
-def handle_promote_pending(params, _headers, body):
-    data = json.loads(body) if body else {}
-    note_id = data.get("noteId")
-    if not note_id:
-        return Response.error("noteId is required", 400)
-    try:
-        card = session_service.promote_pending(params["id"], note_id)
-        if card is None:
-            return Response.error("Pending card not found", 404)
-        return Response.json({"success": True, "card": card})
-    except sqlite3.Error as e:
-        return Response.error("Failed to promote pending card: {}".format(e))
+    @app.post("/api/session/usage/reset")
+    def reset_usage():
+        try:
+            session_service.clear_usage()
+            return {"success": True}
+        except sqlite3.Error as e:
+            log.error("Error resetting usage: %s", e)
+            response.status = 500
+            return {"error": "Failed to reset usage"}
 
-
-def handle_clear_session(_params, _headers, _body):
-    try:
-        session_service.clear_all()
-        return Response.json({"success": True})
-    except sqlite3.Error as e:
-        return Response.error("Failed to clear session: {}".format(e))
-
-
-# --- Usage tracking (new — from shared service layer) ---
-
-
-def handle_get_usage(_params, _headers, _body):
-    try:
-        totals = session_service.get_usage_totals()
-        return Response.json(totals)
-    except sqlite3.Error as e:
-        return Response.error("Failed to get usage: {}".format(e))
-
-
-def handle_reset_usage(_params, _headers, _body):
-    try:
-        session_service.clear_usage()
-        return Response.json({"success": True})
-    except sqlite3.Error as e:
-        return Response.error("Failed to reset usage: {}".format(e))
-
-
-# --- History search (new — from shared service layer) ---
-
-
-def handle_search_history(_params, headers, body):
-    try:
-        import urllib.parse
-
-        query_string = headers.get("query_string", "")
-        params = urllib.parse.parse_qs(query_string)
-        q = params.get("q", [None])[0]
-        limit = min(max(int(params.get("limit", ["50"])[0]), 1), 200)
-        offset = max(int(params.get("offset", ["0"])[0]), 0)
-        result = session_service.search_history(q, limit, offset)
-        return Response.json(result)
-    except sqlite3.Error as e:
-        return Response.error("Failed to search history: {}".format(e))
-    except ValueError as e:
-        return Response.error("Invalid parameter: {}".format(e), 400)
+    @app.get("/api/session/history")
+    def search_history():
+        q = request.query.get("q")
+        try:
+            limit = min(max(int(request.query.get("limit", "50")), 1), 200)
+            offset = max(int(request.query.get("offset", "0")), 0)
+        except ValueError:
+            limit = 50
+            offset = 0
+        try:
+            return session_service.search_history(q, limit, offset)
+        except sqlite3.Error as e:
+            log.error("Error searching history: %s", e)
+            response.status = 500
+            return {"error": "Failed to search history"}

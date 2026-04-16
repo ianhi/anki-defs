@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
+import queue
+import threading
+from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from bottle import Bottle, request, response
 
 from ..config import SHARED_DIR
 from ..services import ai, anki_connect, card_extraction, session
@@ -18,9 +20,6 @@ from ..services.settings import get_settings
 
 log = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/chat")
-
-# Pricing loaded from shared/data/model-pricing.json (single source of truth)
 with open(SHARED_DIR / "data" / "model-pricing.json", encoding="utf-8") as _f:
     MODEL_PRICING: dict[str, dict[str, float]] = json.load(_f)
 
@@ -40,217 +39,276 @@ def _sse_event(event: dict[str, Any]) -> str:
     return f"data: {json.dumps(event)}\n\n"
 
 
-@router.post("/stream", response_model=None)
-async def stream(request: Request) -> StreamingResponse | JSONResponse:
-    body = await request.json()
-    new_message: str = body.get("newMessage", "")
-    deck: str | None = body.get("deck")
-    highlighted_words: list[str] | None = body.get("highlightedWords")
-    user_context: str | None = body.get("userContext")
-    mode: str | None = body.get("mode")
+def _check_words_parallel(
+    words: list[str], target_deck: str
+) -> dict[str, Any | None]:
+    results: dict[str, Any | None] = {}
 
-    if not new_message:
-        return JSONResponse({"error": "newMessage is required"}, status_code=400)
-
-    async def generate():  # type: ignore[return]
-        if os.environ.get("ANKI_DEFS_DEV"):
-            ai.reload_prompts()
-        settings = get_settings()
-        target_deck = deck or settings.get("defaultDeck", "Bangla")
-        language = ai.get_language_for_deck(target_deck)
-        prompts = ai.get_system_prompts(settings.get("showTransliteration", False), language)
-
-        selection = ai.select_prompt(
-            prompts,
-            new_message,
-            highlighted_words=highlighted_words,
-            user_context=user_context,
-            mode=mode,
-        )
-
-        if selection.mode == "sentence-translate":
-            try:
-                result = await asyncio.to_thread(
-                    ai.get_text_completion,
-                    selection.system_prompt,
-                    selection.user_message,
-                )
-                usage = result.get("usage")
-                if usage:
-                    yield _sse_event({"type": "usage", "data": usage})
-                    cost = _compute_cost(usage)
-                    await asyncio.to_thread(session.record_usage, usage, cost)
-                yield _sse_event({"type": "text", "data": result.get("text", "")})
-                yield _sse_event({"type": "done", "data": None})
-            except (RuntimeError, ValueError, OSError) as e:
-                log.error("Sentence translate error: %s", e, exc_info=True)
-                yield _sse_event({"type": "error", "data": str(e)})
-                yield _sse_event({"type": "done", "data": None})
-            return
-
-        system_prompt = selection.system_prompt
-        user_message = selection.user_message
-        is_english_to_target = selection.mode.startswith("english-to-target")
-        has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
-        log.info("Mode: %s", selection.mode)
-
-        # Pre-check Anki for input words
-        words_to_check: list[str] = []
-        if not is_english_to_target:
-            words_to_check = (highlighted_words or []) if has_highlighted else [new_message]
-
-        anki_results: dict[str, Any | None] = {}
-
-        async def _check_word(word: str) -> None:
-            try:
-                note = await asyncio.to_thread(
-                    anki_connect.search_word_cached, word, target_deck
-                )
-                anki_results[word] = note
-            except (RuntimeError, ValueError, httpx.HTTPError) as e:
-                log.error("Anki search failed: %s", e)
-                anki_results[word] = None
-
-        if words_to_check:
-            await asyncio.gather(*[_check_word(w) for w in words_to_check])
-
+    def _check(word: str) -> None:
         try:
-            # Single non-streaming AI call
-            result = await asyncio.to_thread(
-                ai.get_json_completion, system_prompt, user_message
-            )
-            raw_response = result.get("text", "")
-            usage = result.get("usage")
+            results[word] = anki_connect.search_word_cached(word, target_deck)
+        except (RuntimeError, ValueError, httpx.HTTPError) as e:
+            log.error("Anki search failed for %s: %s", word, e)
+            results[word] = None
 
-            # Send usage event and record server-side
-            if usage:
-                yield _sse_event({"type": "usage", "data": usage})
-                cost = _compute_cost(usage)
-                await asyncio.to_thread(session.record_usage, usage, cost)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(lambda w: _check(w), words))
+    return results
 
-            # Parse and validate JSON response
-            cards = None
+
+def register(app: Bottle) -> None:
+    @app.post("/api/chat/stream")
+    def stream() -> Iterator[str]:
+        body = request.json or {}
+        new_message: str = body.get("newMessage", "")
+        deck: str | None = body.get("deck")
+        highlighted_words: list[str] | None = body.get("highlightedWords")
+        user_context: str | None = body.get("userContext")
+        mode: str | None = body.get("mode")
+
+        if not new_message:
+            response.status = 400
+            return iter([_sse_event({"type": "error", "data": "newMessage is required"})])
+
+        response.content_type = "text/event-stream"
+        response.set_header("Cache-Control", "no-cache")
+
+        q: queue.Queue[str | None] = queue.Queue()
+
+        def worker() -> None:
             try:
-                parsed = ai.parse_json_response(raw_response)
-                cards = card_extraction.validate_card_responses(parsed)
-            except (json.JSONDecodeError, ValueError):
-                # Retry with healing prompt
-                log.warning("JSON parse failed, retrying with healing prompt")
-                try:
-                    retry_result = await asyncio.to_thread(
-                        ai.get_json_completion,
-                        "Fix the following malformed JSON. Return ONLY valid JSON, nothing else.",
-                        raw_response,
-                    )
-                    retry_usage = retry_result.get("usage")
-                    if retry_usage:
-                        yield _sse_event({"type": "usage", "data": retry_usage})
-                        cost = _compute_cost(retry_usage)
-                        await asyncio.to_thread(session.record_usage, retry_usage, cost)
-                    parsed = ai.parse_json_response(retry_result.get("text", ""))
-                    cards = card_extraction.validate_card_responses(parsed)
-                except (json.JSONDecodeError, ValueError):
-                    yield _sse_event({
-                        "type": "error",
-                        "data": "Failed to parse AI response as JSON",
-                    })
-                    yield _sse_event({"type": "done", "data": None})
+                if os.environ.get("ANKI_DEFS_DEV"):
+                    ai.reload_prompts()
+                settings = get_settings()
+                target_deck = deck or settings.get("defaultDeck", "Bangla")
+                language = ai.get_language_for_deck(target_deck)
+                prompts = ai.get_system_prompts(
+                    settings.get("showTransliteration", False), language
+                )
+
+                selection = ai.select_prompt(
+                    prompts,
+                    new_message,
+                    highlighted_words=highlighted_words,
+                    user_context=user_context,
+                    mode=mode,
+                )
+
+                if selection.mode == "sentence-translate":
+                    _sentence_translate(q, selection.system_prompt, selection.user_message)
                     return
 
-            # Check Anki for any new words from AI response
-            new_words = [
-                c.get("word", "") for c in cards
-                if c.get("word") and c["word"] not in anki_results
-            ]
-            if new_words:
-                await asyncio.gather(*[_check_word(w) for w in new_words])
+                _json_pipeline(
+                    q,
+                    selection,
+                    target_deck,
+                    highlighted_words,
+                )
+            except (RuntimeError, ValueError, OSError) as e:
+                log.error("Stream worker error: %s", e, exc_info=True)
+                q.put(_sse_event({"type": "error", "data": str(e)}))
+            finally:
+                q.put(None)
 
-            # Build card previews
-            previews = card_extraction.build_card_previews(
-                cards, target_deck, anki_results
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+
+        def generate() -> Iterator[str]:
+            while True:
+                item = q.get()
+                if item is None:
+                    break
+                yield item
+
+        return generate()
+
+    @app.post("/api/chat/distractors")
+    def generate_distractors() -> dict:
+        body = request.json or {}
+        word: str = body.get("word", "")
+        sentence: str = body.get("sentence", "")
+        definition: str = body.get("definition", "")
+
+        if not word or not sentence or not definition:
+            response.status = 400
+            return {"error": "word, sentence, and definition are required"}
+
+        try:
+            system_prompt, user_message = ai.get_distractor_prompt(
+                word, sentence, definition
             )
+            result = ai.get_json_completion(system_prompt, user_message)
+            raw_response = result.get("text", "")
 
-            for preview in previews:
-                yield _sse_event({"type": "card_preview", "data": preview})
+            try:
+                parsed = ai.parse_json_response(raw_response)
+            except (json.JSONDecodeError, ValueError):
+                response.status = 500
+                return {"error": "Failed to parse AI response as JSON"}
 
-            yield _sse_event({"type": "done", "data": None})
-
+            distractors = parsed.get("distractors", [])
+            return {"distractors": distractors}
+        except httpx.HTTPError as e:
+            log.error("Error generating distractors: %s", e)
+            response.status = 500
+            return {"error": _format_http_error(e)}
         except (RuntimeError, ValueError, OSError) as e:
-            log.error("Unexpected error: %s", e, exc_info=True)
-            yield _sse_event({
-                "type": "error",
-                "data": str(e),
-            })
-            yield _sse_event({"type": "done", "data": None})
+            log.error("Error generating distractors: %s", e)
+            response.status = 500
+            return {"error": f"Failed to generate distractors: {e}"}
 
-    return StreamingResponse(generate(), media_type="text/event-stream", headers={
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-    })
+    @app.post("/api/chat/relemmatize")
+    def relemmatize() -> dict:
+        body = request.json or {}
+        word: str = body.get("word", "")
+        sentence: str | None = body.get("sentence")
+        rq_deck: str | None = body.get("deck")
+
+        if not word:
+            response.status = 400
+            return {"error": "word is required"}
+
+        try:
+            settings = get_settings()
+            target_deck = rq_deck or settings.get("defaultDeck", "Bangla")
+            language = ai.get_language_for_deck(target_deck)
+            prompt = ai.get_relemmatize_prompt(word, sentence, language)
+            resp = ai.get_completion(prompt, word)
+
+            try:
+                parsed = json.loads(resp)
+            except (json.JSONDecodeError, ValueError):
+                return {"lemma": word, "definition": ""}
+
+            return {
+                "lemma": parsed.get("lemma", word),
+                "definition": parsed.get("definition", ""),
+            }
+        except httpx.HTTPError as e:
+            log.error("Error relemmatizing word: %s", e)
+            response.status = 500
+            return {"error": _format_http_error(e)}
+        except (RuntimeError, ValueError, OSError) as e:
+            log.error("Error relemmatizing word: %s", e)
+            response.status = 500
+            return {"error": "Failed to relemmatize word"}
 
 
-@router.post("/distractors")
-async def generate_distractors(request: Request) -> JSONResponse:
-    """Generate 3 plausible-but-wrong distractors for a cloze card."""
-    body = await request.json()
-    word: str = body.get("word", "")
-    sentence: str = body.get("sentence", "")
-    definition: str = body.get("definition", "")
+def _format_http_error(exc: httpx.HTTPError) -> str:
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        detail = (exc.response.text or "").strip()
+        try:
+            data = exc.response.json()
+            if isinstance(data, dict):
+                err = data.get("error")
+                if isinstance(err, dict) and err.get("message"):
+                    detail = err["message"]
+                elif isinstance(err, str):
+                    detail = err
+        except (ValueError, json.JSONDecodeError):
+            pass
+        if len(detail) > 500:
+            detail = detail[:500] + "\u2026"
+        hint = ""
+        if status in (401, 403):
+            hint = " \u2014 check your API key in Settings."
+        elif status == 429:
+            hint = " \u2014 rate limited; wait a moment or check your plan."
+        elif status == 400:
+            hint = " \u2014 the request was rejected (bad model name or invalid API key)."
+        return f"AI provider returned HTTP {status}{hint}\\n\\n{detail}"
+    return f"Network error talking to the AI provider: {exc}"
 
-    if not word or not sentence or not definition:
-        return JSONResponse(
-            {"error": "word, sentence, and definition are required"}, status_code=400
-        )
+
+def _sentence_translate(
+    q: queue.Queue[str | None], system_prompt: str, user_message: str
+) -> None:
+    try:
+        result = ai.get_text_completion(system_prompt, user_message)
+        usage = result.get("usage")
+        if usage:
+            cost = _compute_cost(usage)
+            session.record_usage(usage, cost)
+            q.put(_sse_event({"type": "usage", "data": usage}))
+        q.put(_sse_event({"type": "text", "data": result.get("text", "")}))
+    except httpx.HTTPError as e:
+        log.error("Sentence translate HTTP error: %s", e)
+        q.put(_sse_event({"type": "error", "data": _format_http_error(e)}))
+    except (RuntimeError, ValueError, OSError) as e:
+        log.error("Sentence translate error: %s", e)
+        q.put(_sse_event({"type": "error", "data": str(e)}))
+    q.put(_sse_event({"type": "done", "data": None}))
+
+
+def _json_pipeline(
+    q: queue.Queue[str | None],
+    selection: Any,
+    target_deck: str,
+    highlighted_words: list[str] | None,
+) -> None:
+    is_english_to_target = selection.mode.startswith("english-to-target")
+    has_highlighted = bool(highlighted_words and len(highlighted_words) > 0)
+
+    words_to_check: list[str] = []
+    if not is_english_to_target:
+        words_to_check = (highlighted_words or []) if has_highlighted else [selection.user_message]
+
+    anki_results: dict[str, Any | None] = {}
+    if words_to_check:
+        anki_results = _check_words_parallel(words_to_check, target_deck)
 
     try:
-        system_prompt, user_message = ai.get_distractor_prompt(word, sentence, definition)
-        result = await asyncio.to_thread(
-            ai.get_json_completion, system_prompt, user_message
-        )
+        result = ai.get_json_completion(selection.system_prompt, selection.user_message)
         raw_response = result.get("text", "")
+        usage = result.get("usage")
 
+        if usage:
+            cost = _compute_cost(usage)
+            session.record_usage(usage, cost)
+            q.put(_sse_event({"type": "usage", "data": usage}))
+
+        cards = None
         try:
             parsed = ai.parse_json_response(raw_response)
+            cards = card_extraction.validate_card_responses(parsed)
         except (json.JSONDecodeError, ValueError):
-            return JSONResponse(
-                {"error": "Failed to parse AI response as JSON"}, status_code=500
-            )
+            log.warning("JSON parse failed, retrying with healing prompt")
+            try:
+                retry_result = ai.get_json_completion(
+                    "Fix the following malformed JSON. Return ONLY valid JSON, nothing else.",
+                    raw_response,
+                )
+                retry_usage = retry_result.get("usage")
+                if retry_usage:
+                    cost = _compute_cost(retry_usage)
+                    session.record_usage(retry_usage, cost)
+                    q.put(_sse_event({"type": "usage", "data": retry_usage}))
+                parsed = ai.parse_json_response(retry_result.get("text", ""))
+                cards = card_extraction.validate_card_responses(parsed)
+            except (json.JSONDecodeError, ValueError):
+                q.put(_sse_event({"type": "error", "data": "Failed to parse AI response as JSON"}))
+                q.put(_sse_event({"type": "done", "data": None}))
+                return
 
-        distractors = parsed.get("distractors", [])
-        return JSONResponse({"distractors": distractors})
+        new_words = [
+            c.get("word", "") for c in cards
+            if c.get("word") and c["word"] not in anki_results
+        ]
+        if new_words:
+            anki_results.update(_check_words_parallel(new_words, target_deck))
+
+        previews = card_extraction.build_card_previews(cards, target_deck, anki_results)
+        for preview in previews:
+            q.put(_sse_event({"type": "card_preview", "data": preview}))
+
+        q.put(_sse_event({"type": "done", "data": None}))
+
+    except httpx.HTTPError as e:
+        log.error("JSON pipeline HTTP error: %s", e)
+        q.put(_sse_event({"type": "error", "data": _format_http_error(e)}))
+        q.put(_sse_event({"type": "done", "data": None}))
     except (RuntimeError, ValueError, OSError) as e:
-        log.error("Error generating distractors: %s", e)
-        return JSONResponse(
-            {"error": f"Failed to generate distractors: {e}"}, status_code=500
-        )
-
-
-@router.post("/relemmatize")
-async def relemmatize(request: Request) -> JSONResponse:
-    body = await request.json()
-    word: str = body.get("word", "")
-    sentence: str | None = body.get("sentence")
-    deck: str | None = body.get("deck")
-
-    if not word:
-        return JSONResponse({"error": "word is required"}, status_code=400)
-
-    try:
-        settings = get_settings()
-        target_deck = deck or settings.get("defaultDeck", "Bangla")
-        language = ai.get_language_for_deck(target_deck)
-        prompt = ai.get_relemmatize_prompt(word, sentence, language)
-        response = await asyncio.to_thread(ai.get_completion, prompt, word)
-
-        try:
-            parsed = json.loads(response)
-        except (json.JSONDecodeError, ValueError):
-            return JSONResponse({"lemma": word, "definition": ""})
-
-        return JSONResponse({
-            "lemma": parsed.get("lemma", word),
-            "definition": parsed.get("definition", ""),
-        })
-    except (RuntimeError, ValueError, OSError) as e:
-        log.error("Error relemmatizing word: %s", e)
-        return JSONResponse({"error": "Failed to relemmatize word"}, status_code=500)
+        log.error("JSON pipeline error: %s", e, exc_info=True)
+        q.put(_sse_event({"type": "error", "data": str(e)}))
+        q.put(_sse_event({"type": "done", "data": None}))

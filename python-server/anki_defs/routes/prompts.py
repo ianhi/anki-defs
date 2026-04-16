@@ -4,40 +4,39 @@ from __future__ import annotations
 
 import os
 
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from bottle import Bottle, request, response
 
 from ..services import ai
 from ..services.settings import get_settings
 
-router = APIRouter(prefix="/api/prompts")
 
+def register(app: Bottle) -> None:
+    @app.post("/api/prompts/preview")
+    def preview() -> dict:
+        if os.environ.get("ANKI_DEFS_DEV"):
+            ai.reload_prompts()
 
-@router.post("/preview")
-async def preview(request: Request) -> JSONResponse:
-    if os.environ.get("ANKI_DEFS_DEV"):
-        ai.reload_prompts()
+        body = request.json or {}
+        new_message: str = body.get("newMessage", "")
+        highlighted_words: list[str] | None = body.get("highlightedWords")
+        request_mode: str | None = body.get("mode")
 
-    body = await request.json()
-    new_message: str = body.get("newMessage", "")
-    highlighted_words: list[str] | None = body.get("highlightedWords")
-    request_mode: str | None = body.get("mode")
+        if not new_message:
+            response.status = 400
+            return {"error": "newMessage is required"}
 
-    if not new_message:
-        return JSONResponse({"error": "newMessage is required"}, status_code=400)
+        settings = get_settings()
+        prompts = ai.get_system_prompts(settings.get("showTransliteration", False))
 
-    settings = get_settings()
-    prompts = ai.get_system_prompts(settings.get("showTransliteration", False))
+        selection = ai.select_prompt(
+            prompts,
+            new_message,
+            highlighted_words=highlighted_words,
+            mode=request_mode,
+        )
 
-    selection = ai.select_prompt(
-        prompts,
-        new_message,
-        highlighted_words=highlighted_words,
-        mode=request_mode,
-    )
-
-    return JSONResponse({
-        "mode": selection.mode,
-        "systemPrompt": selection.system_prompt,
-        "userMessage": selection.user_message,
-    })
+        return {
+            "mode": selection.mode,
+            "systemPrompt": selection.system_prompt,
+            "userMessage": selection.user_message,
+        }

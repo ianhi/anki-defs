@@ -6,25 +6,26 @@ implementing the same API contract as the Python/FastAPI backend.
 
 import os
 import sys
+import threading
 import uuid
 import webbrowser
 
-# Add bundled vendor packages (httpx, keyring, etc.) to import path
+# Add bundled vendor packages (httpx, keyring, bottle, etc.) to import path
 _vendor_dir = os.path.join(os.path.dirname(__file__), "_vendor")
 if os.path.isdir(_vendor_dir) and _vendor_dir not in sys.path:
     sys.path.insert(0, _vendor_dir)
 
 # D-Bus fix and keyring probe run at import time in settings_base
 from aqt import gui_hooks, mw  # noqa: E402
-from aqt.qt import QAction, QTimer, qconnect  # noqa: E402
+from aqt.qt import QAction, qconnect  # noqa: E402
 
 PORT = 28735
 
 
 class AnkiDefsAddon:
     def __init__(self):
-        self.server = None
-        self.timer = None
+        self._server = None
+        self._thread = None
 
     def _ensure_api_token(self):
         """Generate an API token on first startup."""
@@ -35,23 +36,57 @@ class AnkiDefsAddon:
         return config
 
     def _get_token(self):
-        """Return the current API token (called per-request by WebServer)."""
+        """Return the current API token (called per-request by auth hook)."""
         config = mw.addonManager.getConfig(__name__) or {}
         return config.get("apiToken", "")
 
     def on_profile_loaded(self):
         """Called when user profile is loaded (collection available)."""
-        from .handlers import create_router
-        from .server.web import WebServer
+        from .handlers import register_routes
+        from .server.app import app, configure_auth
 
-        # Read port from config, generate token if needed
         config = self._ensure_api_token()
         port = config.get("port", PORT)
 
-        router = create_router()
-        self.server = WebServer(router.handle, get_token=self._get_token)
+        configure_auth(self._get_token)
+        register_routes()
+
+        from socketserver import ThreadingMixIn
+        from wsgiref.simple_server import WSGIRequestHandler, WSGIServer, make_server
+
+        class QuietHandler(WSGIRequestHandler):
+            def log_request(self, code="-", size="-"):
+                pass
+
+            def get_stderr(self):
+                # Anki's ErrorHandler lacks flush(), which wsgiref requires.
+                # Wrap it so error dialogs still work without mutating the original.
+                stderr = super().get_stderr()
+                if hasattr(stderr, "flush"):
+                    return stderr
+
+                class _FlushableWrapper:
+                    def write(self, msg):
+                        return stderr.write(msg)
+
+                    def writelines(self, lines):
+                        for line in lines:
+                            stderr.write(line)
+
+                    def flush(self):
+                        pass
+
+                return _FlushableWrapper()
+
+        class ThreadedWSGIServer(ThreadingMixIn, WSGIServer):
+            daemon_threads = True
+
         try:
-            self.server.listen(port)
+            self._server = make_server(
+                "0.0.0.0", port, app,
+                server_class=ThreadedWSGIServer,
+                handler_class=QuietHandler,
+            )
         except OSError as e:
             from aqt.utils import showWarning
 
@@ -59,21 +94,21 @@ class AnkiDefsAddon:
                 f"anki-defs: Could not start server on port {port}: {e}\n"
                 "Check if another instance is running."
             )
-            self.server = None
+            self._server = None
             return
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.server.advance)
-        self.timer.start(25)  # 25ms poll interval
+        self._thread = threading.Thread(
+            target=self._server.serve_forever,
+            daemon=True,
+        )
+        self._thread.start()
 
     def on_profile_will_close(self):
         """Cleanup before profile close."""
-        if self.timer:
-            self.timer.stop()
-            self.timer = None
-        if self.server:
-            self.server.close()
-            self.server = None
+        if self._server:
+            self._server.shutdown()
+            self._server = None
+        self._thread = None
 
     def open_browser(self):
         config = mw.addonManager.getConfig(__name__) or {}

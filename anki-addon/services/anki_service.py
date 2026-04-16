@@ -1,7 +1,7 @@
 """Anki collection operations -- direct access via mw.col.
 
-All functions in this module run on the main thread (called from QTimer poll),
-so collection access is safe without any threading bridge.
+All public functions use @main_thread to safely access the collection
+from any thread (Bottle's request threads, daemon threads, etc.).
 """
 
 from anki_defs._services import note_types as _note_types
@@ -14,11 +14,14 @@ from anki_defs._services.note_types import (
 )
 from aqt import mw
 
+from ..server.bridge import main_thread
+
 # Cache of (note_type_prefix, language_code, card_type) -> model_name for
 # models we have already verified/created this process lifetime.
 _ensured_models = {}
 
 
+@main_thread
 def get_decks():
     """List all deck names."""
     col = _col()
@@ -26,6 +29,7 @@ def get_decks():
     return [d.name for d in deck_list]
 
 
+@main_thread
 def get_models():
     """List all note type names."""
     col = _col()
@@ -33,6 +37,7 @@ def get_models():
     return [m.name for m in model_list]
 
 
+@main_thread
 def get_model_fields(model_name):
     """Get ordered field names for a note type."""
     col = _col()
@@ -43,6 +48,7 @@ def get_model_fields(model_name):
     return sorted(field_map.keys(), key=lambda f: field_map[f][0])
 
 
+@main_thread
 def search_notes(query):
     """Search notes by Anki query string."""
     col = _col()
@@ -54,6 +60,7 @@ def search_notes(query):
     return results
 
 
+@main_thread
 def search_word(word, deck_name):
     """Search for a word in the standard Word/Front fields within a deck."""
     col = _col()
@@ -73,6 +80,7 @@ def search_word(word, deck_name):
     return _note_to_dict(col, note)
 
 
+@main_thread
 def search_words(words, deck_name):
     """Search for multiple words, returning a dict of word -> note_dict."""
     results = {}
@@ -83,6 +91,7 @@ def search_words(words, deck_name):
     return results
 
 
+@main_thread
 def get_note(note_id):
     """Get a note by ID."""
     col = _col()
@@ -93,6 +102,7 @@ def get_note(note_id):
     return _note_to_dict(col, note)
 
 
+@main_thread
 def create_model(model_name, fields, css, is_cloze, templates):
     """Create a new note type in the Anki collection.
 
@@ -118,7 +128,8 @@ def create_model(model_name, fields, css, is_cloze, templates):
     return model
 
 
-def ensure_language_models(language, note_type_prefix, card_types=None):
+@main_thread
+def ensure_language_models(language, note_type_prefix, card_types=None, anki_tts_locale_override=None):
     """Ensure note types exist in the Anki collection for the given language.
 
     Returns a dict mapping card_type -> model name. Idempotent: checks the
@@ -141,9 +152,10 @@ def ensure_language_models(language, note_type_prefix, card_types=None):
 
     col = _col()
     for ct in missing:
-        rendered = _render_note_type(ct, language, note_type_prefix)
+        rendered = _render_note_type(ct, language, note_type_prefix, anki_tts_locale_override)
         model_name = rendered["modelName"]
-        if col.models.by_name(model_name) is None:
+        existing = col.models.by_name(model_name)
+        if existing is None:
             create_model(
                 model_name,
                 rendered["fields"],
@@ -151,11 +163,50 @@ def ensure_language_models(language, note_type_prefix, card_types=None):
                 rendered["isCloze"],
                 rendered["templates"],
             )
+        else:
+            _migrate_existing_model(existing, rendered)
         _ensured_models[(note_type_prefix, code, ct)] = model_name
         result[ct] = model_name
     return result
 
 
+def _migrate_existing_model(model, rendered):
+    """Bring an existing model up to the current schema (fields + templates).
+
+    Appends missing fields and overwrites template Front/Back with the rendered
+    versions. Idempotent. Custom user template tweaks WILL be overwritten — this
+    is a deliberate trade so audio fallback / template-level fixes reach
+    existing users without forcing them to delete and recreate the model.
+    """
+    col = _col()
+    changed = False
+
+    existing_names = {f["name"] for f in model["flds"]}
+    for name in rendered["fields"]:
+        if name not in existing_names:
+            field = col.models.new_field(name)
+            col.models.add_field(model, field)
+            changed = True
+
+    rendered_by_name = {t["Name"]: t for t in rendered["templates"]}
+    for tmpl in model["tmpls"]:
+        new = rendered_by_name.get(tmpl["name"])
+        if not new:
+            continue
+        if tmpl.get("qfmt") != new["Front"] or tmpl.get("afmt") != new["Back"]:
+            tmpl["qfmt"] = new["Front"]
+            tmpl["afmt"] = new["Back"]
+            changed = True
+
+    if model.get("css") != rendered["css"]:
+        model["css"] = rendered["css"]
+        changed = True
+
+    if changed:
+        col.models.update_dict(model)
+
+
+@main_thread
 def create_card(
     deck,
     card_type,
@@ -178,7 +229,9 @@ def create_card(
     settings = get_settings()
     note_type_prefix = settings.get("noteTypePrefix", "anki-defs")
     language = _get_language_for_deck(deck)
-    models = ensure_language_models(language, note_type_prefix, [card_type])
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+    tts_override = tts_overrides.get(language["code"])
+    models = ensure_language_models(language, note_type_prefix, [card_type], tts_override)
     model_name = models[card_type]
 
     if card_type == "vocab" and vocab_templates is None:
@@ -202,6 +255,7 @@ def reset_ensured_models_cache():
     _ensured_models.clear()
 
 
+@main_thread
 def create_note(deck_name, model_name, fields, tags=None):
     """Create a new note. fields is a dict of {field_name: value}."""
     col = _col()
@@ -235,6 +289,7 @@ def create_note(deck_name, model_name, fields, tags=None):
     return note.id
 
 
+@main_thread
 def delete_note(note_id):
     """Delete a note by ID. Only deletes notes with the 'auto-generated' tag."""
     col = _col()
@@ -247,11 +302,13 @@ def delete_note(note_id):
     col.remove_notes([note_id])
 
 
+@main_thread
 def sync():
     """Trigger Anki sync."""
     mw.on_sync_button_clicked()
 
 
+@main_thread
 def get_status():
     """Check if collection is available."""
     return {"connected": mw.col is not None}

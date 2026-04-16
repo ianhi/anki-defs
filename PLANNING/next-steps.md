@@ -2,9 +2,23 @@
 
 ## High Priority
 
+### Rename config dir from `bangla-anki` to `anki-defs`
+
+- `python-server/anki_defs/config.py`: `CONFIG_DIR = Path.home() / ".config" / "bangla-anki"`
+- `python-server/anki_defs/services/settings.py`: docstring reference
+- `client/src/lib/storage-keys.ts`: `CHAT_STORAGE_KEY = 'bangla-chat'`
+- Need migration: auto-move `~/.config/bangla-anki/` to `~/.config/anki-defs/` on startup
+- Also rename keyring service name if it uses the old name
+
+### Move onboarding-complete flag to server-side settings
+
+- Currently `localStorage('anki-defs-onboarded')` — per-browser, lost on new devices
+- Should be a boolean in server settings so Tailscale phone access doesn't re-trigger onboarding
+- `needsOnboarding()` in `App.tsx` should check server-side flag
+
 ### Test and polish Anki add-on
 
-- Code is hardened but never verified end-to-end inside Anki Desktop
+- Both backends now use Bottle (WSGI) — verify add-on works end-to-end inside Anki Desktop
 - Run `install-dev.sh` as ian, restart Anki, test all flows:
   card creation, search, deletion, SSE streaming, settings/keyring, cloze
 - Rebuild frontend into addon after all recent UI changes
@@ -77,3 +91,5 @@
 - Removed dead ErrorModal code (component + hook were never wired up)
 - Language-agnostic prompts: composable language files + parameterized templates
 - Per-deck language picker with subdeck inheritance and custom language support
+- Bottle migration: replaced FastAPI (python-server) and hand-rolled HTTP (addon) with Bottle WSGI
+- Addon threading: `@main_thread` decorator for safe collection access from Bottle threads
