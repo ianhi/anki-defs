@@ -97,7 +97,7 @@ sentence, each card gets the full sentence with only its word bolded.
 | ---------------- | ----------------------------------- | ------------------------- |
 | Word             | Lemmatized dictionary form          | Bangla                    |
 | Definition       | English meaning (under 10 words)    | Eng_trans                 |
-| NativeDefinition | Target language definition (simple)  | bangla-def                |
+| NativeDefinition | Target language definition (simple) | bangla-def                |
 | Example          | Example sentence with **bold** word | example sentence          |
 | Translation      | English translation of example      | sentence-trans            |
 
@@ -124,5 +124,5 @@ context with `; ` separators.
 | `client/src/components/CardPreview.tsx`                    | Card UI, add/undo/edit, retry-with-context          |
 | `client/src/lib/utils.ts`                                  | `markdownBoldToHtml()`                              |
 | `shared/prompts/*.json`                                    | Prompt templates with `{{variable}}` substitution   |
-| `shared/prompts/variables.json`                            | Universal variables (outputRules)                    |
+| `shared/prompts/variables.json`                            | Universal variables (outputRules)                   |
 | `shared/languages/bn.json`                                 | Bangla language definition (rules, examples, etc.)  |

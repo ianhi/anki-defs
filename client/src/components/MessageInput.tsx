@@ -46,8 +46,7 @@ export function MessageInput({
   const { settings, resolveDeckLanguage } = useSettingsStore();
   const { data: languages } = useLanguages();
 
-  const activeLangCode =
-    resolveDeckLanguage(settings.defaultDeck) ?? settings.targetLanguage;
+  const activeLangCode = resolveDeckLanguage(settings.defaultDeck) ?? settings.targetLanguage;
   const activeLang = languages?.find((l) => l.code === activeLangCode);
   const targetLanguageLabel = activeLang?.nativeName || activeLang?.name || activeLangCode;
   const effectivePlaceholder = placeholder ?? `${targetLanguageLabel} word or sentence...`;

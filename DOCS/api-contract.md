@@ -13,10 +13,10 @@ is missing and prints warnings for extra routes not in the contract.
 
 ### Health Check
 
-| Method | Endpoint        | Description                  |
-| ------ | --------------- | ---------------------------- |
-| GET    | `/api/health`   | Returns `{ status: 'ok' }`   |
-| GET    | `/api/platform` | Returns `{ platform: '...'}` |
+| Method | Endpoint              | Description                                                     |
+| ------ | --------------------- | --------------------------------------------------------------- |
+| GET    | `/api/health`         | Returns `{ status: 'ok' }`                                      |
+| GET    | `/api/platform`       | Returns `{ platform: '...'}`                                    |
 | GET    | `/api/anki/languages` | Returns `{ languages: [...] }` — available language definitions |
 
 ### Anki Routes (`/api/anki`)
@@ -42,13 +42,14 @@ note type exists in Anki (creating it on first use via AnkiConnect's
 ```json
 {
   "deck": "Bangla",
-  "cardType": "vocab",          // "vocab" | "cloze" | "mcCloze"
+  "cardType": "vocab", // "vocab" | "cloze" | "mcCloze"
   "word": "বাজার",
   "definition": "market",
   "nativeDefinition": "বাজার হলো...",
   "example": "আমি বাজারে যাচ্ছি",
   "translation": "I am going to the market",
-  "vocabTemplates": {            // optional; overrides settings default
+  "vocabTemplates": {
+    // optional; overrides settings default
     "recognition": true,
     "production": false,
     "listening": true
@@ -159,6 +160,7 @@ Languages can come from `shared/languages/*.json` files, `customLanguages`
 setting, or be auto-generated from the language code.
 
 `GET /api/anki/languages` returns the list of file-backed languages:
+
 ```json
 { "languages": [{ "code": "bn-IN", "name": "Bangla (India)", "nativeName": "বাংলা" }] }
 ```

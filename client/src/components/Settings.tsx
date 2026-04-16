@@ -90,8 +90,8 @@ function TtsVoicePicker() {
         <Label>Text-to-speech voice</Label>
         <p className="text-xs text-muted-foreground">
           No installed voice found for <span className="font-medium">{activeLang}</span>. Speech
-          will fall back to whatever the OS chooses (often robotic). Install a system voice for
-          this language, or set up cloud TTS in a future release.
+          will fall back to whatever the OS chooses (often robotic). Install a system voice for this
+          language, or set up cloud TTS in a future release.
         </p>
       </div>
     );
@@ -330,8 +330,8 @@ function LanguageSection({
           <p className="text-xs text-muted-foreground">
             Override the locale Anki passes to its built-in <code>{'{{tts}}'}</code> template tag —
             useful when your installed voices are tagged with a different region than the language
-            (e.g. Mexican Spanish content but only <code>es_US</code> voices installed). Leave
-            blank to use the language default. Format: <code>es_US</code> (with underscore).
+            (e.g. Mexican Spanish content but only <code>es_US</code> voices installed). Leave blank
+            to use the language default. Format: <code>es_US</code> (with underscore).
           </p>
           {usedLangCodes.map((code) => (
             <div key={code} className="flex items-center gap-2">
@@ -396,7 +396,9 @@ function DebugSection() {
     ) {
       return;
     }
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith('anki-defs-') || k === CHAT_STORAGE_KEY);
+    const keys = Object.keys(localStorage).filter(
+      (k) => k.startsWith('anki-defs-') || k === CHAT_STORAGE_KEY
+    );
     for (const k of keys) localStorage.removeItem(k);
     window.location.reload();
   };

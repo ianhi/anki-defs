@@ -9,6 +9,7 @@ logical chunks.
 ## What was changed (all uncommitted)
 
 ### Bug fixes
+
 - **Addon language route**: `/api/languages` → `/api/anki/languages` (was 404)
 - **Non-blocking socket send**: 500KB JS bundle truncated because `sendall` on
   non-blocking socket silently failed. Fixed with blocking send + 30s timeout.
@@ -24,6 +25,7 @@ logical chunks.
 - **es-MX TTS locale not installed**: default `ttsLocale` changed to `es-US`
 
 ### New features
+
 - **Per-deck language** (full implementation):
   - `DeckLanguagePrompt.tsx`: modal when switching to an untagged deck
   - `LanguageDropdown.tsx`: shared reusable component (replaces 3 duplicates)
@@ -61,12 +63,14 @@ logical chunks.
 - **Tailscale docs page**: rewritten with addon path, Chrome HTTP flag, TS Serve
 
 ### Prompt changes
+
 - `variables.json`: tight definition rules, example sentence capitalization rule,
   split `jsonOutputRule` from `outputRules`
 - `sentence.json`: tighter word-by-word format (1–4 word meanings)
 - Language files: added `script` field (`latin` / `bengali`)
 
 ### Addon HTTP error handling
+
 - `_format_http_error()` in chat_routes.py: turns HTTPStatusError into
   user-facing messages with status-specific hints (401 → check key, 429 → rate
   limited, 400 → bad model/key). Covers all 4 AI call paths.
@@ -96,6 +100,7 @@ anki-addon/, scripts/, docs/.
 ## Testing checklist for next agent
 
 After committing, verify:
+
 - [ ] `npm run check` passes
 - [ ] `npm run check:py` passes
 - [ ] Addon loads in Anki without errors

@@ -131,6 +131,7 @@ worse than no docs — they actively mislead.
 - `shared/DOCS/types-reference.md` -- Update when changing shared types.
 
 **Plan lifecycle**:
+
 - When you **finish implementing** a plan: update its status and move to Completed in INDEX.md.
 - When you **discover new requirements**: create a new `.md` and add it to INDEX.md.
 - When a plan becomes **partially done**: update the doc to show what's done vs remaining.

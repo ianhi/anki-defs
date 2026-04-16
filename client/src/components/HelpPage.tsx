@@ -69,8 +69,8 @@ export function HelpPage({ onClose }: HelpPageProps) {
                   Mobile
                 </span>
                 <p>
-                  Place your cursor on a word in the input, then tap it in the Focus bar above
-                  to highlight it.
+                  Place your cursor on a word in the input, then tap it in the Focus bar above to
+                  highlight it.
                 </p>
               </div>
               <div className="flex gap-3 items-start">

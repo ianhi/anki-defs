@@ -13,14 +13,16 @@ Anki runs on your desktop. But you might want to look up words from your phone -
 
 Both the standalone server and the Anki addon accept connections from any network interface (not just localhost). When your phone and desktop are on the same Tailscale network, your phone can access the app directly.
 
+{/* prettier-ignore-start */}
+
 <Tabs>
 <TabItem label="Standalone server">
 ```
-Phone (browser)  ──Tailscale──>  Desktop:5173 (Vite)  ──proxy──>  localhost:3001 (FastAPI)  ──>  Anki
+Phone (browser)  ──Tailscale──>  Desktop:5173 (Vite)  ──proxy──>  localhost:3001 (Bottle)  ──>  Anki
 ```
 
-- **Vite** (port 5173) serves the React frontend and proxies `/api/*` requests to FastAPI
-- **FastAPI** (port 3001) handles AI calls and talks to AnkiConnect on localhost
+- **Vite** (port 5173) serves the React frontend and proxies `/api/*` requests to the backend
+- **Bottle** (port 3001) handles AI calls and talks to AnkiConnect on localhost
 - **AnkiConnect** (port 8765) only needs to be accessible from localhost
 </TabItem>
 <TabItem label="Anki addon">
@@ -34,6 +36,8 @@ Phone (browser)  ──Tailscale──>  Desktop:28735 (addon HTTP server)  ─�
 </TabItem>
 </Tabs>
 
+{/* prettier-ignore-end */}
+
 ## Setup
 
 <Steps>
@@ -43,12 +47,10 @@ Phone (browser)  ──Tailscale──>  Desktop:28735 (addon HTTP server)  ─�
 2. **Find your desktop's Tailscale hostname.** Run `tailscale status` or check the Tailscale app. It will be something like `my-desktop`.
 
 3. **Start anki-defs** on your desktop:
-
    - **Standalone server:** `npm run dev` (serves on port 5173)
    - **Anki addon:** just open Anki — the addon starts its server automatically on port 28735
 
 4. **Open it from your phone.** In your phone's browser, go to:
-
    - **Standalone:** `http://<hostname>:5173`
    - **Addon:** `http://<hostname>:28735`
 

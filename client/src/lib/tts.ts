@@ -49,7 +49,10 @@ function findVoiceForLang(lang: string): SpeechSynthesisVoice | null {
   if (exact) return exact;
 
   const prefix = target.split('-')[0]!;
-  return voices.find((v) => normLang(v.lang).startsWith(prefix + '-') || normLang(v.lang) === prefix) ?? null;
+  return (
+    voices.find((v) => normLang(v.lang).startsWith(prefix + '-') || normLang(v.lang) === prefix) ??
+    null
+  );
 }
 
 function resolveVoice(lang: string): SpeechSynthesisVoice | null {
@@ -101,12 +104,10 @@ export function getVoicesForLanguage(lang: string): SpeechSynthesisVoice[] {
   if (typeof speechSynthesis === 'undefined') return [];
   const target = normLang(lang);
   const prefix = target.split('-')[0]!;
-  return speechSynthesis
-    .getVoices()
-    .filter((v) => {
-      const vl = normLang(v.lang);
-      return vl === target || vl.startsWith(prefix + '-') || vl === prefix;
-    });
+  return speechSynthesis.getVoices().filter((v) => {
+    const vl = normLang(v.lang);
+    return vl === target || vl.startsWith(prefix + '-') || vl === prefix;
+  });
 }
 
 /** Pin a voice for a language. */

@@ -35,25 +35,25 @@
 
 ## Component status
 
-| Component                              | Status  | Notes                                                    |
-| -------------------------------------- | ------- | -------------------------------------------------------- |
-| Web app (`client/` + `python-server/`) | Working | FastAPI + React, 3 AI providers, TTS, auto note-type creation per language |
-| Android (`android/`)                   | Working | Still on old two-call pipeline                           |
-| Anki add-on (`anki-addon/`)            | Testing | Tested inside Anki for first time. Many fixes landed. Mobile Tailscale access partially working (send bug fixed but untested). See `addon-testing-session.md` |
-| Shared prompts (`shared/prompts/`)     | Working | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced. |
-| Note-type templates (`shared/data/note-types.json`) | Updated | Audio fields added (WordAudio, ExampleAudio, FullSentenceAudio, etc.) with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion. |
-| Tests                                  | 65+111+48 | vitest + python-server pytest + addon pytest            |
-| CI                                     | Working | `.github/workflows/ci.yml`                               |
-| Docs site (`docs/`)                    | Updated | Tailscale docs rewritten with addon support + Chrome HTTP flag |
+| Component                                           | Status    | Notes                                                                                                                                                         |
+| --------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web app (`client/` + `python-server/`)              | Working   | FastAPI + React, 3 AI providers, TTS, auto note-type creation per language                                                                                    |
+| Android (`android/`)                                | Working   | Still on old two-call pipeline                                                                                                                                |
+| Anki add-on (`anki-addon/`)                         | Testing   | Tested inside Anki for first time. Many fixes landed. Mobile Tailscale access partially working (send bug fixed but untested). See `addon-testing-session.md` |
+| Shared prompts (`shared/prompts/`)                  | Working   | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced.                                                             |
+| Note-type templates (`shared/data/note-types.json`) | Updated   | Audio fields added (WordAudio, ExampleAudio, FullSentenceAudio, etc.) with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion.      |
+| Tests                                               | 65+111+48 | vitest + python-server pytest + addon pytest                                                                                                                  |
+| CI                                                  | Working   | `.github/workflows/ci.yml`                                                                                                                                    |
+| Docs site (`docs/`)                                 | Updated   | Tailscale docs rewritten with addon support + Chrome HTTP flag                                                                                                |
 
 ## Detailed plans
 
-| Doc                                                  | What it covers                        |
-| ---------------------------------------------------- | ------------------------------------- |
-| [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session    |
-| [next-steps.md](next-steps.md)                       | Full feature list with details        |
-| [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan                  |
-| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)     |
+| Doc                                                  | What it covers                     |
+| ---------------------------------------------------- | ---------------------------------- |
+| [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session |
+| [next-steps.md](next-steps.md)                       | Full feature list with details     |
+| [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan               |
+| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)  |
 
 ## Completed plans
 

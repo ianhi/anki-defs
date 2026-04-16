@@ -12,18 +12,18 @@ so we estimate ~10,000 characters per 1,000 flashcards as a realistic upper boun
 
 ## Summary Table
 
-| Provider | Bangla Support | Price per 1M chars | Est. cost / 1K cards | Free Tier | Latency | Quality (Bangla) |
-|---|---|---|---|---|---|---|
-| **Google Cloud TTS (Chirp 3 HD)** | bn-IN (8 voices) | $30 | $0.30 | 0 (Chirp3) | ~200-500ms | High |
-| **Google Cloud TTS (WaveNet)** | bn-IN (Standard only?) | $4 | $0.04 | 1M chars/mo | ~200ms | Medium |
-| **Google Gemini TTS (Flash)** | Unconfirmed | ~$10/1M output tokens | ~$0.05-0.15 | Free tier available | ~500ms+ | High (if supported) |
-| **Amazon Polly** | Not supported | $4-16 | N/A | 5M chars/mo (12mo) | ~100-200ms | N/A |
-| **Microsoft Azure TTS** | bn-BD (NabanitaNeural+) | $16 | $0.16 | 500K chars/mo | ~200ms | Good |
-| **ElevenLabs** | Yes (multilingual) | $60-120 | $0.60-1.20 | 10K chars/mo | ~75-300ms | Very High |
-| **OpenAI TTS (gpt-4o-mini-tts)** | Unconfirmed (50+ langs) | ~$15 | $0.15 | None | ~200-500ms | High (if supported) |
-| **Sarvam AI (Bulbul v3)** | Yes (native) | ~$1.80 (INR 15/10K) | $0.018 | INR 1000 credits | ~200ms | High (Indic-native) |
-| **Indic Parler-TTS (local)** | Yes (20 Indic langs) | Free (compute only) | $0 | N/A (self-hosted) | ~1-5s (CPU) | Good |
-| **Piper TTS (local)** | Limited/None | Free (compute only) | $0 | N/A (self-hosted) | ~50-200ms | Low-Medium |
+| Provider                          | Bangla Support          | Price per 1M chars    | Est. cost / 1K cards | Free Tier           | Latency     | Quality (Bangla)    |
+| --------------------------------- | ----------------------- | --------------------- | -------------------- | ------------------- | ----------- | ------------------- |
+| **Google Cloud TTS (Chirp 3 HD)** | bn-IN (8 voices)        | $30                   | $0.30                | 0 (Chirp3)          | ~200-500ms  | High                |
+| **Google Cloud TTS (WaveNet)**    | bn-IN (Standard only?)  | $4                    | $0.04                | 1M chars/mo         | ~200ms      | Medium              |
+| **Google Gemini TTS (Flash)**     | Unconfirmed             | ~$10/1M output tokens | ~$0.05-0.15          | Free tier available | ~500ms+     | High (if supported) |
+| **Amazon Polly**                  | Not supported           | $4-16                 | N/A                  | 5M chars/mo (12mo)  | ~100-200ms  | N/A                 |
+| **Microsoft Azure TTS**           | bn-BD (NabanitaNeural+) | $16                   | $0.16                | 500K chars/mo       | ~200ms      | Good                |
+| **ElevenLabs**                    | Yes (multilingual)      | $60-120               | $0.60-1.20           | 10K chars/mo        | ~75-300ms   | Very High           |
+| **OpenAI TTS (gpt-4o-mini-tts)**  | Unconfirmed (50+ langs) | ~$15                  | $0.15                | None                | ~200-500ms  | High (if supported) |
+| **Sarvam AI (Bulbul v3)**         | Yes (native)            | ~$1.80 (INR 15/10K)   | $0.018               | INR 1000 credits    | ~200ms      | High (Indic-native) |
+| **Indic Parler-TTS (local)**      | Yes (20 Indic langs)    | Free (compute only)   | $0                   | N/A (self-hosted)   | ~1-5s (CPU) | Good                |
+| **Piper TTS (local)**             | Limited/None            | Free (compute only)   | $0                   | N/A (self-hosted)   | ~50-200ms   | Low-Medium          |
 
 ---
 
@@ -32,6 +32,7 @@ so we estimate ~10,000 characters per 1,000 flashcards as a realistic upper boun
 ### 1. Google Cloud Text-to-Speech
 
 **Bangla support**: Yes. Bengali (bn-IN) is supported across multiple tiers:
+
 - **Standard voices**: Basic quality, $4/1M chars
 - **Chirp 3: HD voices**: 8 voices (4 male, 4 female), $30/1M chars. Voice format:
   `bn-IN-Chirp3-HD-<VoiceName>`
@@ -46,6 +47,7 @@ so we estimate ~10,000 characters per 1,000 flashcards as a realistic upper boun
 | Studio | $160 | None listed |
 
 **Cost for 1,000 cards** (10K chars):
+
 - Standard/WaveNet: $0.04 (likely free under free tier)
 - Chirp 3: HD: $0.30
 
@@ -55,6 +57,7 @@ so we estimate ~10,000 characters per 1,000 flashcards as a realistic upper boun
 No custom pronunciation support for bn-IN in Chirp 3.
 
 **Sources**:
+
 - [Pricing](https://cloud.google.com/text-to-speech/pricing)
 - [Supported voices](https://docs.cloud.google.com/text-to-speech/docs/list-voices-and-types)
 - [Chirp 3 HD](https://docs.cloud.google.com/text-to-speech/docs/chirp3-hd)
@@ -68,6 +71,7 @@ Bengali is not explicitly listed but may be included given Google's broad Indic 
 The Cloud TTS Gemini-TTS product does list bn-BD as generally available.
 
 **Pricing** (token-based, ~4 chars = 1 token):
+
 - Gemini 2.5 Flash TTS: $0.50/1M input tokens + $10.00/1M output tokens (audio)
 - Gemini 2.5 Pro TTS: $1.00/1M input tokens + $20.00/1M output tokens (audio)
 - Audio output: ~32 tokens per second of generated audio
@@ -84,6 +88,7 @@ natural language prompts. Overkill for single-word pronunciations. Better suited
 sentences or contextual audio. Free tier exists for Gemini API generally.
 
 **Sources**:
+
 - [Gemini TTS docs](https://ai.google.dev/gemini-api/docs/speech-generation)
 - [Gemini TTS pricing](https://ai.google.dev/gemini-api/docs/pricing)
 - [Cloud Gemini-TTS](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts)
@@ -101,6 +106,7 @@ standard chars/month for 12 months.
 **Verdict**: Eliminated due to no Bangla support.
 
 **Sources**:
+
 - [Supported languages](https://docs.aws.amazon.com/polly/latest/dg/supported-languages.html)
 - [Pricing](https://aws.amazon.com/polly/pricing/)
 
@@ -110,6 +116,7 @@ standard chars/month for 12 months.
 
 **Bangla support**: Yes. Both bn-BD (Bangladesh) and bn-IN (India) are supported with
 Neural voices. Known voices include:
+
 - `bn-BD-NabanitaNeural` (female)
 - Additional voices likely available (Azure has 500+ neural voices across 140+ languages)
 
@@ -125,6 +132,7 @@ Returns MP3, WAV, OGG, and other formats.
 coverage. SDK is well-documented.
 
 **Sources**:
+
 - [Language support](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support)
 - [Pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/speech-services/)
 
@@ -136,6 +144,7 @@ coverage. SDK is well-documented.
 (Multilingual v2/v3). Regional accent adaptation is available.
 
 **Pricing**:
+
 - API: $0.06/1K chars (Flash) to $0.12/1K chars (Multilingual v2/v3)
 - That's $60-120/1M chars -- significantly more expensive than Google/Azure
 - Free tier: 10K chars/month
@@ -151,6 +160,7 @@ However, 6-10x more expensive than Google Cloud TTS. The quality premium may not
 worth it for individual word pronunciations on flashcards.
 
 **Sources**:
+
 - [Bengali TTS](https://elevenlabs.io/text-to-speech/bengali)
 - [API pricing](https://elevenlabs.io/pricing/api)
 
@@ -163,6 +173,7 @@ Bengali is not explicitly listed but may work given the model's multilingual tra
 Quality for non-tier-1 languages can be inconsistent.
 
 **Pricing**:
+
 - tts-1: $15/1M chars
 - tts-1-hd: $30/1M chars
 - gpt-4o-mini-tts: $0.60/1M input tokens + $12/1M output tokens (~similar cost)
@@ -177,6 +188,7 @@ Bengali pronunciation quality is uncertain and likely inferior to providers with
 Bangla voices.
 
 **Sources**:
+
 - [TTS guide](https://platform.openai.com/docs/guides/text-to-speech)
 - [Pricing](https://costgoat.com/pricing/openai-tts)
 
@@ -203,6 +215,7 @@ required to start. The main risk is that Sarvam AI is a smaller company -- long-
 availability is less certain than Google/Microsoft/AWS.
 
 **Sources**:
+
 - [TTS API](https://www.sarvam.ai/apis/text-to-speech)
 - [Pricing](https://www.sarvam.ai/api-pricing)
 
@@ -211,6 +224,7 @@ availability is less certain than Google/Microsoft/AWS.
 ### 8. Open-Source / Self-Hosted Options
 
 #### Indic Parler-TTS (AI4Bharat)
+
 - **Bangla support**: Yes, 20 Indic languages including Bengali with emotion control
 - **Quality**: Good. Research-grade model from IIT Madras
 - **Cost**: Free (self-hosted). Compute cost only
@@ -221,12 +235,14 @@ availability is less certain than Google/Microsoft/AWS.
   GPU for real-time performance
 
 #### IndicF5 (AI4Bharat)
+
 - **Bangla support**: Yes, 11 Indian languages
 - **Quality**: Near-human quality (trained on 1417 hours)
 - **Cost**: Free (self-hosted)
 - **Notes**: Newer than Indic Parler-TTS, may have better quality
 
 #### Piper TTS
+
 - **Bangla support**: Limited or none. Primarily focused on European languages
 - **Quality**: Good for supported languages
 - **Cost**: Free, very fast (~50ms on CPU)
@@ -234,10 +250,12 @@ availability is less certain than Google/Microsoft/AWS.
   Not recommended for Bangla
 
 #### Coqui TTS / XTTS-v2
+
 - **Bangla support**: No. Supports 17 languages but Bengali not included
 - **Notes**: Coqui AI shut down Dec 2025. Code remains on GitHub but no active development
 
 **Sources**:
+
 - [Indic Parler-TTS](https://huggingface.co/ai4bharat/indic-parler-tts)
 - [IndicF5](https://huggingface.co/ai4bharat/IndicF5)
 - [Piper TTS](https://github.com/rhasspy/piper)
@@ -249,6 +267,7 @@ availability is less certain than Google/Microsoft/AWS.
 ### Primary: Google Cloud TTS (Chirp 3: HD)
 
 **Why**: Best balance of quality, reliability, and cost for Bangla.
+
 - 8 dedicated bn-IN voices at high quality
 - $0.30 per 1,000 flashcards -- negligible for personal use
 - $300 new-account credit covers ~10 million characters
@@ -262,6 +281,7 @@ a reasonable bitrate (48-64kbps is fine for speech) to keep file sizes small for
 ### Secondary / Fallback: Microsoft Azure TTS
 
 **Why**: Good alternative if Google pricing or quality doesn't work out.
+
 - Both bn-BD and bn-IN neural voices
 - $16/1M chars with 500K chars/month free
 - Excellent SSML support for pronunciation tuning
@@ -270,6 +290,7 @@ a reasonable bitrate (48-64kbps is fine for speech) to keep file sizes small for
 ### Budget Option: Sarvam AI
 
 **Why**: Cheapest API option with native Bangla focus.
+
 - ~$0.02 per 1,000 flashcards
 - Purpose-built for Indian languages, likely excellent Bangla pronunciation
 - Risk: smaller company, less certain long-term availability
@@ -278,6 +299,7 @@ a reasonable bitrate (48-64kbps is fine for speech) to keep file sizes small for
 ### Self-Hosted Option: Indic Parler-TTS / IndicF5
 
 **Why**: Free, no API costs, privacy-preserving.
+
 - Best open-source Bangla TTS available
 - Requires GPU for real-time performance (or accept ~2-5s latency on CPU)
 - Could be offered as an option for users who don't want API costs
