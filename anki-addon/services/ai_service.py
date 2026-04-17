@@ -5,6 +5,7 @@ by the shared service layer (copied from python-server at build time).
 """
 
 from anki_defs._services.ai import (  # noqa: F401
+    build_photo_generate_prompt,
     get_available_languages,
     get_completion,
     get_distractor_prompt,
@@ -13,6 +14,7 @@ from anki_defs._services.ai import (  # noqa: F401
     get_relemmatize_prompt,
     get_system_prompts,
     get_text_completion,
+    get_vision_extraction,
     parse_json_response,
     reload_prompts,
     render_user_template,

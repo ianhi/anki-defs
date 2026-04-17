@@ -10,7 +10,7 @@ mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 mimetypes.add_type("image/svg+xml", ".svg")
 
-BaseRequest.MEMFILE_MAX = 1024 * 1024
+BaseRequest.MEMFILE_MAX = 20 * 1024 * 1024  # 20 MB for photo uploads
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
 
