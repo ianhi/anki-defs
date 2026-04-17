@@ -45,6 +45,7 @@
 
 | Doc                                                  | What it covers                     |
 | ---------------------------------------------------- | ---------------------------------- |
+| [photo-cloze.md](photo-cloze.md)                     | Cloze cards from textbook exercises|
 | [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session |
 | [next-steps.md](next-steps.md)                       | Full feature list with details     |
 | [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan               |
