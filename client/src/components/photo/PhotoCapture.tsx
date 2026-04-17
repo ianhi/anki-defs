@@ -184,7 +184,11 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
         id: generateId(),
         selected: !p.alreadyExists,
       }));
-      setPairs((prev) => [...prev, ...newPairs]);
+      setPairs((prev) => {
+        const existingWords = new Set(prev.map((p) => p.word.toLowerCase()));
+        const unique = newPairs.filter((p) => !existingWords.has(p.word.toLowerCase()));
+        return [...prev, ...unique];
+      });
       if (result.usage) {
         setExtractUsage((prev) =>
           prev
@@ -401,10 +405,15 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
         {/* Step 2: Extract & Review (combined) */}
         {step === 'extract' && imageUrl && (
           <div className="space-y-3 pb-4">
-            {/* Image with crop tool */}
+            {/* Image with crop tool — constrained so extract button stays visible */}
             <div className="border-b border-border">
               <ReactCrop crop={crop} onChange={(c) => setCrop(c)}>
-                <img ref={imgRef} src={imageUrl} alt="Textbook photo" className="max-w-full" />
+                <img
+                  ref={imgRef}
+                  src={imageUrl}
+                  alt="Textbook photo"
+                  className="max-w-full max-h-[50vh] object-contain"
+                />
               </ReactCrop>
             </div>
 

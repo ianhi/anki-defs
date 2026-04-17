@@ -475,9 +475,16 @@ def get_vision_extraction(
     validated: list[dict[str, str]] = []
     for item in pairs:
         if isinstance(item, dict) and item.get("word"):
+            definition = str(item.get("definition", "")).strip()
+            # Strip English articles from definitions
+            lower_def = definition.lower()
+            for article in ("the ", "a ", "an "):
+                if lower_def.startswith(article):
+                    definition = definition[len(article):]
+                    break
             validated.append({
                 "word": str(item["word"]).strip(),
-                "definition": str(item.get("definition", "")).strip(),
+                "definition": definition,
             })
 
     return {"pairs": validated, "usage": result.get("usage")}

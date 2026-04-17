@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createLogger } from '@/lib/logger';
 import { stripHtml } from '@/lib/utils';
 import type React from 'react';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
+import { ankiApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
 import { chatApi } from '@/lib/api';
@@ -101,11 +102,33 @@ export function CardPreview({
     [sessionCards.pendingQueue, wordKey]
   );
 
-  const isAdded = !!sessionMatch;
   const isQueued = !!pendingMatch;
   const addedToDeck = sessionMatch?.deckName ?? pendingMatch?.deckName ?? null;
   const addedNoteId = sessionMatch?.noteId ?? null;
   const pendingQueueId = pendingMatch?.id ?? null;
+
+  // Verify session card still exists in Anki — if deleted externally, clean up
+  const [verifiedExists, setVerifiedExists] = useState(true);
+  useEffect(() => {
+    if (!sessionMatch?.noteId) return;
+    let cancelled = false;
+    ankiApi
+      .getNote(sessionMatch.noteId)
+      .then(() => {
+        if (!cancelled) setVerifiedExists(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setVerifiedExists(false);
+          sessionCards.removeCard(sessionMatch.id);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionMatch?.noteId, sessionMatch?.id, sessionCards]);
+
+  const isAdded = !!sessionMatch && verifiedExists;
 
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
