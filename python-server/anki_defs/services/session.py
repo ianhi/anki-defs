@@ -6,6 +6,7 @@ Matches Express session.ts schema and API exactly. Uses stdlib sqlite3.
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from typing import Any
 
@@ -15,6 +16,7 @@ from ..config import CONFIG_DIR, DB_FILE
 CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
 _db: sqlite3.Connection | None = None
+_db_lock = threading.Lock()
 
 
 def _get_db() -> sqlite3.Connection:
@@ -192,20 +194,21 @@ def clear_all() -> None:
 # --- Usage tracking ---
 
 def record_usage(usage: dict[str, Any], cost: float) -> None:
-    db = _get_db()
-    db.execute(
-        """INSERT INTO usage_log (inputTokens, outputTokens, provider, model, cost, createdAt)
-        VALUES (?, ?, ?, ?, ?, ?)""",
-        (
-            usage.get("inputTokens", 0),
-            usage.get("outputTokens", 0),
-            usage.get("provider", ""),
-            usage.get("model", ""),
-            cost,
-            int(time.time() * 1000),
-        ),
-    )
-    db.commit()
+    with _db_lock:
+        db = _get_db()
+        db.execute(
+            """INSERT INTO usage_log (inputTokens, outputTokens, provider, model, cost, createdAt)
+            VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                usage.get("inputTokens", 0),
+                usage.get("outputTokens", 0),
+                usage.get("provider", ""),
+                usage.get("model", ""),
+                cost,
+                int(time.time() * 1000),
+            ),
+        )
+        db.commit()
 
 
 def get_usage_totals() -> dict[str, Any]:

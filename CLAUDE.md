@@ -104,6 +104,30 @@ files outside your stated scope.
 - **No duplication**: Always reuse shared constants, components, and utilities. Model lists,
   pricing data, and types belong in `shared/`. UI components should be reused, not recreated.
   If you need the same data or logic in two places, put it in `shared/` or extract a component.
+- **Extract before copying**: When using an existing file as a pattern for new code, check if
+  it contains private helpers that should be shared. Extract them into a shared module _first_,
+  then import from both the old and new code. Never copy-paste private functions between files.
+
+## Shared Internals (reuse these, don't reinvent)
+
+**Python server** (`python-server/anki_defs/`):
+
+- `routes/_helpers.py` — `sse_event()`, `compute_cost()`, `format_http_error()`. Use in any
+  route that does SSE streaming or AI provider calls.
+- `services/ai.py` — Prompt loading, rendering, provider dispatch. Add new prompts here.
+- `services/providers/gemini.py` — `parse_response()` extracts text+usage from Gemini JSON.
+  All non-streaming Gemini functions use it.
+- `services/card_extraction.py` — `validate_card_responses()`, `build_card_previews()`.
+  Reuse for any flow that produces card previews from AI JSON.
+
+**Client** (`client/src/`):
+
+- `lib/api.ts` — `streamSSE()` handles SSE fetch+parse for any endpoint. Wrap it, don't
+  rewrite the buffer/line-splitting logic.
+- `lib/utils.ts` — `generateId()`, `cn()`, `markdownBoldToHtml()`, `sentenceToCloze()`.
+- `components/ui/` — Button, Input, Card, Badge, Label, Select. Use these, not raw HTML.
+- `components/CardPreview.tsx` — Self-contained card display+add-to-Anki. Accepts `preview`
+  prop; works for any source of `CardPreview` data.
 
 ## Starting Work
 

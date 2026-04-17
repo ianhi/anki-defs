@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createLogger } from '@/lib/logger';
+import { stripHtml } from '@/lib/utils';
 import type React from 'react';
 import type { CardPreview as CardPreviewType, CardType, VocabCardTemplates } from 'shared';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card';
@@ -33,6 +34,7 @@ interface CardPreviewProps {
   onDismiss?: () => void;
   assistantMsgId?: string;
   onRetryWithContext?: (assistantMsgId: string, context: string) => void;
+  extraTags?: string[];
 }
 
 // Highlight **word** markers in the example sentence
@@ -60,11 +62,6 @@ function highlightBoldMarkers(sentence: string): React.ReactNode {
   );
 }
 
-/** Strip HTML tags to plain text for safe rendering */
-function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
-}
-
 function ExistingCardContent({ card }: { card: NonNullable<CardPreviewType['existingCard']> }) {
   return (
     <div className="mt-1.5 p-2 rounded bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-xs sm:text-sm space-y-0.5">
@@ -89,6 +86,7 @@ export function CardPreview({
   onDismiss,
   assistantMsgId,
   onRetryWithContext,
+  extraTags,
 }: CardPreviewProps) {
   // Derive "added" state reactively from session store (survives page refresh)
   const sessionCards = useSessionCards();
@@ -191,7 +189,7 @@ export function CardPreview({
           example: preview.exampleSentence,
           translation: preview.sentenceTranslation,
           vocabTemplates,
-          tags: ['auto-generated'],
+          tags: ['auto-generated', ...(extraTags || [])],
         });
         firstNoteId = result.noteId;
         firstModelName = result.modelName;
@@ -207,7 +205,7 @@ export function CardPreview({
           nativeDefinition: preview.nativeDefinition,
           example: preview.exampleSentence,
           translation: preview.sentenceTranslation,
-          tags: ['auto-generated'],
+          tags: ['auto-generated', ...(extraTags || [])],
         });
         if (!firstNoteId) {
           firstNoteId = result.noteId;
@@ -227,7 +225,7 @@ export function CardPreview({
             nativeDefinition: preview.nativeDefinition,
             example: preview.exampleSentence,
             translation: preview.sentenceTranslation,
-            tags: ['auto-generated'],
+            tags: ['auto-generated', ...(extraTags || [])],
           });
           if (!firstNoteId) {
             firstNoteId = result.noteId;

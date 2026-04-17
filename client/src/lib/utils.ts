@@ -9,6 +9,11 @@ export function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
+/** Strip HTML tags to plain text */
+export function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '');
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

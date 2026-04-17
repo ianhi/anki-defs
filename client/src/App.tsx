@@ -3,13 +3,22 @@ import { Chat } from './components/Chat';
 import { Settings } from './components/Settings';
 import { OnboardingModal } from './components/OnboardingModal';
 import { HelpPage } from './components/HelpPage';
+import { PhotoCapture } from './components/photo/PhotoCapture';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { SettingsIcon, X, RefreshCw, History, AlertTriangle, HelpCircle } from 'lucide-react';
+import {
+  SettingsIcon,
+  X,
+  RefreshCw,
+  History,
+  AlertTriangle,
+  HelpCircle,
+  Camera,
+} from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
 import { useSettingsStore } from './hooks/useSettings';
@@ -54,8 +63,9 @@ function MainApp() {
   const [showHistory, setShowHistory] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(() => localStorage.getItem('showPhoto') === 'true');
   const { pendingQueue } = useSessionCards();
-  const { settings } = useSettingsStore();
+  const { settings, isLoaded: settingsLoaded } = useSettingsStore();
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
   const totalTokens = totalInputTokens + totalOutputTokens;
   const platform = usePlatform();
@@ -64,11 +74,12 @@ function MainApp() {
   const { data: ankiConnected } = useAnkiStatus();
 
   // Show onboarding on first visit when no API key is configured
+  // Wait until settings are loaded from server to avoid flash of onboarding
   useEffect(() => {
-    if (needsOnboarding(settings)) {
+    if (settingsLoaded && needsOnboarding(settings)) {
       setShowOnboarding(true);
     }
-  }, [settings]);
+  }, [settings, settingsLoaded]);
 
   return (
     <div className="fixed inset-0 flex overflow-hidden h-dvh">
@@ -121,6 +132,18 @@ function MainApp() {
             >
               <History className="h-4 w-4" />
             </Button>
+            <Button
+              variant={showPhoto ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => {
+                const next = !showPhoto;
+                setShowPhoto(next);
+                localStorage.setItem('showPhoto', String(next));
+              }}
+              title="Photo to flashcards"
+            >
+              <Camera className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowHelp(true)} title="Help">
               <HelpCircle className="h-4 w-4" />
             </Button>
@@ -130,7 +153,16 @@ function MainApp() {
           </div>
         </header>
         <ErrorBoundary>
-          <Chat />
+          {showPhoto ? (
+            <PhotoCapture
+              onBack={() => {
+                setShowPhoto(false);
+                localStorage.setItem('showPhoto', 'false');
+              }}
+            />
+          ) : (
+            <Chat />
+          )}
         </ErrorBoundary>
       </div>
 

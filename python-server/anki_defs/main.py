@@ -11,11 +11,15 @@ import uuid
 logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
 
+import bottle  # noqa: E402
 from bottle import Bottle, HTTPResponse, request, response, static_file  # noqa: E402
+
+# Allow large JSON bodies (base64 images can be several MB)
+bottle.BaseRequest.MEMFILE_MAX = 20 * 1024 * 1024  # 20 MB
 
 from .config import CLIENT_DIST, load_dotenv, migrate_config_dir  # noqa: E402
 from .middleware.auth import check_auth  # noqa: E402
-from .routes import anki, chat, prompts, session, settings  # noqa: E402
+from .routes import anki, chat, photo, prompts, session, settings  # noqa: E402
 from .services.settings import get_settings, save_settings  # noqa: E402
 
 # Migrate config dir from old name and load .env files
@@ -78,6 +82,17 @@ def error_404(err: Exception) -> str:
 @app.error(500)
 def error_500(err: Exception) -> str:
     response.content_type = "application/json"
+    # Bottle wraps the real exception — extract it
+    detail = ""
+    exc = getattr(err, "exception", None)
+    body = getattr(err, "body", None)
+    if exc:
+        detail = str(exc)
+    elif body:
+        detail = str(body)
+    if os.environ.get("ANKI_DEFS_DEV") and detail:
+        log.error("500 error: %s", detail)
+        return json.dumps({"error": detail})
     return json.dumps({"error": "Internal Server Error"})
 
 
@@ -98,6 +113,7 @@ def platform() -> dict:
 
 anki.register(app)
 chat.register(app)
+photo.register(app)
 prompts.register(app)
 session.register(app)
 settings.register(app)

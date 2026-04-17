@@ -41,8 +41,33 @@ def _build_body(system_prompt: str, user_message: str, **extra: Any) -> dict[str
     return {
         "system_instruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"parts": [{"text": user_message}]}],
-        "generationConfig": {"maxOutputTokens": 2048, **extra},
+        "generationConfig": {"maxOutputTokens": 4096, **extra},
     }
+
+
+def parse_response(result: dict[str, Any], model: str) -> dict[str, Any]:
+    """Extract text and usage from a Gemini generateContent response."""
+    text = ""
+    candidates = result.get("candidates", [])
+    if candidates:
+        parts = candidates[0].get("content", {}).get("parts", [])
+        for part in parts:
+            t = part.get("text", "")
+            if t:
+                text = t
+                break
+
+    usage = None
+    usage_meta = result.get("usageMetadata", {})
+    if usage_meta:
+        usage = {
+            "inputTokens": usage_meta.get("promptTokenCount", 0),
+            "outputTokens": usage_meta.get("candidatesTokenCount", 0),
+            "provider": "gemini",
+            "model": model,
+        }
+
+    return {"text": text, "usage": usage}
 
 
 def stream_completion(
@@ -141,29 +166,40 @@ def get_json_completion(
         headers={"Content-Type": "application/json"},
     )
     resp.raise_for_status()
-    result = resp.json()
+    return parse_response(resp.json(), model)
 
-    text = ""
-    candidates = result.get("candidates", [])
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        for part in parts:
-            t = part.get("text", "")
-            if t:
-                text = t
-                break
 
-    usage = None
-    usage_meta = result.get("usageMetadata", {})
-    if usage_meta:
-        usage = {
-            "inputTokens": usage_meta.get("promptTokenCount", 0),
-            "outputTokens": usage_meta.get("candidatesTokenCount", 0),
-            "provider": "gemini",
-            "model": model,
-        }
+def get_vision_json_completion(
+    system_prompt: str, user_message: str, image_base64: str, mime_type: str
+) -> dict[str, Any]:
+    """Get a non-streaming completion with an image input and JSON response."""
+    client, api_key, model = _get_config()
+    url = f"{_BASE_URL}/{model}:generateContent?key={api_key}"
 
-    return {"text": text, "usage": usage}
+    body: dict[str, Any] = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [
+            {
+                "parts": [
+                    {"inline_data": {"mime_type": mime_type, "data": image_base64}},
+                    {"text": user_message},
+                ]
+            }
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 4096,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    resp = client.post(
+        url,
+        json=body,
+        headers={"Content-Type": "application/json"},
+        timeout=120.0,
+    )
+    resp.raise_for_status()
+    return parse_response(resp.json(), model)
 
 
 def get_text_completion(
@@ -179,26 +215,4 @@ def get_text_completion(
         headers={"Content-Type": "application/json"},
     )
     resp.raise_for_status()
-    result = resp.json()
-
-    text = ""
-    candidates = result.get("candidates", [])
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        for part in parts:
-            t = part.get("text", "")
-            if t:
-                text = t
-                break
-
-    usage = None
-    usage_meta = result.get("usageMetadata", {})
-    if usage_meta:
-        usage = {
-            "inputTokens": usage_meta.get("promptTokenCount", 0),
-            "outputTokens": usage_meta.get("candidatesTokenCount", 0),
-            "provider": "gemini",
-            "model": model,
-        }
-
-    return {"text": text, "usage": usage}
+    return parse_response(resp.json(), model)

@@ -123,7 +123,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-lg sm:max-w-2xl border border-border flex flex-col h-[580px] sm:h-[560px] max-h-[90vh]">
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-lg sm:max-w-2xl border border-border flex flex-col max-h-[90vh]">
         <div className="px-6 pt-6 pb-2">
           <h2 className="text-xl font-semibold">
             {step === 1 ? 'Welcome' : step === 2 ? 'Choose a deck' : 'How it works'}
@@ -248,12 +248,10 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                   )}
                 </p>
                 {!keyringAvailable && (
-                  <div className="p-3 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950">
+                  <div className="p-2 rounded border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950">
                     <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                      <strong>Where your key will be stored:</strong> No system keyring (GNOME
-                      Keyring, macOS Keychain) was detected, so your API key will be saved in a
-                      local config file readable only by your OS user. Safe on personal machines;
-                      avoid on shared computers.
+                      <strong>Key storage:</strong> No system keyring detected — key will be saved
+                      in a local config file (readable only by your OS user).
                     </p>
                   </div>
                 )}

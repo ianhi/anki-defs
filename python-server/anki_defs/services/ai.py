@@ -166,6 +166,8 @@ def _load_all_prompts() -> dict[str, Any]:
         "englishToTarget": _load_json("english-to-target.json"),
         "sentence": _load_json("sentence.json"),
         "distractors": _load_json("distractors.json"),
+        "photoExtract": _load_json("photo-extract.json"),
+        "photoGenerate": _load_json("photo-generate.json"),
     }
 
 
@@ -443,3 +445,60 @@ def parse_json_response(raw: str) -> Any:
     stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw, count=1)
     stripped = re.sub(r"\n?```\s*$", "", stripped, count=1)
     return json.loads(stripped)
+
+
+def get_vision_extraction(
+    image_base64: str, mime_type: str
+) -> dict[str, Any]:
+    """Extract vocab pairs from an image using Gemini vision API.
+
+    Returns {"pairs": [...], "usage": {...}}.
+    """
+    template = _prompt_templates["photoExtract"]
+    system_prompt = template["system"]
+    user_message = template.get("user_template", "Extract vocabulary from this image.")
+
+    result = providers.gemini.get_vision_json_completion(
+        system_prompt, user_message, image_base64, mime_type
+    )
+    raw = result.get("text", "")
+    parsed = parse_json_response(raw)
+
+    # Normalize: ensure we have a list of {word, definition} dicts
+    if isinstance(parsed, dict) and "pairs" in parsed:
+        pairs = parsed["pairs"]
+    elif isinstance(parsed, list):
+        pairs = parsed
+    else:
+        pairs = [parsed]
+
+    validated: list[dict[str, str]] = []
+    for item in pairs:
+        if isinstance(item, dict) and item.get("word"):
+            validated.append({
+                "word": str(item["word"]).strip(),
+                "definition": str(item.get("definition", "")).strip(),
+            })
+
+    return {"pairs": validated, "usage": result.get("usage")}
+
+
+def build_photo_generate_prompt(
+    pairs: list[dict[str, str]],
+    language: dict[str, Any],
+    transliteration: bool,
+) -> tuple[str, str]:
+    """Build a prompt to generate flashcards for a batch of word+definition pairs.
+
+    Returns (system_prompt, user_message).
+    """
+    template = _prompt_templates["photoGenerate"]
+    system_prompt = _render_prompt(template["system"], transliteration, language)
+
+    word_lines = []
+    for p in pairs:
+        word_lines.append(f"- {p['word']}: {p.get('definition', '')}")
+    word_list = "\n".join(word_lines)
+
+    user_message = template["user_template"].replace("{{wordList}}", word_list)
+    return system_prompt, user_message

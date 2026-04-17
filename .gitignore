@@ -50,3 +50,4 @@ anki-addon/web/assets/
 # Misc
 *.bak
 .claude/worktrees/
+dev-images/

@@ -200,6 +200,19 @@ export function computeCost(usage: TokenUsage): number {
   return (usage.inputTokens * pricing.input + usage.outputTokens * pricing.output) / 1_000_000;
 }
 
+// Photo-to-flashcards types
+export interface VocabPair {
+  word: string;
+  definition: string;
+  alreadyExists?: boolean;
+  existingDefinition?: string;
+}
+
+export interface PhotoExtractResponse {
+  pairs: VocabPair[];
+  usage?: TokenUsage;
+}
+
 // API request/response types
 export interface ChatStreamRequest {
   newMessage: string;

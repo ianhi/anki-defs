@@ -14,29 +14,11 @@ from typing import Any
 import httpx
 from bottle import Bottle, request, response
 
-from ..config import SHARED_DIR
 from ..services import ai, anki_connect, card_extraction, session
 from ..services.settings import get_settings
+from ._helpers import compute_cost, format_http_error, sse_event
 
 log = logging.getLogger(__name__)
-
-with open(SHARED_DIR / "data" / "model-pricing.json", encoding="utf-8") as _f:
-    MODEL_PRICING: dict[str, dict[str, float]] = json.load(_f)
-
-
-def _compute_cost(usage: dict[str, Any]) -> float:
-    model = usage.get("model", "")
-    pricing = MODEL_PRICING.get(model)
-    if not pricing:
-        return 0.0
-    return (
-        usage.get("inputTokens", 0) * pricing["input"]
-        + usage.get("outputTokens", 0) * pricing["output"]
-    ) / 1_000_000
-
-
-def _sse_event(event: dict[str, Any]) -> str:
-    return f"data: {json.dumps(event)}\n\n"
 
 
 def _check_words_parallel(
@@ -68,7 +50,7 @@ def register(app: Bottle) -> None:
 
         if not new_message:
             response.status = 400
-            return iter([_sse_event({"type": "error", "data": "newMessage is required"})])
+            return iter([sse_event({"type": "error", "data": "newMessage is required"})])
 
         response.content_type = "text/event-stream"
         response.set_header("Cache-Control", "no-cache")
@@ -106,7 +88,7 @@ def register(app: Bottle) -> None:
                 )
             except (RuntimeError, ValueError, OSError) as e:
                 log.error("Stream worker error: %s", e, exc_info=True)
-                q.put(_sse_event({"type": "error", "data": str(e)}))
+                q.put(sse_event({"type": "error", "data": str(e)}))
             finally:
                 q.put(None)
 
@@ -151,7 +133,7 @@ def register(app: Bottle) -> None:
         except httpx.HTTPError as e:
             log.error("Error generating distractors: %s", e)
             response.status = 500
-            return {"error": _format_http_error(e)}
+            return {"error": format_http_error(e)}
         except (RuntimeError, ValueError, OSError) as e:
             log.error("Error generating distractors: %s", e)
             response.status = 500
@@ -187,38 +169,11 @@ def register(app: Bottle) -> None:
         except httpx.HTTPError as e:
             log.error("Error relemmatizing word: %s", e)
             response.status = 500
-            return {"error": _format_http_error(e)}
+            return {"error": format_http_error(e)}
         except (RuntimeError, ValueError, OSError) as e:
             log.error("Error relemmatizing word: %s", e)
             response.status = 500
             return {"error": "Failed to relemmatize word"}
-
-
-def _format_http_error(exc: httpx.HTTPError) -> str:
-    if isinstance(exc, httpx.HTTPStatusError):
-        status = exc.response.status_code
-        detail = (exc.response.text or "").strip()
-        try:
-            data = exc.response.json()
-            if isinstance(data, dict):
-                err = data.get("error")
-                if isinstance(err, dict) and err.get("message"):
-                    detail = err["message"]
-                elif isinstance(err, str):
-                    detail = err
-        except (ValueError, json.JSONDecodeError):
-            pass
-        if len(detail) > 500:
-            detail = detail[:500] + "\u2026"
-        hint = ""
-        if status in (401, 403):
-            hint = " \u2014 check your API key in Settings."
-        elif status == 429:
-            hint = " \u2014 rate limited; wait a moment or check your plan."
-        elif status == 400:
-            hint = " \u2014 the request was rejected (bad model name or invalid API key)."
-        return f"AI provider returned HTTP {status}{hint}\\n\\n{detail}"
-    return f"Network error talking to the AI provider: {exc}"
 
 
 def _sentence_translate(
@@ -228,17 +183,17 @@ def _sentence_translate(
         result = ai.get_text_completion(system_prompt, user_message)
         usage = result.get("usage")
         if usage:
-            cost = _compute_cost(usage)
+            cost = compute_cost(usage)
             session.record_usage(usage, cost)
-            q.put(_sse_event({"type": "usage", "data": usage}))
-        q.put(_sse_event({"type": "text", "data": result.get("text", "")}))
+            q.put(sse_event({"type": "usage", "data": usage}))
+        q.put(sse_event({"type": "text", "data": result.get("text", "")}))
     except httpx.HTTPError as e:
         log.error("Sentence translate HTTP error: %s", e)
-        q.put(_sse_event({"type": "error", "data": _format_http_error(e)}))
+        q.put(sse_event({"type": "error", "data": format_http_error(e)}))
     except (RuntimeError, ValueError, OSError) as e:
         log.error("Sentence translate error: %s", e)
-        q.put(_sse_event({"type": "error", "data": str(e)}))
-    q.put(_sse_event({"type": "done", "data": None}))
+        q.put(sse_event({"type": "error", "data": str(e)}))
+    q.put(sse_event({"type": "done", "data": None}))
 
 
 def _json_pipeline(
@@ -264,9 +219,9 @@ def _json_pipeline(
         usage = result.get("usage")
 
         if usage:
-            cost = _compute_cost(usage)
+            cost = compute_cost(usage)
             session.record_usage(usage, cost)
-            q.put(_sse_event({"type": "usage", "data": usage}))
+            q.put(sse_event({"type": "usage", "data": usage}))
 
         cards = None
         try:
@@ -281,14 +236,14 @@ def _json_pipeline(
                 )
                 retry_usage = retry_result.get("usage")
                 if retry_usage:
-                    cost = _compute_cost(retry_usage)
+                    cost = compute_cost(retry_usage)
                     session.record_usage(retry_usage, cost)
-                    q.put(_sse_event({"type": "usage", "data": retry_usage}))
+                    q.put(sse_event({"type": "usage", "data": retry_usage}))
                 parsed = ai.parse_json_response(retry_result.get("text", ""))
                 cards = card_extraction.validate_card_responses(parsed)
             except (json.JSONDecodeError, ValueError):
-                q.put(_sse_event({"type": "error", "data": "Failed to parse AI response as JSON"}))
-                q.put(_sse_event({"type": "done", "data": None}))
+                q.put(sse_event({"type": "error", "data": "Failed to parse AI response as JSON"}))
+                q.put(sse_event({"type": "done", "data": None}))
                 return
 
         new_words = [
@@ -300,15 +255,15 @@ def _json_pipeline(
 
         previews = card_extraction.build_card_previews(cards, target_deck, anki_results)
         for preview in previews:
-            q.put(_sse_event({"type": "card_preview", "data": preview}))
+            q.put(sse_event({"type": "card_preview", "data": preview}))
 
-        q.put(_sse_event({"type": "done", "data": None}))
+        q.put(sse_event({"type": "done", "data": None}))
 
     except httpx.HTTPError as e:
         log.error("JSON pipeline HTTP error: %s", e)
-        q.put(_sse_event({"type": "error", "data": _format_http_error(e)}))
-        q.put(_sse_event({"type": "done", "data": None}))
+        q.put(sse_event({"type": "error", "data": format_http_error(e)}))
+        q.put(sse_event({"type": "done", "data": None}))
     except (RuntimeError, ValueError, OSError) as e:
         log.error("JSON pipeline error: %s", e, exc_info=True)
-        q.put(_sse_event({"type": "error", "data": str(e)}))
-        q.put(_sse_event({"type": "done", "data": None}))
+        q.put(sse_event({"type": "error", "data": str(e)}))
+        q.put(sse_event({"type": "done", "data": None}))

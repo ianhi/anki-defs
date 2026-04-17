@@ -34,6 +34,7 @@
 | Web app (`client/` + `python-server/`)              | Working | Bottle + React, 3 AI providers, TTS, auto note-type creation per language                                   |
 | Android (`android/`)                                | Working | Still on old two-call pipeline                                                                              |
 | Anki add-on (`anki-addon/`)                         | Working | Bottle WSGI in daemon thread, `@main_thread` bridge for collection access. Tested via Tailscale from phone. |
+| Photo-to-flashcards                                 | Working | Camera/upload → crop → extract vocab → generate examples → add to Anki. Gemini vision, chunked batching.    |
 | Shared prompts (`shared/prompts/`)                  | Working | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced.           |
 | Note-type templates (`shared/data/note-types.json`) | Working | Audio fields with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion.             |
 | Tests                                               | 138+27  | python-server pytest (111) + vitest (27 client) + addon pytest (27)                                         |

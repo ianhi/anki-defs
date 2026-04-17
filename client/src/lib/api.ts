@@ -9,9 +9,57 @@ import type {
   SessionCard,
   PendingCard,
   PlatformInfo,
+  PhotoExtractResponse,
+  VocabPair,
 } from 'shared';
 
 const API_BASE = '/api';
+
+async function* streamSSE(
+  url: string,
+  body: unknown,
+  signal?: AbortSignal
+): AsyncGenerator<SSEEvent, void, unknown> {
+  const response = await fetch(`${API_BASE}${url}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to start stream to ${url}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data === '[DONE]') return;
+        try {
+          yield JSON.parse(data) as SSEEvent;
+        } catch {
+          if (import.meta.env.DEV) console.debug('[API] Failed to parse SSE event:', data);
+        }
+      }
+    }
+  }
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
@@ -79,58 +127,19 @@ export const chatApi = {
       body: JSON.stringify(request),
     }),
 
-  stream: async function* (
+  stream: (
     message: string,
     deck?: string,
     highlightedWords?: string[],
     userContext?: string,
     mode?: 'english-to-target',
     signal?: AbortSignal
-  ): AsyncGenerator<SSEEvent, void, unknown> {
-    const response = await fetch(`${API_BASE}/chat/stream`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ newMessage: message, deck, highlightedWords, userContext, mode }),
-      signal,
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to start chat stream');
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('No response body');
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') {
-            return;
-          }
-          try {
-            yield JSON.parse(data) as SSEEvent;
-          } catch {
-            if (import.meta.env.DEV) console.debug('[API] Failed to parse SSE event:', data);
-          }
-        }
-      }
-    }
-  },
+  ) =>
+    streamSSE(
+      '/chat/stream',
+      { newMessage: message, deck, highlightedWords, userContext, mode },
+      signal
+    ),
 };
 
 // Language API
@@ -204,4 +213,35 @@ export const sessionApi = {
       `/session/history${qs ? `?${qs}` : ''}`
     );
   },
+};
+
+// Photo API
+export const photoApi = {
+  extract: async (blob: Blob, deck: string): Promise<PhotoExtractResponse> => {
+    const formData = new FormData();
+    formData.append('image', blob, 'photo.jpg');
+    formData.append('deck', deck);
+    const response = await fetch(`${API_BASE}/photo/extract`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+    return response.json();
+  },
+
+  generate: (pairs: VocabPair[], deck: string, signal?: AbortSignal) =>
+    streamSSE('/photo/generate', { pairs, deck }, signal),
+
+  listExamples: () =>
+    fetchJson<{ examples: string[] }>('/photo/examples').catch(() => ({
+      examples: [] as string[],
+    })),
+
+  getExample: (filename: string) =>
+    fetchJson<{ imageBase64: string; mimeType: string; filename: string }>(
+      `/photo/examples/${encodeURIComponent(filename)}`
+    ),
 };
