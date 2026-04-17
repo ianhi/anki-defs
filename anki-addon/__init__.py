@@ -58,6 +58,17 @@ class AnkiDefsAddon:
             def log_request(self, code="-", size="-"):
                 pass
 
+            def handle(self):
+                try:
+                    super().handle()
+                except (ConnectionResetError, BrokenPipeError) as e:
+                    # Client disconnected before we could read/write.
+                    # Normal with mobile browsers — not worth an error dialog.
+                    import logging
+                    logging.getLogger("anki_defs.server").debug(
+                        "Client disconnected: %s", e
+                    )
+
             def get_stderr(self):
                 # Anki's ErrorHandler lacks flush(), which wsgiref requires.
                 # Wrap it so error dialogs still work without mutating the original.
