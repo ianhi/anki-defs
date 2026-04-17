@@ -22,5 +22,6 @@
     "listening": true
   },
   "noteTypePrefix": "anki-defs",
-  "ankiTtsLocaleByLanguage": {}
+  "ankiTtsLocaleByLanguage": {},
+  "onboardingComplete": false
 }

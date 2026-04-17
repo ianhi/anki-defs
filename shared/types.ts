@@ -125,6 +125,7 @@ export interface Settings {
   // Keyed by the language code (e.g. `es-MX`); value is the locale Anki should
   // ask for (e.g. `es_US`). When unset, the language file's `ttsLocale` is used.
   ankiTtsLocaleByLanguage: Record<string, string>;
+  onboardingComplete: boolean;
 }
 
 export const CARD_DATA_FIELDS = [
@@ -161,6 +162,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   noteTypePrefix: 'anki-defs',
   ankiTtsLocaleByLanguage: {},
+  onboardingComplete: false,
 };
 
 // Model options per provider

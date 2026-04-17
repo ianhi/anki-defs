@@ -17,12 +17,24 @@ DEFAULTS_DIR = SHARED_DIR / "defaults"
 DATA_DIR = SHARED_DIR / "data"
 
 # User config
-CONFIG_DIR = Path.home() / ".config" / "bangla-anki"
+CONFIG_DIR = Path.home() / ".config" / "anki-defs"
+_OLD_CONFIG_DIR = Path.home() / ".config" / "bangla-anki"
 SETTINGS_FILE = CONFIG_DIR / "settings.json"
 DB_FILE = CONFIG_DIR / "session.db"
 
 # Client dist for static serving
 CLIENT_DIST = PROJECT_ROOT / "client" / "dist"
+
+
+def migrate_config_dir() -> None:
+    """Move config from old bangla-anki dir to anki-defs if needed."""
+    if _OLD_CONFIG_DIR.is_dir() and not CONFIG_DIR.exists():
+        import logging
+        import shutil
+
+        log = logging.getLogger(__name__)
+        log.info("Migrating config: %s → %s", _OLD_CONFIG_DIR, CONFIG_DIR)
+        shutil.move(str(_OLD_CONFIG_DIR), str(CONFIG_DIR))
 
 
 def load_dotenv() -> None:

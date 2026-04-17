@@ -18,7 +18,7 @@ import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
 import { Loader2, Volume2, X, Plus } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 import { LanguageDropdown } from './LanguageDropdown';
-import { ONBOARDED_STORAGE_KEY, CHAT_STORAGE_KEY } from '@/lib/storage-keys';
+import { CHAT_STORAGE_KEY } from '@/lib/storage-keys';
 import { useTheme, type Theme } from '@/hooks/useTheme';
 import {
   getVoicesForLanguage,
@@ -374,8 +374,8 @@ const TABS: { id: SettingsTab; label: string }[] = [
 function DebugSection() {
   const { updateSettings } = useSettingsStore();
 
-  const resetOnboarding = () => {
-    localStorage.removeItem(ONBOARDED_STORAGE_KEY);
+  const resetOnboarding = async () => {
+    await settingsApi.update({ onboardingComplete: false });
     window.location.reload();
   };
 

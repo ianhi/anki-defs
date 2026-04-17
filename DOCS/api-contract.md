@@ -123,7 +123,7 @@ The `/api/chat/stream` endpoint sends discriminated union events (`SSEEvent` in 
 
 Settings are stored per-platform:
 
-- **Python server**: `~/.config/bangla-anki/settings.json`
+- **Python server**: `~/.config/anki-defs/settings.json`
 - **Anki addon**: Anki's addon config (`meta.json`)
 
 API keys stored in system keyring when available, with fallback to config

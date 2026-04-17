@@ -13,12 +13,13 @@ log = logging.getLogger(__name__)
 
 from bottle import Bottle, HTTPResponse, request, response, static_file  # noqa: E402
 
-from .config import CLIENT_DIST, load_dotenv  # noqa: E402
+from .config import CLIENT_DIST, load_dotenv, migrate_config_dir  # noqa: E402
 from .middleware.auth import check_auth  # noqa: E402
 from .routes import anki, chat, prompts, session, settings  # noqa: E402
 from .services.settings import get_settings, save_settings  # noqa: E402
 
-# Load .env files
+# Migrate config dir from old name and load .env files
+migrate_config_dir()
 load_dotenv()
 
 app = Bottle()

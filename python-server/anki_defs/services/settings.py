@@ -1,7 +1,7 @@
 """File-based settings with API keys stored in system keyring.
 
 Platform adapter for python-server: stores non-secret settings in a JSON file
-at ~/.config/bangla-anki/settings.json, secrets in the system keyring (with
+at ~/.config/anki-defs/settings.json, secrets in the system keyring (with
 fallback to the JSON file if keyring is unavailable).
 """
 

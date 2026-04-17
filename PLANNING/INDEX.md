@@ -4,12 +4,7 @@
 
 ### Ready now (no blockers)
 
-1. **Rename config dir `bangla-anki` → `anki-defs`** — Config path, keyring service
-   name, and localStorage keys still use old project name. Needs migration to move
-   existing config on startup. See `next-steps.md` for file list.
-2. **Move onboarding flag server-side** — Currently in browser localStorage, so
-   every new device re-triggers onboarding. Should be a boolean in server settings.
-3. **Embedded audio in cards (Phase 2)** — Audio fields + fallback templates are
+1. **Embedded audio in cards (Phase 2)** — Audio fields + fallback templates are
    wired. Next: wire up Google Cloud TTS endpoint to actually populate them.
    Plan exists at [audio-in-cards.md](audio-in-cards.md).
 
@@ -34,16 +29,16 @@
 
 ## Component status
 
-| Component                                           | Status  | Notes                                                                                                            |
-| --------------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
-| Web app (`client/` + `python-server/`)              | Working | Bottle + React, 3 AI providers, TTS, auto note-type creation per language                                        |
-| Android (`android/`)                                | Working | Still on old two-call pipeline                                                                                   |
-| Anki add-on (`anki-addon/`)                         | Working | Bottle WSGI in daemon thread, `@main_thread` bridge for collection access. Tested via Tailscale from phone.      |
-| Shared prompts (`shared/prompts/`)                  | Working | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced.                 |
-| Note-type templates (`shared/data/note-types.json`) | Working | Audio fields with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion.                  |
-| Tests                                               | 138+27  | python-server pytest (111) + vitest (27 client) + addon pytest (27)                                              |
-| CI                                                  | Working | `.github/workflows/ci.yml`                                                                                       |
-| Docs site (`docs/`)                                 | Updated | Tailscale docs rewritten with addon support + Chrome HTTP flag                                                   |
+| Component                                           | Status  | Notes                                                                                                       |
+| --------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
+| Web app (`client/` + `python-server/`)              | Working | Bottle + React, 3 AI providers, TTS, auto note-type creation per language                                   |
+| Android (`android/`)                                | Working | Still on old two-call pipeline                                                                              |
+| Anki add-on (`anki-addon/`)                         | Working | Bottle WSGI in daemon thread, `@main_thread` bridge for collection access. Tested via Tailscale from phone. |
+| Shared prompts (`shared/prompts/`)                  | Working | Parameterized templates + language files in `shared/languages/`. Tight definition rules enforced.           |
+| Note-type templates (`shared/data/note-types.json`) | Working | Audio fields with TTS fallback. `{{LOCALE}}` from `ttsLocale`. Bold markdown → HTML conversion.             |
+| Tests                                               | 138+27  | python-server pytest (111) + vitest (27 client) + addon pytest (27)                                         |
+| CI                                                  | Working | `.github/workflows/ci.yml`                                                                                  |
+| Docs site (`docs/`)                                 | Updated | Tailscale docs rewritten with addon support + Chrome HTTP flag                                              |
 
 ## Detailed plans
 

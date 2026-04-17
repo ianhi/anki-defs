@@ -182,7 +182,7 @@ On a local network or Tailscale, these keys could be intercepted.
 
 **Recommendation**:
 
-- Settings file is stored at `~/.config/bangla-anki/settings.json` with no file permission
+- Settings file is stored at `~/.config/anki-defs/settings.json` with no file permission
   restrictions. Set file permissions to `0600` after writing.
 - Consider using environment variables exclusively for API keys rather than the settings API.
 

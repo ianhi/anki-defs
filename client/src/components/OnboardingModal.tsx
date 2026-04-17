@@ -11,7 +11,6 @@ import { Select } from './ui/Select';
 import { Label } from './ui/Label';
 import { Loader2 } from 'lucide-react';
 import { LanguageDropdown } from './LanguageDropdown';
-import { ONBOARDED_STORAGE_KEY } from '@/lib/storage-keys';
 
 const DEFAULT_MODELS: Record<string, string> = {
   gemini: 'gemini-2.5-flash',
@@ -111,9 +110,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     setError('');
 
     try {
-      const saved = await settingsApi.update(buildUpdates(!keyringAvailable));
+      const updates = { ...buildUpdates(!keyringAvailable), onboardingComplete: true };
+      const saved = await settingsApi.update(updates);
       loadSettings(saved);
-      localStorage.setItem(ONBOARDED_STORAGE_KEY, '1');
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
