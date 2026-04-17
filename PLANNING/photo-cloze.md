@@ -173,6 +173,13 @@ interface PhotoClozeExtractResponse {
 3. **Exercises without hints?** Some blanks have no infinitive hint. The AI still
    needs to guess the word. These cloze cards would have no `::hint` suffix.
 
+5. **Hint position varies.** Some textbooks put the hint before the blank,
+   some after, some at the end of the sentence in parentheses. The extraction
+   prompt must handle all formats:
+   - `¿Dónde _____ (estar) María?` — hint in parens mid-sentence
+   - `Nosotros _____ el cumpleaños. (celebrar)` — hint at end
+   - `(saber) Ella no _____ la respuesta.` — hint at start
+
 4. **Answer key on a different page?** If the answers are on a separate page, the
    user could photograph both. But that's a future enhancement — start with the
    AI conjugating from context.
