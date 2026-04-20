@@ -99,7 +99,7 @@ export function PdfScoutStep({
   const extractable = sections.filter((s) => s.contentType !== 'prose');
 
   return (
-    <div className="p-4 space-y-4 max-w-2xl mx-auto">
+    <div className="p-4 pb-16 space-y-4 max-w-2xl mx-auto">
       <p className="text-sm text-muted-foreground">
         {extractable.length} of {sections.length} sections can produce flashcards.
         Checked sections will be extracted. Grammar/prose sections are skipped by default.
