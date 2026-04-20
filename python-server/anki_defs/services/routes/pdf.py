@@ -218,8 +218,15 @@ def _stream_previews(ctx: _ExtractCtx, cards: list[dict[str, Any]]) -> None:
         ctx.q.put(sse_event({"type": "card_preview", "data": preview}))
 
 
+_VOCAB_BATCH_SIZE = 12
+
+
 def _run_vocab(ctx: _ExtractCtx, section_text: str) -> None:
-    """Two calls: pairs → full cards (reuses photo-generate for the second pass)."""
+    """Extract pairs, then generate full cards in batches.
+
+    The photo-generate prompt works best with ≤12 words at a time.
+    Larger inputs cause the model to silently truncate output.
+    """
     sys1, usr1 = ai.build_pdf_vocab_extract_prompt(section_text, ctx.language)
     parsed = ai.parse_json_response(_ai_json(ctx, sys1, usr1))
     pairs = parsed if isinstance(parsed, list) else parsed.get("pairs", [])
@@ -227,16 +234,46 @@ def _run_vocab(ctx: _ExtractCtx, section_text: str) -> None:
     if not pairs:
         return
 
-    sys2, usr2 = ai.build_photo_generate_prompt(pairs, ctx.language, ctx.transliteration)
-    cards = parse_cards_with_healing(_ai_json(ctx, sys2, usr2), lambda u: _emit_usage(ctx, u))
-    card_extraction.inject_textbook_definitions(cards, pairs)
-    _stream_previews(ctx, cards)
+    for i in range(0, len(pairs), _VOCAB_BATCH_SIZE):
+        batch = pairs[i : i + _VOCAB_BATCH_SIZE]
+        sys2, usr2 = ai.build_photo_generate_prompt(batch, ctx.language, ctx.transliteration)
+        cards = parse_cards_with_healing(
+            _ai_json(ctx, sys2, usr2), lambda u: _emit_usage(ctx, u)
+        )
+        card_extraction.inject_textbook_definitions(cards, batch)
+        _stream_previews(ctx, cards)
+
+
+_PASSAGE_GLOSSARY_BATCH = 12
 
 
 def _run_passage(ctx: _ExtractCtx, passage_text: str, glossary_text: str) -> None:
-    """One call: passage prompt emits full cards directly."""
-    sys1, usr1 = ai.build_pdf_passage_extract_prompt(
-        passage_text, glossary_text, ctx.language, ctx.transliteration
+    """Passage + glossary → cards.  Batches glossary entries if large.
+
+    The passage text is the same for every batch; only the glossary
+    slice changes.  Without a glossary the prompt picks its own words
+    from the passage (single call).
+    """
+    glossary_lines = (
+        [ln for ln in glossary_text.splitlines() if ln.strip()] if glossary_text else []
     )
-    cards = parse_cards_with_healing(_ai_json(ctx, sys1, usr1), lambda u: _emit_usage(ctx, u))
-    _stream_previews(ctx, cards)
+
+    if len(glossary_lines) <= _PASSAGE_GLOSSARY_BATCH:
+        # Small enough for one call
+        sys1, usr1 = ai.build_pdf_passage_extract_prompt(
+            passage_text, glossary_text, ctx.language, ctx.transliteration
+        )
+        cards = parse_cards_with_healing(
+            _ai_json(ctx, sys1, usr1), lambda u: _emit_usage(ctx, u)
+        )
+        _stream_previews(ctx, cards)
+    else:
+        for i in range(0, len(glossary_lines), _PASSAGE_GLOSSARY_BATCH):
+            batch_text = "\n".join(glossary_lines[i : i + _PASSAGE_GLOSSARY_BATCH])
+            sys1, usr1 = ai.build_pdf_passage_extract_prompt(
+                passage_text, batch_text, ctx.language, ctx.transliteration
+            )
+            cards = parse_cards_with_healing(
+                _ai_json(ctx, sys1, usr1), lambda u: _emit_usage(ctx, u)
+            )
+            _stream_previews(ctx, cards)

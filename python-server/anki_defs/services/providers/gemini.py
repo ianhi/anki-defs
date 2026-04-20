@@ -37,11 +37,17 @@ def reset_client() -> None:
         _client = None
 
 
-def _build_body(system_prompt: str, user_message: str, **extra: Any) -> dict[str, Any]:
+def _build_body(
+    system_prompt: str,
+    user_message: str,
+    *,
+    max_output_tokens: int = 4096,
+    **extra: Any,
+) -> dict[str, Any]:
     return {
         "system_instruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"parts": [{"text": user_message}]}],
-        "generationConfig": {"maxOutputTokens": 4096, **extra},
+        "generationConfig": {"maxOutputTokens": max_output_tokens, **extra},
     }
 
 
@@ -154,7 +160,10 @@ def get_completion(system_prompt: str, user_message: str) -> str:
 
 
 def get_json_completion(
-    system_prompt: str, user_message: str
+    system_prompt: str,
+    user_message: str,
+    *,
+    max_output_tokens: int = 4096,
 ) -> dict[str, Any]:
     """Get a non-streaming completion with JSON mime type."""
     client, api_key, model = _get_config()
@@ -162,7 +171,12 @@ def get_json_completion(
 
     resp = client.post(
         url,
-        json=_build_body(system_prompt, user_message, responseMimeType="application/json"),
+        json=_build_body(
+            system_prompt,
+            user_message,
+            max_output_tokens=max_output_tokens,
+            responseMimeType="application/json",
+        ),
         headers={"Content-Type": "application/json"},
     )
     resp.raise_for_status()

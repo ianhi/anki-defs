@@ -138,7 +138,10 @@ def get_completion(system_prompt: str, user_message: str) -> str:
 
 
 def get_json_completion(
-    system_prompt: str, user_message: str
+    system_prompt: str,
+    user_message: str,
+    *,
+    max_output_tokens: int = 2048,
 ) -> dict[str, Any]:
     """Get a non-streaming completion, returning text and usage."""
     client, api_key, model = _get_config()
@@ -147,7 +150,7 @@ def get_json_completion(
         json={
             "model": model,
             "messages": _build_messages(system_prompt, user_message),
-            "max_tokens": 2048,
+            "max_tokens": max_output_tokens,
         },
         headers={
             "Content-Type": "application/json",

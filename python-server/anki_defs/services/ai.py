@@ -442,10 +442,17 @@ def get_completion(system_prompt: str, user_message: str) -> str:
     return provider.get_completion(system_prompt, user_message)
 
 
-def get_json_completion(system_prompt: str, user_message: str) -> dict[str, Any]:
+def get_json_completion(
+    system_prompt: str,
+    user_message: str,
+    *,
+    max_output_tokens: int = 4096,
+) -> dict[str, Any]:
     log.debug("getJsonCompletion using provider: %s", _provider_name())
     provider = _get_provider_module()
-    return provider.get_json_completion(system_prompt, user_message)
+    return provider.get_json_completion(
+        system_prompt, user_message, max_output_tokens=max_output_tokens
+    )
 
 
 def get_text_completion(system_prompt: str, user_message: str) -> dict[str, Any]:
