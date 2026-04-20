@@ -6,7 +6,7 @@ All types are defined in `types.ts`. This is the API contract source of truth.
 
 - `Message` -- Chat message (user/assistant, with optional card previews, token usage, refinements)
 - `CardContent` -- Base flashcard data: word, definition, nativeDefinition, exampleSentence, sentenceTranslation
-- `CardPreview` -- Extends CardContent with: alreadyExists, existingCard?, spellingCorrection?
+- `CardPreview` -- Extends CardContent with: alreadyExists, existingCard?, spellingCorrection?, tags? (PDF extract path)
 
 ## Session & Anki Types
 
@@ -45,6 +45,15 @@ Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 - `SearchNotesRequest` -- `{ query }`
 - `CreateNoteRequest` -- `{ deckName, modelName, fields, tags? }`
 - `RelemmatizeRequest` / `RelemmatizeResponse` -- Re-check dictionary form with context
+
+## PDF-to-Cards
+
+- `PdfContentType` -- `'vocab' | 'passage' | 'glossary' | 'exercise' | 'prose'`
+- `PdfFontProfile` -- `{ sizePt, bold, indentPt, columns }` — layout cues for scout classification
+- `PdfSection` -- structural: `{ id, heading, pageStart, pageEnd, bodySnippet, fontProfile }`. Produced by `client/src/lib/pdf.ts` from pdfjs.
+- `ScoutedSection` -- `PdfSection` plus `{ contentType, suggestedTags, worthExtracting, confidence, relatedTo[] }`. LLM scout adds semantic fields and links related sections.
+- `PdfScoutRequest` / `PdfScoutResponse` -- shape of `/api/pdf/scout`
+- `PdfExtractRequest` -- `{ primary, supporting[], tags, deck? }`. Client resolves `relatedTo` into `supporting` before calling.
 
 ## Other
 

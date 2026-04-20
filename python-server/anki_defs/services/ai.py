@@ -185,6 +185,9 @@ def _load_all_prompts() -> dict[str, Any]:
         "distractors": _load_json("distractors.json"),
         "photoExtract": _load_json("photo-extract.json"),
         "photoGenerate": _load_json("photo-generate.json"),
+        "pdfScout": _load_json("pdf-scout.json"),
+        "pdfVocabExtract": _load_json("pdf-vocab-extract.json"),
+        "pdfPassageExtract": _load_json("pdf-passage-extract.json"),
     }
 
 
@@ -533,4 +536,50 @@ def build_photo_generate_prompt(
     word_list = "\n".join(word_lines)
 
     user_message = template["user_template"].replace("{{wordList}}", word_list)
+    return system_prompt, user_message
+
+
+def build_pdf_scout_prompt(
+    sections: list[dict[str, Any]],
+    language: dict[str, Any],
+) -> tuple[str, str]:
+    """Build the PDF scout prompt — classifies a list of structural sections.
+
+    Input: list of PdfSection-shaped dicts (id, heading, pageStart, pageEnd,
+    bodySnippet, fontProfile). Output expected from AI: one ScoutedSection per
+    section with contentType, suggestedTags, worthExtracting, confidence,
+    relatedTo.
+    """
+    template = _prompt_templates["pdfScout"]
+    system_prompt = _render_prompt(template["system"], False, language)
+    outline_json = json.dumps(sections, ensure_ascii=False, indent=2)
+    user_message = template["user_template"].replace("{{outline}}", outline_json)
+    return system_prompt, user_message
+
+
+def build_pdf_vocab_extract_prompt(
+    section_text: str,
+    language: dict[str, Any],
+) -> tuple[str, str]:
+    """Build the PDF vocab-extract prompt — text block of pairs → VocabPair[]."""
+    template = _prompt_templates["pdfVocabExtract"]
+    system_prompt = _render_prompt(template["system"], False, language)
+    user_message = template["user_template"].replace("{{sectionText}}", section_text)
+    return system_prompt, user_message
+
+
+def build_pdf_passage_extract_prompt(
+    passage_text: str,
+    glossary_text: str,
+    language: dict[str, Any],
+    transliteration: bool,
+) -> tuple[str, str]:
+    """Build the PDF passage-extract prompt — passage + optional glossary → cards."""
+    template = _prompt_templates["pdfPassageExtract"]
+    system_prompt = _render_prompt(template["system"], transliteration, language)
+    user_message = (
+        template["user_template"]
+        .replace("{{passageText}}", passage_text)
+        .replace("{{glossaryText}}", glossary_text or "(no glossary provided)")
+    )
     return system_prompt, user_message

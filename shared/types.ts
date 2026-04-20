@@ -25,6 +25,7 @@ export interface CardPreview extends CardContent {
   alreadyExists: boolean; // Whether word already exists in Anki deck
   existingCard?: CardContent; // The existing card's content (for comparison)
   spellingCorrection?: string; // If input was a typo: "বাজারে → বাজার"
+  tags?: string[]; // Tags applied when the user adds this card (PDF scout flow)
 }
 
 export interface RelemmatizeRequest {
@@ -235,6 +236,67 @@ export interface VocabPair {
 export interface PhotoExtractResponse {
   pairs: VocabPair[];
   usage?: TokenUsage;
+}
+
+// PDF-to-flashcards types
+//
+// Pipeline: client parses the PDF with pdfjs and produces a list of PdfSection
+// (structural). The server scout pass classifies each section and links related
+// ones, producing ScoutedSection (semantic). The user reviews scouted sections,
+// then extract runs per section using the prompt matched by contentType.
+export type PdfContentType = 'vocab' | 'passage' | 'glossary' | 'exercise' | 'prose';
+
+export interface PdfFontProfile {
+  sizePt: number; // median font size of body text
+  bold: boolean;
+  indentPt: number; // median left indent
+  columns: 1 | 2 | 3;
+}
+
+export interface PdfSection {
+  id: string;
+  heading: string;
+  pageStart: number; // 1-indexed
+  pageEnd: number;
+  bodySnippet: string; // first ~10 lines, enough for scout to classify
+  fontProfile: PdfFontProfile;
+}
+
+export interface ScoutedSection extends PdfSection {
+  contentType: PdfContentType;
+  suggestedTags: string[]; // kebab-case, no `pdf:` source tag (added separately)
+  worthExtracting: boolean;
+  confidence: number; // 0..1
+  relatedTo: string[]; // ids of paired sections (passage↔glossary, etc.)
+}
+
+export interface PdfScoutRequest {
+  sections: PdfSection[];
+  deck?: string; // for language resolution
+}
+
+export interface PdfScoutResponse {
+  sections: ScoutedSection[];
+  usage?: TokenUsage;
+}
+
+// Extract request — primary section plus text for any sections it links to.
+// The client resolves relatedTo → supportingSections before calling.
+export interface PdfExtractRequest {
+  primary: {
+    id: string;
+    contentType: PdfContentType;
+    heading: string;
+    text: string;
+  };
+  supporting: Array<{
+    id: string;
+    contentType: PdfContentType;
+    heading: string;
+    text: string;
+  }>;
+  tags: string[]; // merged tags applied to every card from this extract
+  deck?: string;
 }
 
 // API request/response types

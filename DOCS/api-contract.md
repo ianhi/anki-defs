@@ -102,6 +102,28 @@ PUT with secrets when keyring unavailable returns 409 until user consents.
 | POST   | `/usage/reset`         | Reset token usage counters                     |
 | GET    | `/history`             | Search word history                            |
 
+### PDF Routes (`/api/pdf`)
+
+PDF-to-cards pipeline. The client parses the PDF with pdfjs and sends
+structural outline data; the server classifies and extracts via AI.
+
+| Method | Endpoint   | Description                                                  |
+| ------ | ---------- | ------------------------------------------------------------ |
+| POST   | `/scout`   | Classify sections + link related (`PdfScoutRequest/Response`)|
+| POST   | `/extract` | SSE-stream `CardPreview`s for one section (`PdfExtractRequest`) |
+
+`/extract` dispatches by `primary.contentType`:
+
+- `vocab` / `glossary` → two-pass pipeline: `pdf-vocab-extract.json` for pairs,
+  then `photo-generate.json` (reused) for full cards.
+- `passage` → single-pass `pdf-passage-extract.json`. Supporting sections of
+  type `glossary` or `vocab` are concatenated and passed as the glossary block.
+- `exercise` → `pdf-cloze-extract.json` (maintained by the cloze agent).
+  Returns 400 until that prompt file lands.
+
+Tags on the request are attached to every emitted `CardPreview` via its
+optional `tags` field, and flow through `CardPreview.extraTags` → addNote.
+
 ### Prompt Routes (`/api/prompts`)
 
 | Method | Endpoint   | Description              |
