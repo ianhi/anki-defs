@@ -5,10 +5,16 @@ import { ChevronDown, Database, AlertCircle, Check, X, Search } from 'lucide-rea
 import { Button } from './ui/Button';
 import { DeckLanguagePrompt } from './DeckLanguagePrompt';
 
-/** Simple fuzzy match: all characters of query appear in order in target (case-insensitive) */
+/** Fuzzy match: substring match OR all characters appear in order (case-insensitive).
+ *  Also matches against individual `::` segments so "imm" matches "Spanish::immersion". */
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
   const t = target.toLowerCase();
+  // Substring match on full name or any segment
+  if (t.includes(q)) return true;
+  if (target.includes('::') && target.split('::').some((seg) => seg.toLowerCase().includes(q)))
+    return true;
+  // Sequential character match
   let qi = 0;
   for (let ti = 0; ti < t.length && qi < q.length; ti++) {
     if (t[ti] === q[qi]) qi++;

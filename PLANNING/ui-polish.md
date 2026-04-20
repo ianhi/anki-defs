@@ -51,4 +51,12 @@ both viewports. Test in the browser before reporting done.
 
 ## Status
 
-Not started.
+Completed (2026-04-20). All four issues addressed:
+
+1. **Deck language**: Existing mappings now use inline `LanguageDropdown` — click to change
+   language directly. Parent→child propagation was already in `resolveDeckLanguage`.
+2. **Deck selectors**: Search enhanced with substring + per-segment matching alongside
+   existing sequential char match. Auto-focus was already implemented.
+3. **Settings**: Default tab changed from AI Provider to Anki.
+4. **Loading flash**: Removed "Loading..." placeholder; added inline `<head>` script that
+   detects theme from localStorage and sets background color + dark class before first paint.

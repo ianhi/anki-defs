@@ -7,11 +7,23 @@
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
     <title>anki-defs — Vocabulary Flashcards</title>
+    <script>
+      // Detect theme before first paint to prevent white flash
+      (function () {
+        var theme;
+        try {
+          var raw = localStorage.getItem('anki-defs-theme');
+          if (raw) theme = JSON.parse(raw).state && JSON.parse(raw).state.theme;
+        } catch (e) {}
+        var dark =
+          theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+        document.documentElement.style.backgroundColor = dark ? '#14181a' : '#fafaf7';
+      })();
+    </script>
   </head>
-  <body>
-    <div id="root">
-      <p style="padding: 2rem; font-family: sans-serif; color: #333; font-size: 18px">Loading...</p>
-    </div>
+  <body style="margin: 0; background: inherit">
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       function showErr(msg) {
@@ -33,7 +45,7 @@
       });
       setTimeout(function () {
         var el = document.getElementById('root');
-        if (el && el.textContent.trim() === 'Loading...') {
+        if (el && el.childElementCount === 0) {
           var info = 'App failed to start after 10s.\n\n';
           info += 'URL: ' + location.href + '\n';
           info += 'Protocol: ' + location.protocol + '\n';

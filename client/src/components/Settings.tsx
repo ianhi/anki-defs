@@ -245,14 +245,27 @@ function LanguageSection({
           so you only need to set the top-level deck.
         </p>
 
-        {/* Existing overrides */}
+        {/* Existing overrides — language is editable inline */}
         {Object.entries(deckLanguages).map(([deck, langCode]) => (
           <div key={deck} className="flex items-center gap-2">
             <span className="text-sm truncate flex-shrink min-w-0" title={deck}>
               {deck}
             </span>
             <span className="text-muted-foreground text-sm flex-shrink-0">&rarr;</span>
-            <span className="text-sm flex-shrink-0">{languageLabel(langCode)}</span>
+            <LanguageDropdown
+              value={langCode}
+              languages={languages}
+              customLanguages={customLanguages}
+              onChange={(code) =>
+                handleChange('deckLanguages', { ...deckLanguages, [deck]: code })
+              }
+              onCustom={() => {
+                setShowCustomOverride(deck);
+                setOverrideCustomName('');
+                setOverrideCustomCode('');
+              }}
+              className="flex-1 min-w-0"
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -506,7 +519,7 @@ export function Settings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [keyringAvailable, setKeyringAvailable] = useState(true);
   const [showInsecureWarning, setShowInsecureWarning] = useState(false);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('ai');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('anki');
 
   const { data: serverSettings, isLoading } = useQuery({
     queryKey: ['settings'],
