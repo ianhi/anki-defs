@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PdfContentType, PdfSection, ScoutedSection } from 'shared';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -53,6 +53,19 @@ export function PdfScoutStep({
     };
   }, [sectionsToScout, settings.defaultDeck]);
 
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval>>(null);
+
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [loading]);
+
   const toggle = (id: string) => {
     const next = new Set(picked);
     if (next.has(id)) next.delete(id);
@@ -63,11 +76,16 @@ export function PdfScoutStep({
   if (loading)
     return (
       <div className="p-6 flex flex-col items-center gap-3">
-        <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-muted-foreground">
           Scouting {sectionsToScout.length} section{sectionsToScout.length === 1 ? '' : 's'}…
         </p>
-        <p className="text-xs text-muted-foreground">This may take 10–30 seconds</p>
+        <p className="text-xs text-muted-foreground">
+          {elapsed}s elapsed — typically takes 10–30 seconds
+        </p>
+        <p className="text-xs text-muted-foreground/60">
+          If something goes wrong, an error will appear here.
+        </p>
       </div>
     );
   if (error)
