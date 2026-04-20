@@ -10,7 +10,7 @@
 
 import * as pdfjs from 'pdfjs-dist';
 import type { PDFDocumentProxy, PDFPageProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
-import type { PdfFontProfile, PdfSection } from '../../../shared/types';
+import type { PdfChapter, PdfFontProfile, PdfSection } from '../../../shared/types';
 
 // Point pdfjs at its bundled worker. Vite's `?url` import resolves to a URL
 // the worker can be loaded from at runtime.
@@ -169,61 +169,116 @@ function pageBodyMedianFontSize(lines: PageData['lines']): number {
   return sizes[Math.floor(sizes.length / 2)] ?? 10;
 }
 
-interface OutlineEntry {
+// Tree node from pdfjs outline, with resolved page index.
+interface OutlineNode {
   title: string;
   pageIndex: number; // 0-based
+  children: OutlineNode[];
 }
 
-async function embeddedOutline(doc: PDFDocumentProxy): Promise<OutlineEntry[]> {
+async function embeddedOutlineTree(doc: PDFDocumentProxy): Promise<OutlineNode[]> {
   const outline = await doc.getOutline();
   if (!outline) return [];
-  const flat: OutlineEntry[] = [];
-  async function walk(nodes: typeof outline): Promise<void> {
-    if (!nodes) return;
+  async function resolve(
+    nodes: NonNullable<typeof outline>,
+  ): Promise<OutlineNode[]> {
+    const result: OutlineNode[] = [];
     for (const node of nodes) {
       try {
         const dest =
           typeof node.dest === 'string' ? await doc.getDestination(node.dest) : node.dest;
         if (dest && Array.isArray(dest) && dest[0]) {
           const pageIndex = await doc.getPageIndex(dest[0]);
-          flat.push({ title: node.title.trim(), pageIndex });
+          const children = node.items?.length ? await resolve(node.items) : [];
+          result.push({ title: node.title.trim(), pageIndex, children });
         }
       } catch {
         // unresolvable dest — skip
       }
-      if (node.items?.length) await walk(node.items);
+    }
+    return result;
+  }
+  return resolve(outline);
+}
+
+type RawSection = { id: string; heading: string; pageStart: number; pageEnd: number };
+
+// Flatten a tree node and all descendants into sections. Returns the list and
+// the global counter so IDs are unique across the whole outline.
+function flattenNode(
+  node: OutlineNode,
+  nextSiblingPage: number, // 1-indexed page of the next sibling (or last page + 1)
+  counter: { n: number },
+): RawSection[] {
+  const sections: RawSection[] = [];
+  const allNodes: Array<{ node: OutlineNode; nextPage: number }> = [];
+
+  // Collect this node's children with their "next" boundaries
+  if (node.children.length > 0) {
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i]!;
+      const nextChild = node.children[i + 1];
+      const nextPage = nextChild ? nextChild.pageIndex + 1 : nextSiblingPage;
+      allNodes.push({ node: child, nextPage });
     }
   }
-  await walk(outline);
-  flat.sort((a, b) => a.pageIndex - b.pageIndex);
-  return flat;
+
+  // If no children, this node is itself a leaf section
+  if (allNodes.length === 0) {
+    const pageStart = node.pageIndex + 1;
+    sections.push({
+      id: `s${counter.n++}`,
+      heading: node.title,
+      pageStart,
+      pageEnd: Math.max(pageStart, nextSiblingPage - 1),
+    });
+  } else {
+    // Recurse into children
+    for (const { node: child, nextPage } of allNodes) {
+      sections.push(...flattenNode(child, nextPage, counter));
+    }
+  }
+  return sections;
 }
 
-// Build sections from either embedded bookmarks or font-based heading heuristics.
-function sectionsFromBookmarks(
-  bookmarks: OutlineEntry[],
-  pages: PageData[]
-): Array<{ id: string; heading: string; pageStart: number; pageEnd: number }> {
-  if (bookmarks.length === 0) return [];
-  const result: Array<{ id: string; heading: string; pageStart: number; pageEnd: number }> = [];
-  for (let i = 0; i < bookmarks.length; i++) {
-    const b = bookmarks[i]!;
-    const next = bookmarks[i + 1];
-    const pageEnd = next ? Math.max(b.pageIndex, next.pageIndex - 1) : pages.length - 1;
-    result.push({
-      id: `s${i}`,
-      heading: b.title,
-      pageStart: b.pageIndex + 1,
-      pageEnd: pageEnd + 1,
+// Build sections + chapters from embedded bookmarks (tree-aware).
+// "Chapters" are the meaningful grouping level the user picks from.
+// Strategy: top-level nodes that have children become chapters; their
+// descendants become sections. Top-level leaves become single-section chapters.
+function sectionsAndChaptersFromBookmarks(
+  tree: OutlineNode[],
+  numPages: number,
+): { sections: RawSection[]; chapters: PdfChapter[] } {
+  const sections: RawSection[] = [];
+  const chapters: PdfChapter[] = [];
+  const counter = { n: 0 };
+
+  for (let i = 0; i < tree.length; i++) {
+    const node = tree[i]!;
+    const nextNode = tree[i + 1];
+    const nextSiblingPage = nextNode ? nextNode.pageIndex + 1 : numPages + 1;
+
+    const chapterSections = flattenNode(node, nextSiblingPage, counter);
+    sections.push(...chapterSections);
+
+    const pageStart = node.pageIndex + 1;
+    chapters.push({
+      id: `ch${i}`,
+      title: node.title,
+      pageStart,
+      pageEnd: Math.max(pageStart, nextSiblingPage - 1),
+      sectionIds: chapterSections.map((s) => s.id),
     });
   }
-  return result;
+  return { sections, chapters };
 }
 
-function sectionsFromHeadings(
+// For heading-heuristic PDFs (no bookmarks), each heading becomes both a
+// section and a chapter — no tree structure to leverage.
+function sectionsAndChaptersFromHeadings(
   pages: PageData[],
-  drop: Set<string>
-): Array<{ id: string; heading: string; pageStart: number; pageEnd: number }> {
+  drop: Set<string>,
+): { sections: RawSection[]; chapters: PdfChapter[] } {
   type Seed = { heading: string; pageIndex: number };
   const seeds: Seed[] = [];
   for (const page of pages) {
@@ -236,13 +291,12 @@ function sectionsFromHeadings(
       }
     }
   }
-  // Deduplicate consecutive identical headings
   const filtered: Seed[] = [];
   for (const s of seeds) {
     const prev = filtered[filtered.length - 1];
     if (!prev || prev.heading !== s.heading) filtered.push(s);
   }
-  return filtered.map((s, i) => {
+  const sections: RawSection[] = filtered.map((s, i) => {
     const next = filtered[i + 1];
     const pageEnd = next ? Math.max(s.pageIndex, next.pageIndex - 1) : pages.length - 1;
     return {
@@ -252,6 +306,14 @@ function sectionsFromHeadings(
       pageEnd: pageEnd + 1,
     };
   });
+  const chapters: PdfChapter[] = sections.map((s) => ({
+    id: `c${s.id}`,
+    title: s.heading,
+    pageStart: s.pageStart,
+    pageEnd: s.pageEnd,
+    sectionIds: [s.id],
+  }));
+  return { sections, chapters };
 }
 
 function sectionText(
@@ -290,6 +352,7 @@ function fontProfileFor(pages: PageData[], pageStart1: number, pageEnd1: number)
 
 export interface ExtractedOutline {
   sections: PdfSection[];
+  chapters: PdfChapter[];
   pages: PageData[];
   dropLines: Set<string>;
 }
@@ -302,10 +365,10 @@ export async function extractOutline(loaded: LoadedPdf): Promise<ExtractedOutlin
     pageHeight
   );
 
-  const bookmarks = await embeddedOutline(loaded.doc);
-  const raw = bookmarks.length
-    ? sectionsFromBookmarks(bookmarks, pages)
-    : sectionsFromHeadings(pages, drop);
+  const tree = await embeddedOutlineTree(loaded.doc);
+  const { sections: raw, chapters } = tree.length
+    ? sectionsAndChaptersFromBookmarks(tree, pages.length)
+    : sectionsAndChaptersFromHeadings(pages, drop);
 
   const sections: PdfSection[] = raw.map((r) => ({
     id: r.id,
@@ -316,7 +379,7 @@ export async function extractOutline(loaded: LoadedPdf): Promise<ExtractedOutlin
     fontProfile: fontProfileFor(pages, r.pageStart, r.pageEnd),
   }));
 
-  return { sections, pages, dropLines: drop };
+  return { sections, chapters, pages, dropLines: drop };
 }
 
 // Full text for a section — used at extract time.

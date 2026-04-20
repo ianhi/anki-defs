@@ -270,6 +270,17 @@ export interface ScoutedSection extends PdfSection {
   relatedTo: string[]; // ids of paired sections (passage↔glossary, etc.)
 }
 
+// Chapter-level outline entry — groups sections for the chapter picker UI.
+// For PDFs with embedded bookmarks, chapters are the numbered chapter nodes.
+// For heading-heuristic PDFs, chapters are top-level headings.
+export interface PdfChapter {
+  id: string;
+  title: string;
+  pageStart: number; // 1-indexed
+  pageEnd: number;
+  sectionIds: string[]; // ids of PdfSections within this chapter
+}
+
 export interface PdfScoutRequest {
   sections: PdfSection[];
   deck?: string; // for language resolution

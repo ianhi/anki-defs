@@ -3,20 +3,35 @@ import type { CardPreview as CardPreviewType, ScoutedSection } from 'shared';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { PdfUploadStep } from './PdfUploadStep';
+import { PdfChapterStep } from './PdfChapterStep';
 import { PdfScoutStep } from './PdfScoutStep';
 import { PdfExtractStep } from './PdfExtractStep';
 import type { ExtractedOutline } from '@/lib/pdf';
 
-type Step = 'upload' | 'scout' | 'extract';
+type Step = 'upload' | 'chapters' | 'scout' | 'extract';
 
 export function PdfPage({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('upload');
   const [outline, setOutline] = useState<ExtractedOutline | null>(null);
+  const [selectedChapterIds, setSelectedChapterIds] = useState<string[]>([]);
   const [scouted, setScouted] = useState<ScoutedSection[]>([]);
   const [sourceTag, setSourceTag] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previews, setPreviews] = useState<CardPreviewType[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Filter sections to only those belonging to selected chapters.
+  const selectedSectionIds = outline
+    ? new Set(
+        outline.chapters
+          .filter((ch) => selectedChapterIds.includes(ch.id))
+          .flatMap((ch) => ch.sectionIds),
+      )
+    : new Set<string>();
+
+  const sectionsForScout = outline
+    ? outline.sections.filter((s) => selectedSectionIds.has(s.id))
+    : [];
 
   return (
     <div className="flex flex-col h-full">
@@ -34,6 +49,16 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
             onReady={(o, filenameTag) => {
               setOutline(o);
               setSourceTag(filenameTag);
+              setStep('chapters');
+            }}
+          />
+        )}
+
+        {step === 'chapters' && outline && (
+          <PdfChapterStep
+            outline={outline}
+            onSelected={(chapterIds) => {
+              setSelectedChapterIds(chapterIds);
               setStep('scout');
             }}
           />
@@ -41,7 +66,7 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
 
         {step === 'scout' && outline && (
           <PdfScoutStep
-            outline={outline}
+            sectionsToScout={sectionsForScout}
             sourceTag={sourceTag}
             onSourceTagChange={setSourceTag}
             onScouted={(list, picked) => {
@@ -64,6 +89,7 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
             onRestart={() => {
               abortRef.current?.abort();
               setOutline(null);
+              setSelectedChapterIds([]);
               setScouted([]);
               setSelectedIds(new Set());
               setPreviews([]);

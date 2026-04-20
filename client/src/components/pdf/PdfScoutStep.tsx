@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { PdfContentType, ScoutedSection } from 'shared';
+import type { PdfContentType, PdfSection, ScoutedSection } from 'shared';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { pdfApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import type { ExtractedOutline } from '@/lib/pdf';
 
 interface Props {
-  outline: ExtractedOutline;
+  sectionsToScout: PdfSection[];
   sourceTag: string;
   onSourceTagChange: (s: string) => void;
   onScouted: (sections: ScoutedSection[], picked: Set<string>) => void;
@@ -21,7 +20,12 @@ const TYPE_COLORS: Record<PdfContentType, string> = {
   prose: 'bg-muted text-muted-foreground',
 };
 
-export function PdfScoutStep({ outline, sourceTag, onSourceTagChange, onScouted }: Props) {
+export function PdfScoutStep({
+  sectionsToScout,
+  sourceTag,
+  onSourceTagChange,
+  onScouted,
+}: Props) {
   const { settings } = useSettingsStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +36,7 @@ export function PdfScoutStep({ outline, sourceTag, onSourceTagChange, onScouted 
     let cancelled = false;
     setLoading(true);
     pdfApi
-      .scout({ sections: outline.sections, deck: settings.defaultDeck })
+      .scout({ sections: sectionsToScout, deck: settings.defaultDeck })
       .then((r) => {
         if (cancelled) return;
         setSections(r.sections);
@@ -47,7 +51,7 @@ export function PdfScoutStep({ outline, sourceTag, onSourceTagChange, onScouted 
     return () => {
       cancelled = true;
     };
-  }, [outline, settings.defaultDeck]);
+  }, [sectionsToScout, settings.defaultDeck]);
 
   const toggle = (id: string) => {
     const next = new Set(picked);
