@@ -1,246 +1,272 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Check, X, Loader2, ChevronDown, ChevronUp, Eye } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from './ui/Button';
-import { Badge } from './ui/Badge';
 import { useNoteTypeHealth, useUpdateTemplates } from '@/hooks/useAnki';
 import type { NoteTypeIssue, StaleTemplate } from 'shared';
 
 function formatVersionRange(current: number | null, latest: number): string {
-  if (current === null) return `no version → v${latest}`;
+  if (current === null) return `unversioned → v${latest}`;
   return `v${current} → v${latest}`;
 }
 
-function SimpleDiff({
-  current,
-  proposed,
-  label,
-}: {
-  current: string;
-  proposed: string;
-  label: string;
-}) {
+function DiffBlock({ current, proposed }: { current: string; proposed: string }) {
   const currentLines = current.split('\n');
   const proposedLines = proposed.split('\n');
   const currentSet = new Set(currentLines);
   const proposedSet = new Set(proposedLines);
 
+  const removed = currentLines.filter((line) => !proposedSet.has(line));
+
   return (
-    <details className="text-xs">
-      <summary className="cursor-pointer font-medium text-muted-foreground py-1">{label}</summary>
-      <div className="mt-1 rounded border border-border overflow-auto max-h-48">
-        <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all">
-          {proposedLines.map((line, i) => {
-            const isNew = !currentSet.has(line);
-            return (
-              <div
-                key={i}
-                className={
-                  isNew
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-                    : ''
-                }
-              >
-                {isNew ? '+ ' : '  '}
-                {line}
-              </div>
-            );
-          })}
-          {currentLines
-            .filter((line) => !proposedSet.has(line))
-            .map((line, i) => (
-              <div
-                key={`rm-${i}`}
-                className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-              >
-                - {line}
-              </div>
-            ))}
-        </pre>
-      </div>
-    </details>
+    <pre className="p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted/50 rounded border border-border overflow-auto max-h-64">
+      {proposedLines.map((line, i) => {
+        const isNew = !currentSet.has(line);
+        return (
+          <div
+            key={i}
+            className={
+              isNew
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                : 'text-muted-foreground'
+            }
+          >
+            {isNew ? '+ ' : '  '}
+            {line}
+          </div>
+        );
+      })}
+      {removed.map((line, i) => (
+        <div
+          key={`rm-${i}`}
+          className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
+        >
+          - {line}
+        </div>
+      ))}
+    </pre>
   );
 }
 
-function TemplateDiff({ tmpl, latestVersion }: { tmpl: StaleTemplate; latestVersion: number }) {
+function TemplateDiffs({
+  templates,
+  latestVersion,
+}: {
+  templates: StaleTemplate[];
+  latestVersion: number;
+}) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium">
-        {tmpl.name} ({formatVersionRange(tmpl.currentVersion, latestVersion)})
-      </p>
-      <SimpleDiff
-        current={tmpl.current.front}
-        proposed={tmpl.proposed.front}
-        label="Front template"
-      />
-      <SimpleDiff current={tmpl.current.back} proposed={tmpl.proposed.back} label="Back template" />
+    <div className="space-y-4">
+      {templates.map((tmpl) => (
+        <div key={tmpl.name} className="space-y-2">
+          <h4 className="text-sm font-medium">
+            {tmpl.name}{' '}
+            <span className="text-muted-foreground font-normal">
+              ({formatVersionRange(tmpl.currentVersion, latestVersion)})
+            </span>
+          </h4>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Front</p>
+              <DiffBlock current={tmpl.current.front} proposed={tmpl.proposed.front} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Back</p>
+              <DiffBlock current={tmpl.current.back} proposed={tmpl.proposed.back} />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function IssueDetail({
-  issue,
-  onUpdateSuccess,
-}: {
-  issue: NoteTypeIssue;
-  onUpdateSuccess: () => void;
-}) {
-  const update = useUpdateTemplates();
-  const [showPreview, setShowPreview] = useState(false);
-  const [confirmUpdate, setConfirmUpdate] = useState(false);
+/** Check if all issues have the same changes (same card type, same versions). */
+function issuesAreIdentical(issues: NoteTypeIssue[]): boolean {
+  if (issues.length <= 1) return true;
+  const first = issues[0]!;
+  return issues.every(
+    (issue) =>
+      issue.cardType === first.cardType &&
+      issue.latestVersion === first.latestVersion &&
+      issue.cssOutdated === first.cssOutdated &&
+      issue.missingFields.join(',') === first.missingFields.join(',') &&
+      issue.staleTemplates.length === first.staleTemplates.length &&
+      issue.staleTemplates.every(
+        (t, i) => t.currentVersion === first.staleTemplates[i]?.currentVersion
+      )
+  );
+}
 
-  const handleUpdate = () => {
-    update.mutate(issue.modelName, { onSuccess: onUpdateSuccess });
-    setConfirmUpdate(false);
+/** Full-screen diff + update view */
+function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: () => void }) {
+  const update = useUpdateTemplates();
+  const [updated, setUpdated] = useState<Set<string>>(new Set());
+  const consolidated = issuesAreIdentical(issues);
+  const representative = issues[0]!;
+  const allUpdated = issues.every((i) => updated.has(i.modelName));
+
+  const handleUpdate = (modelName: string) => {
+    update.mutate(modelName, {
+      onSuccess: () => setUpdated((prev) => new Set(prev).add(modelName)),
+    });
+  };
+
+  const handleUpdateAll = () => {
+    for (const issue of issues) {
+      if (!updated.has(issue.modelName)) {
+        handleUpdate(issue.modelName);
+      }
+    }
   };
 
   return (
-    <div className="rounded-lg border border-border bg-background p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-medium text-sm truncate">{issue.modelName}</p>
-          <p className="text-xs text-muted-foreground">{issue.cardType} card</p>
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-medium">Note Type Updates</h2>
+          <p className="text-xs text-muted-foreground">
+            {consolidated && issues.length > 1
+              ? `Same changes for ${issues.length} note types`
+              : `${issues.length} note type${issues.length > 1 ? 's' : ''} need updating`}
+          </p>
         </div>
-        {update.isSuccess ? (
-          <Badge variant="default" className="bg-green-600 text-white">
-            <Check className="h-3 w-3 mr-1" /> Updated
-          </Badge>
+        {allUpdated ? (
+          <Button variant="outline" onClick={onClose}>
+            <Check className="h-4 w-4 mr-1.5 text-green-500" />
+            Done
+          </Button>
         ) : (
-          <div className="flex gap-1.5">
-            <Button size="sm" variant="ghost" onClick={() => setShowPreview(!showPreview)}>
-              <Eye className="h-3 w-3 mr-1" />
-              {showPreview ? 'Hide' : 'Preview'}
-            </Button>
-            {confirmUpdate ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={update.isPending}
-                  onClick={handleUpdate}
-                >
-                  {update.isPending && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-                  Confirm
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setConfirmUpdate(false)}>
-                  Cancel
-                </Button>
-              </>
-            ) : (
-              <Button size="sm" variant="outline" onClick={() => setConfirmUpdate(true)}>
-                Update
-              </Button>
-            )}
-          </div>
+          <Button disabled={update.isPending} onClick={handleUpdateAll}>
+            {update.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+            {issues.length === 1 ? 'Update' : `Update All (${issues.length})`}
+          </Button>
         )}
       </div>
 
-      <ul className="text-xs text-muted-foreground space-y-1">
-        {issue.missingFields.length > 0 && (
-          <li>
-            Missing fields: <span className="font-medium">{issue.missingFields.join(', ')}</span>
-          </li>
-        )}
-        {issue.staleTemplates.length > 0 && (
-          <li>
-            {issue.staleTemplates.length} template{issue.staleTemplates.length > 1 ? 's' : ''}{' '}
-            outdated
-          </li>
-        )}
-        {issue.cssOutdated && <li>CSS outdated</li>}
-      </ul>
-
-      {confirmUpdate && (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
-          This will overwrite templates with the latest version and force a one-way sync.
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-md p-2">
+          Updating templates forces a one-way sync in Anki. You will need to choose Upload or
+          Download next time you sync.
         </p>
-      )}
 
-      {showPreview && (
-        <div className="space-y-2 pt-1 border-t border-border">
-          {issue.staleTemplates.map((tmpl) => (
-            <TemplateDiff key={tmpl.name} tmpl={tmpl} latestVersion={issue.latestVersion} />
+        {/* Summary of affected models */}
+        <div className="space-y-1">
+          {issues.map((issue) => (
+            <div key={issue.modelName} className="flex items-center gap-2 text-sm">
+              {updated.has(issue.modelName) ? (
+                <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+              ) : (
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+              )}
+              <span
+                className={updated.has(issue.modelName) ? 'text-muted-foreground line-through' : ''}
+              >
+                {issue.modelName}
+              </span>
+              {issue.missingFields.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  +{issue.missingFields.join(', ')}
+                </span>
+              )}
+              {!consolidated && !updated.has(issue.modelName) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-6 text-xs"
+                  disabled={update.isPending}
+                  onClick={() => handleUpdate(issue.modelName)}
+                >
+                  Update
+                </Button>
+              )}
+            </div>
           ))}
-          {issue.cssOutdated && issue.currentCss && issue.proposedCss && (
-            <SimpleDiff current={issue.currentCss} proposed={issue.proposedCss} label="CSS" />
-          )}
         </div>
-      )}
+
+        {/* Template diffs — show once if consolidated, per-issue otherwise */}
+        {consolidated ? (
+          <>
+            {representative.staleTemplates.length > 0 && (
+              <TemplateDiffs
+                templates={representative.staleTemplates}
+                latestVersion={representative.latestVersion}
+              />
+            )}
+            {representative.cssOutdated &&
+              representative.currentCss &&
+              representative.proposedCss && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">CSS</h4>
+                  <DiffBlock
+                    current={representative.currentCss}
+                    proposed={representative.proposedCss}
+                  />
+                </div>
+              )}
+          </>
+        ) : (
+          issues.map((issue) => (
+            <div key={issue.modelName} className="space-y-3">
+              <h3 className="text-sm font-semibold border-b border-border pb-1">
+                {issue.modelName}
+              </h3>
+              {issue.staleTemplates.length > 0 && (
+                <TemplateDiffs
+                  templates={issue.staleTemplates}
+                  latestVersion={issue.latestVersion}
+                />
+              )}
+              {issue.cssOutdated && issue.currentCss && issue.proposedCss && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium">CSS</h4>
+                  <DiffBlock current={issue.currentCss} proposed={issue.proposedCss} />
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
 
 export function NoteTypeHealth() {
-  const [dismissed, setDismissed] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const { data, isLoading } = useNoteTypeHealth();
   const prevCountRef = useRef(0);
 
   const issues = data?.issues ?? [];
 
-  // Auto-expand banner when issues first appear
+  // Auto-show detail view when issues first appear
   useEffect(() => {
     if (issues.length > 0 && prevCountRef.current === 0) {
-      setDismissed(false);
+      setShowDetail(true);
     }
     prevCountRef.current = issues.length;
   }, [issues.length]);
 
   if (isLoading || issues.length === 0) return null;
 
-  // Compact icon mode (after user dismisses the banner)
-  if (dismissed) {
-    return (
-      <div className="px-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-amber-600 dark:text-amber-400 text-xs gap-1.5 h-7"
-          onClick={() => setDismissed(false)}
-        >
-          <AlertTriangle className="h-3.5 w-3.5" />
-          {issues.length} note type update{issues.length > 1 ? 's' : ''} available
-        </Button>
-      </div>
-    );
+  if (showDetail) {
+    return <HealthDetail issues={issues} onClose={() => setShowDetail(false)} />;
   }
 
-  // Prominent banner mode
+  // Banner — click anywhere to open the full-screen detail
   return (
-    <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex-shrink-0">
-      <div className="flex items-center gap-2 px-3 py-2">
-        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-        <p className="text-xs text-amber-700 dark:text-amber-300 flex-1">
-          {issues.length} note type{issues.length > 1 ? 's' : ''} can be updated with new features
-        </p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 flex-shrink-0 text-amber-600"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 flex-shrink-0 text-amber-600"
-          onClick={() => setDismissed(true)}
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-
-      {expanded && (
-        <div className="px-3 pb-3 space-y-2">
-          {issues.map((issue) => (
-            <IssueDetail key={issue.modelName} issue={issue} onUpdateSuccess={() => {}} />
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      className="w-full bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex-shrink-0 flex items-center gap-2 px-3 py-2 text-left hover:bg-amber-100/50 dark:hover:bg-amber-900/20"
+      onClick={() => setShowDetail(true)}
+    >
+      <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+      <p className="text-xs text-amber-700 dark:text-amber-300 flex-1">
+        {issues.length} note type{issues.length > 1 ? 's' : ''} can be updated with new features
+        {issues[0]?.missingFields.length ? ` (${issues[0]!.missingFields.join(', ')})` : ''}
+      </p>
+    </button>
   );
 }
