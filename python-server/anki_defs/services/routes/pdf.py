@@ -12,6 +12,7 @@ import json
 import logging
 import os
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -148,16 +149,19 @@ def register(app: Any, anki: AnkiBackend) -> None:
                 language = ai.get_language_for_deck(target_deck)
                 transliteration = settings.get("showTransliteration", False)
 
+                ctx = _ExtractCtx(
+                    q=q,
+                    target_deck=target_deck,
+                    language=language,
+                    transliteration=transliteration,
+                    tags=tags,
+                    anki=anki,
+                )
                 if content_type in ("vocab", "glossary"):
-                    _run_vocab(
-                        q, primary_text, target_deck, language, transliteration, tags, anki
-                    )
+                    _run_vocab(ctx, primary_text)
                 elif content_type == "passage":
                     glossary_text = _join_supporting_text(supporting, ("glossary", "vocab"))
-                    _run_passage(
-                        q, primary_text, glossary_text, target_deck,
-                        language, transliteration, tags, anki,
-                    )
+                    _run_passage(ctx, primary_text, glossary_text)
                 else:
                     q.put(sse_event({
                         "type": "error",
@@ -173,6 +177,16 @@ def register(app: Any, anki: AnkiBackend) -> None:
         return sse_stream(response, worker)
 
 
+@dataclass
+class _ExtractCtx:
+    q: Any
+    target_deck: str
+    language: dict[str, Any]
+    transliteration: bool
+    tags: list[str]
+    anki: AnkiBackend
+
+
 def _join_supporting_text(supporting: list[dict[str, Any]], prefer: tuple[str, ...]) -> str:
     """Join supporting section text, preferring the given content types first."""
     picks = [s for s in supporting if s.get("contentType") in prefer]
@@ -180,68 +194,49 @@ def _join_supporting_text(supporting: list[dict[str, Any]], prefer: tuple[str, .
     return "\n\n".join(s.get("text", "") for s in picks + fallback if s.get("text"))
 
 
-def _emit_usage(q: Any, usage: dict[str, Any] | None) -> None:
+def _emit_usage(ctx: _ExtractCtx, usage: dict[str, Any] | None) -> None:
     if not usage:
         return
     session.record_usage(usage, compute_cost(usage))
-    q.put(sse_event({"type": "usage", "data": usage}))
+    ctx.q.put(sse_event({"type": "usage", "data": usage}))
 
 
-def _ai_json(q: Any, system_prompt: str, user_message: str) -> str:
+def _ai_json(ctx: _ExtractCtx, system_prompt: str, user_message: str) -> str:
     """Run a JSON completion, stream usage, return raw text."""
     result = ai.get_json_completion(system_prompt, user_message)
-    _emit_usage(q, result.get("usage"))
+    _emit_usage(ctx, result.get("usage"))
     return result.get("text", "")
 
 
-def _stream_previews(
-    q: Any, cards: list[dict[str, Any]], target_deck: str, tags: list[str], anki: AnkiBackend
-) -> None:
+def _stream_previews(ctx: _ExtractCtx, cards: list[dict[str, Any]]) -> None:
     """Check cards against Anki, build previews, attach tags, emit via SSE."""
     words = [c.get("word", "") for c in cards if c.get("word")]
-    anki_results = check_words_parallel(anki, words, target_deck)
-    for preview in card_extraction.build_card_previews(cards, target_deck, anki_results):
-        if tags:
-            preview["tags"] = tags
-        q.put(sse_event({"type": "card_preview", "data": preview}))
+    anki_results = check_words_parallel(ctx.anki, words, ctx.target_deck)
+    for preview in card_extraction.build_card_previews(cards, ctx.target_deck, anki_results):
+        if ctx.tags:
+            preview["tags"] = ctx.tags
+        ctx.q.put(sse_event({"type": "card_preview", "data": preview}))
 
 
-def _run_vocab(
-    q: Any,
-    section_text: str,
-    target_deck: str,
-    language: dict[str, Any],
-    transliteration: bool,
-    tags: list[str],
-    anki: AnkiBackend,
-) -> None:
+def _run_vocab(ctx: _ExtractCtx, section_text: str) -> None:
     """Two calls: pairs → full cards (reuses photo-generate for the second pass)."""
-    sys1, usr1 = ai.build_pdf_vocab_extract_prompt(section_text, language)
-    parsed = ai.parse_json_response(_ai_json(q, sys1, usr1))
+    sys1, usr1 = ai.build_pdf_vocab_extract_prompt(section_text, ctx.language)
+    parsed = ai.parse_json_response(_ai_json(ctx, sys1, usr1))
     pairs = parsed if isinstance(parsed, list) else parsed.get("pairs", [])
     pairs = [p for p in pairs if isinstance(p, dict) and p.get("word")]
     if not pairs:
         return
 
-    sys2, usr2 = ai.build_photo_generate_prompt(pairs, language, transliteration)
-    cards = parse_cards_with_healing(_ai_json(q, sys2, usr2), lambda u: _emit_usage(q, u))
+    sys2, usr2 = ai.build_photo_generate_prompt(pairs, ctx.language, ctx.transliteration)
+    cards = parse_cards_with_healing(_ai_json(ctx, sys2, usr2), lambda u: _emit_usage(ctx, u))
     card_extraction.inject_textbook_definitions(cards, pairs)
-    _stream_previews(q, cards, target_deck, tags, anki)
+    _stream_previews(ctx, cards)
 
 
-def _run_passage(
-    q: Any,
-    passage_text: str,
-    glossary_text: str,
-    target_deck: str,
-    language: dict[str, Any],
-    transliteration: bool,
-    tags: list[str],
-    anki: AnkiBackend,
-) -> None:
+def _run_passage(ctx: _ExtractCtx, passage_text: str, glossary_text: str) -> None:
     """One call: passage prompt emits full cards directly."""
     sys1, usr1 = ai.build_pdf_passage_extract_prompt(
-        passage_text, glossary_text, language, transliteration
+        passage_text, glossary_text, ctx.language, ctx.transliteration
     )
-    cards = parse_cards_with_healing(_ai_json(q, sys1, usr1), lambda u: _emit_usage(q, u))
-    _stream_previews(q, cards, target_deck, tags, anki)
+    cards = parse_cards_with_healing(_ai_json(ctx, sys1, usr1), lambda u: _emit_usage(ctx, u))
+    _stream_previews(ctx, cards)

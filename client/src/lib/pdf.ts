@@ -134,19 +134,20 @@ interface PageData {
 }
 
 async function collectPages(doc: PDFDocumentProxy): Promise<PageData[]> {
-  const pages: PageData[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const items = await pageItems(page);
-    const viewport = page.getViewport({ scale: 1 });
-    const rawLines = itemsToLines(items);
-    pages.push({
-      pageIndex: i - 1,
-      lines: rawLines.map((l) => ({ y: l.y, text: l.text, medianFontSize: l.medianFontSize })),
-      pageHeight: viewport.height,
-    });
-  }
-  return pages;
+  // pdfjs runs pages through a worker, so concurrent requests are cheap.
+  return Promise.all(
+    Array.from({ length: doc.numPages }, async (_, i) => {
+      const page = await doc.getPage(i + 1);
+      const items = await pageItems(page);
+      const viewport = page.getViewport({ scale: 1 });
+      const rawLines = itemsToLines(items);
+      return {
+        pageIndex: i,
+        lines: rawLines.map((l) => ({ y: l.y, text: l.text, medianFontSize: l.medianFontSize })),
+        pageHeight: viewport.height,
+      };
+    })
+  );
 }
 
 // Heading heuristic: a line is a heading if its font size is notably larger

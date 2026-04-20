@@ -72,6 +72,7 @@ export function PdfExtractStep({
 
     (async () => {
       for (let i = 0; i < selected.length; i++) {
+        if (controller.signal.aborted) return;
         const section = selected[i]!;
         setStatus(`Extracting section ${i + 1}/${selected.length}: ${section.heading}`);
         const tags = [sourceTag, ...section.suggestedTags].filter(Boolean);

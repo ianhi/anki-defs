@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ScoutedSection } from 'shared';
+import type { PdfContentType, ScoutedSection } from 'shared';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { pdfApi } from '@/lib/api';
@@ -13,7 +13,7 @@ interface Props {
   onScouted: (sections: ScoutedSection[], picked: Set<string>) => void;
 }
 
-const TYPE_COLORS: Record<string, string> = {
+const TYPE_COLORS: Record<PdfContentType, string> = {
   vocab: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
   glossary: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
   passage: 'bg-green-500/10 text-green-700 dark:text-green-300',
