@@ -7,16 +7,24 @@ upload → pick chapters → scout → review classifications → pick sections 
 extract → review cards. Each step requires domain knowledge the user
 shouldn't need ("is this prose or vocab?", "should I check this?").
 
-The scout classification works well technically but the multi-step review
-flow is burdensome. An AI agent can make these judgment calls better than
-heuristics — it can read the snippets, understand textbook structure, and
-decide what's worth extracting.
-
 ## Proposal
 
-Expose the existing pipeline as MCP tools so an AI agent (Claude, etc.)
-can drive the card generation process autonomously, using the existing UI
-as the presentation layer.
+Expose the pipeline as MCP tools so an AI agent can drive card generation
+autonomously, using the existing UI as the review/approval layer.
+
+### Key Insight: No Scout Step
+
+The scout (classify sections via a cheap Flash call) exists to help a
+human quickly scan 40+ sections. An agent doesn't need it — it can read
+all snippets directly in its context and make better classification
+decisions than a one-shot LLM call. The agent IS the classifier.
+
+Agent flow:
+1. Parse PDF outline (structural, no AI — pdfjs or server-side parser)
+2. Read snippets directly, decide what to extract (agent judgment)
+3. Spawn subagents per section to extract in parallel
+4. Collect results, spot-check card quality
+5. Present batch to user via existing CardPreview UI
 
 ### Architecture
 
@@ -25,15 +33,15 @@ User: "make flashcards from chapters 3-7"
            │
            ▼
 ┌─────────────────────────┐
-│  AI Agent (Claude Code)  │
+│  AI Agent (Claude)       │
 │                         │
-│  Drives the pipeline:   │
-│  1. Parse PDF           │
-│  2. Scout sections      │
-│  3. Judge quality       │  ← agent reads snippets, decides what to extract
-│  4. Extract cards       │
-│  5. Spot-check results  │  ← agent reviews card quality
-│  6. Present to user     │  ← via existing CardPreview UI
+│  1. Parse PDF outline   │  ← MCP tool: structural, no AI cost
+│  2. Read snippets       │  ← agent reads directly, no scout call
+│  3. Decide what to      │
+│     extract             │  ← agent judgment > one-shot classifier
+│  4. Spawn subagents     │  ← parallel extraction per section
+│  5. Spot-check cards    │  ← agent reviews quality
+│  6. Present to user     │  ← existing CardPreview UI
 └─────────────────────────┘
            │
      MCP tool calls
@@ -43,93 +51,72 @@ User: "make flashcards from chapters 3-7"
 │  anki-defs server       │
 │  (existing API)         │
 │                         │
-│  /api/pdf/scout         │
-│  /api/pdf/extract       │
-│  /api/anki/notes        │
-│  /api/settings          │
-└─────────────────────────┘
-           │
-           ▼
-┌─────────────────────────┐
-│  Existing UI            │
-│  CardPreview, scout     │
-│  review, extract step   │  ← becomes "show your work" + approval layer
+│  /api/pdf/extract       │  ← takes section text, returns cards
+│  /api/anki/notes        │  ← adds cards to Anki
+│  /api/settings          │  ← deck/language config
 └─────────────────────────┘
 ```
 
 ### MCP Tools to Expose
 
-The server already has REST endpoints. The MCP server wraps them:
+1. **`pdf_parse`** — Parse a PDF, return chapters + sections with
+   snippets. Wraps pdfjs (needs server-side equivalent — Node script
+   or pymupdf). No AI call, pure structural extraction.
 
-1. **`pdf_parse`** — Upload a PDF, get back chapters + section list.
-   Wraps the client-side pdfjs parsing (would need a server-side
-   equivalent or a headless browser step).
+2. **`pdf_section_text`** — Get full text for a section by ID. The agent
+   reads snippets first (cheap), then requests full text only for
+   sections it decides to extract.
 
-2. **`pdf_scout`** — Classify sections. Input: sections array + deck.
-   Output: classified sections with contentType, tags, confidence.
-   Already exists as `POST /api/pdf/scout`.
+3. **`pdf_extract`** — Extract cards from section text. Input: text +
+   contentType + tags + deck. Output: card previews (vocab pairs or
+   passage cards). Already exists as `POST /api/pdf/extract`.
 
-3. **`pdf_extract`** — Extract cards from a section. Input: primary
-   section text + supporting sections + tags. Output: card previews.
-   Already exists as `POST /api/pdf/extract` (SSE).
+4. **`anki_add_card`** — Add a card to Anki. Already exists as
+   `POST /api/anki/notes`.
 
-4. **`anki_add_card`** — Add a card to Anki. Input: card data + deck.
-   Already exists as `POST /api/anki/notes`.
+5. **`anki_search`** — Check if a word already exists in a deck.
+   Lets the agent skip duplicates before presenting to the user.
 
-5. **`anki_search`** — Check if a word already exists. Useful for the
-   agent to skip duplicates before presenting to the user.
+### What the Agent Does vs What the User Does
 
-### What the Agent Does (that the UI currently asks the user to do)
+**Agent handles:**
+- Chapter/section selection (reads snippets, understands structure)
+- Content type judgment (vocab vs prose vs passage — no scout needed)
+- Extraction orchestration (parallel subagents per section)
+- Quality review (are definitions correct? sentences natural?)
+- Duplicate detection
+- Error recovery (retry failed sections, handle truncation)
 
-- **Chapter selection**: Agent reads the chapter list and picks the ones
-  the user asked for (or all of them).
-- **Section filtering**: Agent reads scout results + snippets and decides
-  which sections have extractable content. No need for the user to
-  understand contentType classifications.
-- **Quality check**: Agent reviews generated cards — are the definitions
-  correct? Are example sentences natural? Flags issues instead of showing
-  everything.
-- **Batch management**: Agent handles the sequential extraction, batching,
-  and error recovery. User sees finished cards, not intermediate state.
+**User handles:**
+- "Make flashcards from chapters 3-7" (one instruction)
+- Review the final card batch (existing CardPreview UI)
+- Edit/discard individual cards
+- Approve adding to Anki
 
-### What the User Still Does
+### Why Subagents Over Sequential
 
-- Picks the PDF and says what they want ("chapters 3-7", "all vocab",
-  "just the reading passages")
-- Reviews the final card batch in the existing CardPreview UI
-- Edits/discards individual cards
-- Approves adding to Anki
-
-### Why This Is Better
-
-- User makes 1-2 decisions instead of 6-8
-- Agent's judgment on "is this extractable?" is better than showing
-  the user a list of contentType badges
-- The manual UI flow still works for power users who want control
-- The agent can handle edge cases (scout truncation, misclassification)
-  that the UI can't easily surface
+Each section extraction is independent — different text, different prompt.
+A coordinator agent can spawn N subagents in parallel, each handling one
+section. This is faster than the current sequential loop and naturally
+handles failures (one section failing doesn't block others).
 
 ### Implementation Notes
 
-- The PDF parsing currently runs client-side (pdfjs in browser). For
-  MCP, we'd need either:
-  - A server-side PDF parser (pypdf or pymupdf)
-  - The agent telling the user to upload via the UI first
-  - A headless pdfjs step (Node script)
-- The existing REST API is already the right shape for MCP tools
-- The photo-to-cloze flow would benefit from the same pattern
+- PDF parsing currently runs client-side (pdfjs). For MCP, options:
+  - Node script wrapping pdfjs (same code, different runtime)
+  - Server-side pymupdf (better for server, but different parser)
+  - Agent tells user to upload via UI, reads the parsed outline
+- The photo-to-cloze flow benefits from the same pattern
+- The existing manual UI still works for power users
 
 ### Open Questions
 
-- Should the MCP server be a separate process or embedded in the
-  existing Python server?
-- How does the agent present cards to the user? Options:
-  - Push cards into the existing UI via WebSocket/SSE
-  - Return card data to the agent's chat context for inline display
-  - Write cards to a review queue the UI polls
+- MCP server: separate process or embedded in Python server?
+- Card presentation: push into UI via WebSocket, or return in agent chat?
 - Should the agent have direct Anki access or always go through our API?
+- Can we reuse the existing `pdf.ts` parsing in a Node MCP server?
 
 ## Status
 
-Idea stage. The REST API and UI components exist; the MCP wrapper and
-agent orchestration logic are the new work.
+Idea stage. REST API and UI components exist. MCP wrapper and agent
+orchestration are the new work.
