@@ -52,8 +52,19 @@ Single discriminated union `SSEEvent` with uniform `{ type, data }` shape:
 - `PdfFontProfile` -- `{ sizePt, bold, indentPt, columns }` — layout cues for scout classification
 - `PdfSection` -- structural: `{ id, heading, pageStart, pageEnd, bodySnippet, fontProfile }`. Produced by `client/src/lib/pdf.ts` from pdfjs.
 - `ScoutedSection` -- `PdfSection` plus `{ contentType, suggestedTags, worthExtracting, confidence, relatedTo[] }`. LLM scout adds semantic fields and links related sections.
+- `PdfChapter` -- `{ id, title, pageStart, pageEnd, sectionIds[] }`. Groups sections for the chapter picker UI. Built from bookmark tree or top-level headings.
 - `PdfScoutRequest` / `PdfScoutResponse` -- shape of `/api/pdf/scout`
 - `PdfExtractRequest` -- `{ primary, supporting[], tags, deck? }`. Client resolves `relatedTo` into `supporting` before calling.
+
+## Photo Cloze
+
+Two-stage pipeline for creating cloze cards from textbook exercise photos.
+
+- `PhotoClozeTranscribeResponse` -- `{ transcription, usage? }`. Vision model output: structured plain text of the exercise.
+- `ClozeBlankCategory` -- `'verb' | 'noun' | 'preposition' | 'article' | 'pronoun' | 'conjunction' | 'other'`
+- `ClozeBlank` -- `{ answer, hint, category }`. One blank in a cloze sentence. `hint` renders as `{{cN::answer::hint}}` in Anki when non-null.
+- `ClozeItem` -- `{ itemNumber, sentence, blanks[], translation, confidence, contextPreamble }`. Blanks marked `__1__`, `__2__`, ... in `sentence`.
+- `PhotoClozeExtractResponse` -- `{ items: ClozeItem[], unsupported?, usage? }`. `unsupported` lists exercise items that couldn't become cloze cards (e.g. free-form questions).
 
 ## Other
 

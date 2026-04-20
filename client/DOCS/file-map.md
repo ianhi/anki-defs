@@ -27,8 +27,8 @@
 - `PromptPreview.tsx` -- Debug prompt preview (via ?demo=prompts)
 - `RetryUxDemo.tsx` -- Debug retry UX demo (via ?demo=retry)
 - `ui/` -- Base UI primitives (Badge, Button, Card, Input, Label, Select)
-- `photo/` -- Photo-to-flashcards flow (capture → extract → generate)
-- `pdf/` -- PDF-to-flashcards flow: `PdfPage` (step container), `PdfUploadStep` (pdfjs parse), `PdfScoutStep` (scouted TOC checkboxes), `PdfExtractStep` (stream CardPreviews with tags)
+- `photo/` -- Photo-to-flashcards flow: `UploadStep` (capture/upload, owns `useImageInput` hook internally), `ExtractStep` (vision vocab extraction), `GenerateStep` (AI card generation), `MaskCanvas` (crop overlay), `PhotoCapture` (camera), `ClozeTranscribeStep` (vision transcription of exercise images), `ClozeReviewStep` (review/edit cloze items, add to Anki)
+- `pdf/` -- PDF-to-flashcards flow: `PdfPage` (step container), `PdfUploadStep` (pdfjs parse), `PdfChapterStep` (chapter picker from outline), `PdfScoutStep` (scouted TOC checkboxes), `PdfExtractStep` (stream CardPreviews with tags)
 
 ## Hooks (`src/hooks/`)
 

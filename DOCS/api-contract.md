@@ -124,6 +124,48 @@ structural outline data; the server classifies and extracts via AI.
 Tags on the request are attached to every emitted `CardPreview` via its
 optional `tags` field, and flow through `CardPreview.extraTags` → addNote.
 
+### Photo Cloze Routes (`/api/photo`)
+
+In addition to the existing photo vocab extraction endpoint, these routes
+support the two-stage cloze pipeline for textbook exercise photos.
+
+| Method | Endpoint            | Description                                                        |
+| ------ | ------------------- | ------------------------------------------------------------------ |
+| POST   | `/cloze-transcribe` | Vision transcription of exercise image → plain text                |
+| POST   | `/cloze-extract`    | Parse transcription into `ClozeItem[]` for cloze card creation     |
+
+`/cloze-transcribe` accepts `multipart/form-data` with an `image` file field.
+Returns `PhotoClozeTranscribeResponse`:
+
+```json
+{ "transcription": "1. Yo ___ al mercado. (ir)\n2. ...", "usage": { ... } }
+```
+
+`/cloze-extract` accepts JSON:
+
+```json
+{ "transcription": "1. Yo ___ al mercado. (ir)\n...", "deck": "Spanish" }
+```
+
+Returns `PhotoClozeExtractResponse`:
+
+```json
+{
+  "items": [
+    {
+      "itemNumber": 1,
+      "sentence": "Yo __1__ al mercado.",
+      "blanks": [{ "answer": "voy", "hint": "(ir)", "category": "verb" }],
+      "translation": "I go to the market.",
+      "confidence": "high",
+      "contextPreamble": null
+    }
+  ],
+  "unsupported": ["5. (free-form question text)"],
+  "usage": { ... }
+}
+```
+
 ### Prompt Routes (`/api/prompts`)
 
 | Method | Endpoint   | Description              |
