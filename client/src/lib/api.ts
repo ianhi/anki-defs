@@ -10,6 +10,8 @@ import type {
   PendingCard,
   PlatformInfo,
   PhotoExtractResponse,
+  PhotoClozeTranscribeResponse,
+  PhotoClozeExtractResponse,
   VocabPair,
   NoteTypeIssue,
   PdfScoutRequest,
@@ -285,6 +287,26 @@ export const photoApi = {
 
   generate: (pairs: VocabPair[], deck: string, signal?: AbortSignal) =>
     streamSSE('/photo/generate', { pairs, deck }, signal),
+
+  clozeTranscribe: async (blob: Blob): Promise<PhotoClozeTranscribeResponse> => {
+    const formData = new FormData();
+    formData.append('image', blob, 'photo.jpg');
+    const response = await fetch(`${API_BASE}/photo/cloze-transcribe`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+    return response.json();
+  },
+
+  clozeExtract: (transcription: string, deck?: string) =>
+    fetchJson<PhotoClozeExtractResponse>('/photo/cloze-extract', {
+      method: 'POST',
+      body: JSON.stringify({ transcription, deck }),
+    }),
 
   listExamples: () =>
     fetchJson<{ examples: string[] }>('/photo/examples').catch(() => ({

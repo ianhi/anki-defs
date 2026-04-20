@@ -183,12 +183,19 @@ def get_json_completion(
     return parse_response(resp.json(), model)
 
 
-def get_vision_json_completion(
-    system_prompt: str, user_message: str, image_base64: str, mime_type: str
+def _post_vision(
+    system_prompt: str,
+    user_message: str,
+    image_base64: str,
+    mime_type: str,
+    json_mode: bool,
 ) -> dict[str, Any]:
-    """Get a non-streaming completion with an image input and JSON response."""
     client, api_key, model = _get_config()
     url = f"{_BASE_URL}/{model}:generateContent?key={api_key}"
+
+    generation_config: dict[str, Any] = {"maxOutputTokens": 16384}
+    if json_mode:
+        generation_config["responseMimeType"] = "application/json"
 
     body: dict[str, Any] = {
         "system_instruction": {"parts": [{"text": system_prompt}]},
@@ -200,10 +207,7 @@ def get_vision_json_completion(
                 ]
             }
         ],
-        "generationConfig": {
-            "maxOutputTokens": 4096,
-            "responseMimeType": "application/json",
-        },
+        "generationConfig": generation_config,
     }
 
     resp = client.post(
@@ -214,6 +218,20 @@ def get_vision_json_completion(
     )
     resp.raise_for_status()
     return parse_response(resp.json(), model)
+
+
+def get_vision_json_completion(
+    system_prompt: str, user_message: str, image_base64: str, mime_type: str
+) -> dict[str, Any]:
+    """Get a non-streaming completion with an image input and JSON response."""
+    return _post_vision(system_prompt, user_message, image_base64, mime_type, json_mode=True)
+
+
+def get_vision_text_completion(
+    system_prompt: str, user_message: str, image_base64: str, mime_type: str
+) -> dict[str, Any]:
+    """Get a non-streaming completion with an image input and plain-text response."""
+    return _post_vision(system_prompt, user_message, image_base64, mime_type, json_mode=False)
 
 
 def get_text_completion(

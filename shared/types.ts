@@ -310,6 +310,47 @@ export interface PdfExtractRequest {
   deck?: string;
 }
 
+// Photo-to-cloze types. Two-stage pipeline:
+//   1. transcribe (vision): image -> structured plain-text transcription
+//   2. extract (text): transcription -> ClozeItem[]
+// The transcription is shown to the user for review/edit between stages.
+export interface PhotoClozeTranscribeResponse {
+  transcription: string;
+  usage?: TokenUsage;
+}
+
+export type ClozeBlankCategory =
+  | 'verb'
+  | 'noun'
+  | 'preposition'
+  | 'article'
+  | 'pronoun'
+  | 'conjunction'
+  | 'other';
+
+export interface ClozeBlank {
+  answer: string;
+  // Rendered in Anki as {{cN::answer::hint}} when non-null.
+  hint: string | null;
+  category: ClozeBlankCategory;
+}
+
+export interface ClozeItem {
+  itemNumber: number | null;
+  // Blanks marked `__1__`, `__2__`, ... in the order they appear.
+  sentence: string;
+  blanks: ClozeBlank[];
+  translation: string;
+  confidence: 'high' | 'low';
+  contextPreamble: string | null;
+}
+
+export interface PhotoClozeExtractResponse {
+  items: ClozeItem[];
+  unsupported?: string[];
+  usage?: TokenUsage;
+}
+
 // API request/response types
 export interface ChatStreamRequest {
   newMessage: string;

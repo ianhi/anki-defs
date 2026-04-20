@@ -23,6 +23,7 @@ from ._helpers import (
     ext_to_mime,
     format_http_error,
     parse_cards_with_healing,
+    parse_json_with_healing,
     sse_event,
     sse_stream,
     strip_article,
@@ -159,6 +160,93 @@ def register(app: Any, anki: AnkiBackend) -> None:
             log.error("Photo extract error: %s", e, exc_info=True)
             response.status = 500
             return {"error": f"Failed to extract vocab from image: {e}"}
+
+    @app.post("/api/photo/cloze-transcribe")
+    def cloze_transcribe() -> dict:
+        upload = request.files.get("image")  # type: ignore[attr-defined]
+        if not upload:
+            response.status = 400
+            return {"error": "image file is required"}
+
+        image_base64 = base64.b64encode(upload.file.read()).decode()
+        mime_type = upload.content_type or "image/jpeg"
+
+        if os.environ.get("ANKI_DEFS_DEV"):
+            ai.reload_prompts()
+            _save_dev_image(image_base64, mime_type)
+
+        try:
+            result = ai.get_cloze_transcription(image_base64, mime_type)
+            usage = result.get("usage")
+            if usage:
+                cost = compute_cost(usage)
+                session.record_usage(usage, cost)
+            return {
+                "transcription": result["transcription"],
+                "usage": usage,
+            }
+        except httpx.HTTPStatusError as e:
+            log.error("Cloze transcribe HTTP error: %s", e)
+            response.status = e.response.status_code
+            return {"error": format_http_error(e)}
+        except (httpx.HTTPError, ValueError, OSError) as e:
+            log.error("Cloze transcribe error: %s", e, exc_info=True)
+            response.status = 500
+            return {"error": f"Failed to transcribe image: {e}"}
+
+    @app.post("/api/photo/cloze-extract")
+    def cloze_extract() -> dict:
+        body = request.json or {}
+        transcription: str = body.get("transcription", "").strip()
+        deck: str | None = body.get("deck")
+
+        if not transcription:
+            response.status = 400
+            return {"error": "transcription is required"}
+
+        if os.environ.get("ANKI_DEFS_DEV"):
+            ai.reload_prompts()
+
+        settings = get_settings()
+        target_deck = deck or settings.get("defaultDeck", "Bangla")
+        language = ai.get_language_for_deck(target_deck)
+        transliteration = settings.get("showTransliteration", False)
+
+        try:
+            system_prompt, user_message = ai.build_cloze_extract_prompt(
+                transcription, language, transliteration
+            )
+            result = ai.get_json_completion(system_prompt, user_message)
+            raw = result.get("text", "")
+            usage = result.get("usage")
+            if usage:
+                cost = compute_cost(usage)
+                session.record_usage(usage, cost)
+
+            parsed = parse_json_with_healing(raw)
+            if not isinstance(parsed, dict):
+                parsed = {"items": parsed if isinstance(parsed, list) else []}
+            items = parsed.get("items", []) or []
+            unsupported = parsed.get("unsupported", []) or []
+
+            return {
+                "items": items,
+                "unsupported": unsupported,
+                "usage": usage,
+            }
+        except httpx.HTTPStatusError as e:
+            log.error("Cloze extract HTTP error: %s", e)
+            response.status = e.response.status_code
+            return {"error": format_http_error(e)}
+        except (
+            httpx.HTTPError,
+            json.JSONDecodeError,
+            ValueError,
+            OSError,
+        ) as e:
+            log.error("Cloze extract error: %s", e, exc_info=True)
+            response.status = 500
+            return {"error": f"Failed to extract cloze items: {e}"}
 
     @app.post("/api/photo/generate")
     def generate() -> Iterator[str]:

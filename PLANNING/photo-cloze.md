@@ -18,6 +18,7 @@ These should become Anki cloze cards where the blank is the cloze deletion.
 
 Unlike vocab lists where the word+definition are both visible, cloze exercises
 often show only the blank + an infinitive hint. The AI needs to:
+
 - Extract the sentence with the blank
 - Extract the hint (e.g. "estar", "saber") if present
 - **Conjugate the verb correctly** based on context (subject, tense)
@@ -25,11 +26,13 @@ often show only the blank + an infinitive hint. The AI needs to:
 ### 2. Conjugation ambiguity
 
 The correct conjugation depends on tense, which may not be obvious:
+
 - If the exercise section is labeled "Present tense", all answers are present
 - If mixed tenses, the AI needs to infer from context
 - Some exercises may be genuinely ambiguous
 
 **Resolution strategy:**
+
 - Extract any section heading / exercise title (e.g. "Presente indicativo")
   as a tense hint — pass it to the AI
 - If no heading, ask the user to specify the tense before generation
@@ -39,12 +42,14 @@ The correct conjugation depends on tense, which may not be obvious:
 
 Anki cloze syntax supports hints: `{{c1::answer::hint}}`. If the textbook shows
 an infinitive hint like `(saber)`, it should become the cloze hint:
+
 - `Ella no {{c1::sabe::saber}} la respuesta.`
 
 ### 4. UI differences from vocab flow
 
 The vocab flow shows word+definition pairs for review. Cloze needs a different
 review UI:
+
 - Show the full sentence with the blank highlighted
 - Show the AI's answer (conjugated form)
 - Show the hint (infinitive) if present
@@ -59,6 +64,7 @@ New prompt: `shared/prompts/photo-cloze-extract.json`
 
 Input: textbook exercise image
 Output: JSON array:
+
 ```json
 [
   {
@@ -74,6 +80,7 @@ Output: JSON array:
 
 The AI fills in the blank, conjugating based on context + any tense heading
 visible in the image. The prompt should instruct the AI to:
+
 - Look for section headings indicating tense
 - Infer tense from context if no heading
 - Flag uncertain conjugations
@@ -90,6 +97,7 @@ New step in PhotoCapture (or a mode toggle) for cloze review:
 ```
 
 Key UI elements:
+
 - Sentence displayed with blank visible (not filled in — that's the answer)
 - Answer shown separately so user can verify the conjugation
 - Hint (infinitive) shown — will become `::hint` in cloze syntax
@@ -101,6 +109,7 @@ Key UI elements:
 
 Unlike vocab cards (which need AI-generated example sentences), cloze cards
 already have the sentence from the textbook. Generation is simpler:
+
 - Build the cloze field: `¿Dónde {{c1::está::estar}} María a las diez?`
 - Translation is already extracted
 - No additional AI call needed (extraction does everything)
@@ -110,11 +119,13 @@ Use the existing `createNote` with `cardType: 'cloze'`.
 ### Phase 4: Tense handling
 
 Options for tense input (in order of preference):
+
 1. **AI reads it from the image** — section headings like "Presente indicativo"
 2. **User specifies globally** — dropdown above the list: "These exercises are in: [present / preterite / imperfect / ...]"
 3. **User edits per-sentence** — if tenses are mixed, edit individual answers
 
 The extraction prompt should return a `tenseSource` field:
+
 - `"heading"` — read from a visible heading in the image
 - `"inferred"` — AI guessed from context
 - `"unknown"` — genuinely ambiguous
@@ -126,10 +137,10 @@ tense label to prompt user verification.
 
 ```typescript
 interface ClozeExtraction {
-  sentence: string;         // With blank: "¿Dónde _____ María?"
-  hint: string;             // Infinitive: "estar"
-  answer: string;           // Conjugated: "está"
-  tense: string;            // "present indicative"
+  sentence: string; // With blank: "¿Dónde _____ María?"
+  hint: string; // Infinitive: "estar"
+  answer: string; // Conjugated: "está"
+  tense: string; // "present indicative"
   tenseSource: 'heading' | 'inferred' | 'unknown';
   sentenceWithAnswer: string; // Filled: "¿Dónde está María?"
   translation: string;
@@ -144,10 +155,12 @@ interface PhotoClozeExtractResponse {
 ## Files to create/modify
 
 ### New
+
 - `shared/prompts/photo-cloze-extract.json` — Vision prompt for cloze extraction
 - Possibly `client/src/components/photo/ClozeReview.tsx` — Cloze-specific review UI
 
 ### Modified
+
 - `shared/types.ts` — Add `ClozeExtraction`, `PhotoClozeExtractResponse`
 - `python-server/anki_defs/services/ai.py` — Add `get_cloze_extraction()`
 - `python-server/anki_defs/routes/photo.py` — Add `/api/photo/extract-cloze` endpoint
@@ -155,6 +168,7 @@ interface PhotoClozeExtractResponse {
 - `client/src/lib/api.ts` — Add `photoApi.extractCloze()`
 
 ### Reused as-is
+
 - `browser-image-compression` for image handling
 - FormData upload pattern
 - `_helpers.py` for SSE/cost helpers
@@ -173,13 +187,13 @@ interface PhotoClozeExtractResponse {
 3. **Exercises without hints?** Some blanks have no infinitive hint. The AI still
    needs to guess the word. These cloze cards would have no `::hint` suffix.
 
-5. **Hint position varies.** Some textbooks put the hint before the blank,
+4. **Hint position varies.** Some textbooks put the hint before the blank,
    some after, some at the end of the sentence in parentheses. The extraction
    prompt must handle all formats:
    - `¿Dónde _____ (estar) María?` — hint in parens mid-sentence
    - `Nosotros _____ el cumpleaños. (celebrar)` — hint at end
    - `(saber) Ella no _____ la respuesta.` — hint at start
 
-4. **Answer key on a different page?** If the answers are on a separate page, the
+5. **Answer key on a different page?** If the answers are on a separate page, the
    user could photograph both. But that's a future enhancement — start with the
    AI conjugating from context.

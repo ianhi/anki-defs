@@ -117,18 +117,17 @@ def check_words_parallel(
     return results
 
 
-def parse_cards_with_healing(
+def parse_json_with_healing(
     raw: str,
     usage_cb: Callable[[dict[str, Any]], None] | None = None,
-) -> list[dict[str, Any]]:
-    """Parse AI JSON response into card dicts, retrying with a healing prompt on failure.
+) -> Any:
+    """Parse AI JSON, retrying once via a healing prompt on malformed output.
 
-    ``usage_cb`` is called with the retry usage dict if a healing retry occurs.
-    Raises ``ValueError`` if both attempts fail.
+    Records retry usage and invokes ``usage_cb`` when a retry happens.
+    Raises ``json.JSONDecodeError`` if both attempts fail.
     """
     try:
-        parsed = ai.parse_json_response(raw)
-        return card_extraction.validate_card_responses(parsed)
+        return ai.parse_json_response(raw)
     except (json.JSONDecodeError, ValueError):
         log.warning("JSON parse failed, retrying with healing prompt")
         retry = ai.get_json_completion(
@@ -142,8 +141,16 @@ def parse_cards_with_healing(
             session.record_usage(retry_usage, cost)
             if usage_cb:
                 usage_cb(retry_usage)
-        parsed = ai.parse_json_response(retry.get("text", ""))
-        return card_extraction.validate_card_responses(parsed)
+        return ai.parse_json_response(retry.get("text", ""))
+
+
+def parse_cards_with_healing(
+    raw: str,
+    usage_cb: Callable[[dict[str, Any]], None] | None = None,
+) -> list[dict[str, Any]]:
+    """Parse AI JSON into validated card dicts, healing once on failure."""
+    parsed = parse_json_with_healing(raw, usage_cb)
+    return card_extraction.validate_card_responses(parsed)
 
 
 def sse_stream(

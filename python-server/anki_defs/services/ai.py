@@ -188,6 +188,8 @@ def _load_all_prompts() -> dict[str, Any]:
         "pdfScout": _load_json("pdf-scout.json"),
         "pdfVocabExtract": _load_json("pdf-vocab-extract.json"),
         "pdfPassageExtract": _load_json("pdf-passage-extract.json"),
+        "photoClozeTranscribe": _load_json("photo-cloze-transcribe.json"),
+        "photoClozeExtract": _load_json("photo-cloze-extract.json"),
     }
 
 
@@ -228,6 +230,7 @@ def _render_prompt(
     result = result.replace("{{skipParticles}}", sentence_cfg.get("skipParticles", ""))
     result = result.replace("{{translationGuidelines}}", lang.get("translationGuidelines", ""))
     result = result.replace("{{phraseRules}}", lang.get("phraseRules", ""))
+    result = result.replace("{{clozeExtractionRules}}", lang.get("clozeExtractionRules", ""))
     # Global substitutions
     result = result.replace("{{outputRules}}", _variables["outputRules"])
     result = result.replace("{{jsonOutputRule}}", _variables.get("jsonOutputRule", ""))
@@ -524,6 +527,44 @@ def get_vision_extraction(
             })
 
     return {"pairs": validated, "usage": result.get("usage")}
+
+
+def get_cloze_transcription(
+    image_base64: str, mime_type: str
+) -> dict[str, Any]:
+    """Transcribe a fill-in-the-blank exercise image to structured text.
+
+    Uses Gemini vision. Returns {"transcription": str, "usage": {...}}.
+    """
+    template = _prompt_templates["photoClozeTranscribe"]
+    system_prompt = template["system"]
+    user_message = template.get(
+        "user_template", "Transcribe this textbook exercise page."
+    )
+    result = providers.gemini.get_vision_text_completion(
+        system_prompt, user_message, image_base64, mime_type
+    )
+    return {
+        "transcription": result.get("text", "").strip(),
+        "usage": result.get("usage"),
+    }
+
+
+def build_cloze_extract_prompt(
+    transcription: str,
+    language: dict[str, Any],
+    transliteration: bool,
+) -> tuple[str, str]:
+    """Build the text prompt that turns a transcription into ClozeItem JSON.
+
+    Returns (system_prompt, user_message).
+    """
+    template = _prompt_templates["photoClozeExtract"]
+    system_prompt = _render_prompt(template["system"], transliteration, language)
+    user_message = template["user_template"].replace(
+        "{{transcription}}", transcription
+    )
+    return system_prompt, user_message
 
 
 def build_photo_generate_prompt(
