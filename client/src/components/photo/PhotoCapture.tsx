@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { CardPreview as CardPreviewType, VocabPair, TokenUsage } from 'shared';
+import type { CardPreview as CardPreviewType, ClozeItem, VocabPair, TokenUsage } from 'shared';
 import { Button } from '../ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import { photoApi } from '@/lib/api';
@@ -10,10 +10,14 @@ import { useImageInput } from './useImageInput';
 import { UploadStep } from './UploadStep';
 import { ExtractStep } from './ExtractStep';
 import { GenerateStep } from './GenerateStep';
+import { ClozeTranscribeStep } from './ClozeTranscribeStep';
+import { ClozeReviewStep } from './ClozeReviewStep';
 
-type Step = 'upload' | 'extract' | 'generate';
+type Mode = 'vocab' | 'cloze';
+type Step = 'upload' | 'extract' | 'generate' | 'cloze-transcribe' | 'cloze-review';
 
 export function PhotoCapture({ onBack }: { onBack: () => void }) {
+  const [mode, setMode] = useState<Mode>('vocab');
   const [step, setStep] = useState<Step>('upload');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageBlob, setImageBlob] = useState<Blob | null>(null);
@@ -32,6 +36,10 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
   const createNote = useCreateNote();
   const { addCard, addToPendingQueue } = useSessionCards();
 
+  // Cloze-specific state
+  const [clozeItems, setClozeItems] = useState<ClozeItem[]>([]);
+  const [clozeUnsupported, setClozeUnsupported] = useState<string[]>([]);
+
   const [examples, setExamples] = useState<string[]>([]);
   const isDev = import.meta.env.DEV;
 
@@ -49,10 +57,10 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
       if (imageUrl) URL.revokeObjectURL(imageUrl);
       setImageBlob(blob);
       setImageUrl(URL.createObjectURL(blob));
-      setStep('extract');
+      setStep(mode === 'cloze' ? 'cloze-transcribe' : 'extract');
       setError(null);
     },
-    [imageUrl]
+    [imageUrl, mode]
   );
 
   const { handleFileSelect, handleDrop, handleDragOver, handleDragLeave, isDragging } =
@@ -190,6 +198,8 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
     setError(null);
     setExtractUsage(null);
     setExtraTag('');
+    setClozeItems([]);
+    setClozeUnsupported([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, [imageUrl]);
 
@@ -201,6 +211,32 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h2 className="font-medium text-sm">Photo to Flashcards</h2>
+
+        {step === 'upload' && (
+          <div className="ml-auto flex rounded-md border border-border overflow-hidden text-xs">
+            <button
+              onClick={() => setMode('vocab')}
+              className={`px-2.5 py-1 transition-colors ${
+                mode === 'vocab'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              Vocab list
+            </button>
+            <button
+              onClick={() => setMode('cloze')}
+              className={`px-2.5 py-1 transition-colors ${
+                mode === 'cloze'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              Fill-in-blank
+            </button>
+          </div>
+        )}
+
         {step !== 'upload' && (
           <Button variant="ghost" size="sm" onClick={handleReset} className="ml-auto text-xs">
             Start over
@@ -255,6 +291,29 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
             addAllResult={addAllResult}
             onReset={handleReset}
             onGoBack={() => setStep('extract')}
+          />
+        )}
+
+        {step === 'cloze-transcribe' && imageUrl && imageBlob && (
+          <ClozeTranscribeStep
+            imageUrl={imageUrl}
+            imageBlob={imageBlob}
+            onExtracted={(items, unsupported) => {
+              setClozeItems(items);
+              setClozeUnsupported(unsupported);
+              setStep('cloze-review');
+            }}
+          />
+        )}
+
+        {step === 'cloze-review' && (
+          <ClozeReviewStep
+            items={clozeItems}
+            unsupported={clozeUnsupported}
+            extraTag={extraTag}
+            onExtraTagChange={setExtraTag}
+            onReset={handleReset}
+            onGoBack={() => setStep('cloze-transcribe')}
           />
         )}
       </div>
