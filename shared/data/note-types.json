@@ -8,12 +8,12 @@
     "fields": [
       "Word",
       "Definition",
+      "WordAudio",
       "NativeDefinition",
       "Example",
+      "ExampleAudio",
       "Translation",
       "Image",
-      "WordAudio",
-      "ExampleAudio",
       "EnableRecognition",
       "EnableProduction",
       "EnableListening"
