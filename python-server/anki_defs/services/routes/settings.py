@@ -3,20 +3,19 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
-from bottle import Bottle, request, response
+from bottle import request, response
 
-from ..services.ai import reset_clients
-from ..services.settings import (
-    get_masked,
+from .. import ai
+from ..settings import (
     get_settings,
     has_insecure_consent,
-    has_new_secrets,
     keyring_available,
     save_settings,
     set_insecure_consent,
-    strip_masked_keys,
 )
+from ..settings_base import get_masked, has_new_secrets, strip_masked_keys
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +28,7 @@ def _response_settings(settings: dict) -> dict:
     return result
 
 
-def register(app: Bottle) -> None:
+def register(app: Any) -> None:
     @app.get("/api/settings")
     def get() -> dict:
         try:
@@ -50,11 +49,17 @@ def register(app: Bottle) -> None:
         if consent_flag is not None:
             set_insecure_consent(bool(consent_flag))
 
-        if has_new_secrets(updates) and not keyring_available() and not has_insecure_consent():
+        if (
+            has_new_secrets(updates)
+            and not keyring_available()
+            and not has_insecure_consent()
+        ):
             response.status = 409
             return {
-                "error": "No system keyring available. API keys would be stored in plain text "
-                "in the settings file. Confirm to proceed."
+                "error": (
+                    "No system keyring available. API keys would be stored"
+                    " in plain text in the settings file. Confirm to proceed."
+                )
             }
 
         try:
@@ -66,8 +71,13 @@ def register(app: Bottle) -> None:
 
         if any(
             k in updates
-            for k in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")
+            for k in (
+                "aiProvider",
+                "claudeApiKey",
+                "geminiApiKey",
+                "openRouterApiKey",
+            )
         ):
-            reset_clients()
+            ai.reset_clients()
 
         return _response_settings(updated)

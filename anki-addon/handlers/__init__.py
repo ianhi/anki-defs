@@ -1,15 +1,8 @@
-"""Route registration — registers all API handlers on the Bottle app."""
+"""Route registration — wires shared routes to the addon's Anki backend."""
 
+from anki_defs._services.routes import anki, chat, photo, prompts, session, settings
 from anki_defs.server.app import app
-
-from . import (
-    anki_routes,
-    chat_routes,
-    photo_routes,
-    platform_routes,
-    session_routes,
-    settings_routes,
-)
+from anki_defs.services import anki_service
 
 _registered = False
 
@@ -20,9 +13,17 @@ def register_routes():
         return
     _registered = True
 
-    platform_routes.register(app)
-    anki_routes.register(app)
-    chat_routes.register(app)
-    settings_routes.register(app)
-    photo_routes.register(app)
-    session_routes.register(app)
+    @app.get("/api/health")
+    def health():
+        return {"status": "ok"}
+
+    @app.get("/api/platform")
+    def platform():
+        return {"platform": "anki-addon"}
+
+    anki.register(app, anki_service)
+    chat.register(app, anki_service)
+    photo.register(app, anki_service)
+    prompts.register(app)
+    session.register(app)
+    settings.register(app)

@@ -245,22 +245,32 @@ def search_notes(query: str) -> list[dict[str, Any]]:
 
 
 def search_word(word: str, deck_name: str) -> dict[str, Any] | None:
-    """Search for a word in the root deck across standard field names."""
+    """Search for a word in the root deck across standard field names.
+
+    Falls back to an in-memory/SQLite word cache when AnkiConnect is
+    unreachable, returning a stub note so duplicate detection still works
+    offline.
+    """
     root_deck = _get_root_deck(deck_name)
-    escaped_deck = root_deck.replace("\\", "\\\\").replace('"', '\\"')
-    escaped_word = word.replace("\\", "\\\\").replace('"', '\\"')
+    try:
+        escaped_deck = root_deck.replace("\\", "\\\\").replace('"', '\\"')
+        escaped_word = word.replace("\\", "\\\\").replace('"', '\\"')
 
-    # We now only use auto-created note types, which always name the
-    # headword field "Word". Still probe "Front" for legacy / user-authored
-    # note types so duplicate detection keeps working across deck migrations.
-    word_fields = ("Front", "Word")
-    field_queries = " OR ".join(f'{f}:"{escaped_word}"' for f in word_fields)
-    query = f'deck:"{escaped_deck}" ({field_queries})'
-    notes = search_notes(query)
-    return notes[0] if notes else None
+        word_fields = ("Front", "Word")
+        field_queries = " OR ".join(
+            f'{f}:"{escaped_word}"' for f in word_fields
+        )
+        query = f'deck:"{escaped_deck}" ({field_queries})'
+        notes = search_notes(query)
+        return notes[0] if notes else None
+    except (httpx.HTTPError, RuntimeError):
+        cached = _word_cache.get(root_deck)
+        if cached and word.lower() in cached:
+            return {"noteId": 0, "modelName": "", "tags": [], "fields": {}}
+        return None
 
 
-def get_note_by_id(note_id: int) -> dict[str, Any] | None:
+def get_note(note_id: int) -> dict[str, Any] | None:
     notes = _invoke("notesInfo", notes=[note_id])
     if not notes or notes[0] is None:
         return None
@@ -351,6 +361,11 @@ def sync() -> None:
     _invoke("sync")
 
 
+def get_status() -> dict[str, bool]:
+    """Check whether AnkiConnect is reachable."""
+    return {"connected": test_connection()}
+
+
 def test_connection() -> bool:
     try:
         _invoke("version")
@@ -405,16 +420,6 @@ def _refresh_word_cache() -> None:
     replace_deck_cache(root_deck, words)
     log.info('Word cache refreshed for "%s": %d words', root_deck, len(words))
 
-
-def search_word_cached(word: str, deck_name: str) -> dict[str, Any] | None:
-    """Search for a word with fallback to in-memory cache when Anki is offline."""
-    try:
-        return search_word(word, deck_name)
-    except (httpx.HTTPError, RuntimeError):
-        cached = _word_cache.get(_get_root_deck(deck_name))
-        if cached and word.lower() in cached:
-            return {"noteId": 0, "modelName": "", "tags": [], "fields": {}}
-        return None
 
 
 def add_word_to_cache(word: str, deck_name: str) -> None:

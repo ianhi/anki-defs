@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
-from bottle import Bottle, request, response
+from bottle import request, response
 
-from ..services import ai
-from ..services.settings import get_settings
+from .. import ai
+from ..settings import get_settings
 
 
-def register(app: Bottle) -> None:
+def register(app: Any) -> None:
     @app.post("/api/prompts/preview")
     def preview() -> dict:
         if os.environ.get("ANKI_DEFS_DEV"):
@@ -26,7 +27,9 @@ def register(app: Bottle) -> None:
             return {"error": "newMessage is required"}
 
         settings = get_settings()
-        prompts = ai.get_system_prompts(settings.get("showTransliteration", False))
+        prompts = ai.get_system_prompts(
+            settings.get("showTransliteration", False)
+        )
 
         selection = ai.select_prompt(
             prompts,

@@ -14,17 +14,16 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from bottle import Bottle, request, response
+from bottle import request, response
 
-from ..services import ai, anki_connect, card_extraction, session
-from ..services.settings import get_settings
-from ._helpers import compute_cost, format_http_error, sse_event
+from .. import ai, card_extraction, session
+from ..settings import get_settings
+from ._helpers import compute_cost, format_http_error, sse_event, strip_article
 
 log = logging.getLogger(__name__)
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
 _DEV_IMAGES_DIR = _PROJECT_ROOT / "dev-images"
-# Also check the external example-pics dir (may be owned by another user)
 _EXTERNAL_PICS_DIR = _PROJECT_ROOT.parent / "example-pics"
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -36,7 +35,7 @@ _MIME_TO_EXT = {
 
 
 def _save_dev_image(image_base64: str, mime_type: str) -> None:
-    """Save uploaded image to example-pics/ for future dev testing."""
+    """Save uploaded image to dev-images/ for future dev testing."""
     import hashlib
 
     try:
@@ -52,26 +51,13 @@ def _save_dev_image(image_base64: str, mime_type: str) -> None:
         log.warning("Could not save dev image: %s", e)
 
 
-def _strip_article(word: str, language: dict[str, Any]) -> str | None:
-    """Strip a leading article/particle from a word, return stripped form or None."""
-    particles_str = language.get("sentenceAnalysis", {}).get("skipParticles", "")
-    if not particles_str:
-        return None
-    # Only check common articles (first few particles), not all 60+ entries
-    particles = [p.strip().lower() for p in particles_str.split(",")][:20]
-    lower = word.lower()
-    for p in particles:
-        prefix = p + " "
-        if lower.startswith(prefix) and len(word) > len(prefix):
-            return word[len(prefix):]
-    return None
-
-
-def register(app: Bottle) -> None:
+def register(app: Any, anki: Any) -> None:
     if os.environ.get("ANKI_DEFS_DEV"):
 
         def _image_dirs() -> list[Path]:
-            return [d for d in (_DEV_IMAGES_DIR, _EXTERNAL_PICS_DIR) if d.exists()]
+            return [
+                d for d in (_DEV_IMAGES_DIR, _EXTERNAL_PICS_DIR) if d.exists()
+            ]
 
         @app.get("/api/photo/examples")
         def list_examples() -> dict:
@@ -79,7 +65,10 @@ def register(app: Bottle) -> None:
             seen: set[str] = set()
             for d in _image_dirs():
                 for f in d.iterdir():
-                    if f.suffix.lower() in _IMAGE_SUFFIXES and f.name not in seen:
+                    if (
+                        f.suffix.lower() in _IMAGE_SUFFIXES
+                        and f.name not in seen
+                    ):
                         files.append(f)
                         seen.add(f.name)
             files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
@@ -92,11 +81,17 @@ def register(app: Bottle) -> None:
                 if path.exists() and path.is_relative_to(d):
                     data = base64.b64encode(path.read_bytes()).decode()
                     mime_map = {
-                        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-                        ".png": "image/png", ".webp": "image/webp",
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                        ".png": "image/png",
+                        ".webp": "image/webp",
                     }
                     mime = mime_map.get(path.suffix.lower(), "image/jpeg")
-                    return {"imageBase64": data, "mimeType": mime, "filename": filename}
+                    return {
+                        "imageBase64": data,
+                        "mimeType": mime,
+                        "filename": filename,
+                    }
             response.status = 404
             return {"error": "Not found"}
 
@@ -117,7 +112,9 @@ def register(app: Bottle) -> None:
             _save_dev_image(image_base64, mime_type)
 
         try:
-            result = ai.get_vision_extraction(image_base64, mime_type, instructions)
+            result = ai.get_vision_extraction(
+                image_base64, mime_type, instructions
+            )
             usage = result.get("usage")
             if usage:
                 cost = compute_cost(usage)
@@ -133,18 +130,24 @@ def register(app: Bottle) -> None:
                     if not word:
                         continue
                     try:
-                        existing = anki_connect.search_word_cached(word, target_deck)
+                        existing = anki.search_word(word, target_deck)
                         if existing is None:
-                            stripped = _strip_article(word, language)
+                            stripped = strip_article(word, language)
                             if stripped:
-                                existing = anki_connect.search_word_cached(
+                                existing = anki.search_word(
                                     stripped, target_deck
                                 )
                         if existing is not None:
                             pair["alreadyExists"] = True
                             fields = existing.get("fields", {})
-                            for fname in ("Definition", "Definitions 1", "Back"):
-                                val = fields.get(fname, {}).get("value", "")
+                            for fname in (
+                                "Definition",
+                                "Definitions 1",
+                                "Back",
+                            ):
+                                val = (
+                                    fields.get(fname, {}).get("value", "")
+                                )
                                 if val:
                                     pair["existingDefinition"] = val
                                     break
@@ -169,13 +172,14 @@ def register(app: Bottle) -> None:
 
         if not pairs:
             response.status = 400
-            return iter([sse_event({"type": "error", "data": "pairs is required"})])
+            return iter(
+                [sse_event({"type": "error", "data": "pairs is required"})]
+            )
 
         response.content_type = "text/event-stream"
         response.set_header("Cache-Control", "no-cache")
 
         q: queue.Queue[str | None] = queue.Queue()
-
         CHUNK_SIZE = 5
 
         def _process_chunk(
@@ -184,10 +188,11 @@ def register(app: Bottle) -> None:
             language: dict[str, Any],
             transliteration: bool,
         ) -> None:
-            """Generate cards for a chunk of word pairs (single AI call)."""
             try:
-                system_prompt, user_message = ai.build_photo_generate_prompt(
-                    chunk, language, transliteration
+                system_prompt, user_message = (
+                    ai.build_photo_generate_prompt(
+                        chunk, language, transliteration
+                    )
                 )
                 result = ai.get_json_completion(system_prompt, user_message)
                 raw = result.get("text", "")
@@ -204,15 +209,20 @@ def register(app: Bottle) -> None:
                 except (json.JSONDecodeError, ValueError):
                     log.warning("JSON parse failed for chunk, retrying")
                     retry = ai.get_json_completion(
-                        "Fix the following malformed JSON. Return ONLY valid JSON.",
+                        "Fix the following malformed JSON. "
+                        "Return ONLY valid JSON.",
                         raw,
                     )
                     retry_usage = retry.get("usage")
                     if retry_usage:
                         cost = compute_cost(retry_usage)
                         session.record_usage(retry_usage, cost)
-                        q.put(sse_event({"type": "usage", "data": retry_usage}))
-                    parsed = ai.parse_json_response(retry.get("text", ""))
+                        q.put(
+                            sse_event({"type": "usage", "data": retry_usage})
+                        )
+                    parsed = ai.parse_json_response(
+                        retry.get("text", "")
+                    )
                     cards = card_extraction.validate_card_responses(parsed)
 
                 card_extraction.inject_textbook_definitions(cards, chunk)
@@ -223,19 +233,30 @@ def register(app: Bottle) -> None:
                     w = c.get("word", "")
                     if w:
                         try:
-                            anki_results[w] = anki_connect.search_word_cached(
+                            anki_results[w] = anki.search_word(
                                 w, target_deck
                             )
-                        except (RuntimeError, ValueError, httpx.HTTPError):
+                        except (
+                            RuntimeError,
+                            ValueError,
+                            httpx.HTTPError,
+                        ):
                             anki_results[w] = None
 
                 previews = card_extraction.build_card_previews(
                     cards, target_deck, anki_results
                 )
                 for preview in previews:
-                    q.put(sse_event({"type": "card_preview", "data": preview}))
+                    q.put(
+                        sse_event({"type": "card_preview", "data": preview})
+                    )
 
-            except (httpx.HTTPError, json.JSONDecodeError, ValueError, OSError) as e:
+            except (
+                httpx.HTTPError,
+                json.JSONDecodeError,
+                ValueError,
+                OSError,
+            ) as e:
                 words = ", ".join(p.get("word", "?") for p in chunk)
                 log.error("Error generating chunk [%s]: %s", words, e)
                 q.put(sse_event({
@@ -250,9 +271,10 @@ def register(app: Bottle) -> None:
                 settings = get_settings()
                 target_deck = deck or settings.get("defaultDeck", "Bangla")
                 language = ai.get_language_for_deck(target_deck)
-                transliteration = settings.get("showTransliteration", False)
+                transliteration = settings.get(
+                    "showTransliteration", False
+                )
 
-                # Split into chunks and process concurrently
                 chunks = [
                     pairs[i : i + CHUNK_SIZE]
                     for i in range(0, len(pairs), CHUNK_SIZE)
@@ -260,8 +282,11 @@ def register(app: Bottle) -> None:
                 with ThreadPoolExecutor(max_workers=3) as pool:
                     futures = [
                         pool.submit(
-                            _process_chunk, chunk, target_deck,
-                            language, transliteration,
+                            _process_chunk,
+                            chunk,
+                            target_deck,
+                            language,
+                            transliteration,
                         )
                         for chunk in chunks
                     ]
@@ -270,7 +295,9 @@ def register(app: Bottle) -> None:
 
                 q.put(sse_event({"type": "done", "data": None}))
             except (RuntimeError, ValueError, OSError) as e:
-                log.error("Photo generate worker error: %s", e, exc_info=True)
+                log.error(
+                    "Photo generate worker error: %s", e, exc_info=True
+                )
                 q.put(sse_event({"type": "error", "data": str(e)}))
             finally:
                 q.put(None)

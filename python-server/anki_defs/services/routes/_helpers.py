@@ -1,4 +1,4 @@
-"""Shared helpers for SSE route modules."""
+"""Shared helpers for route modules — SSE, cost computation, error formatting."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from typing import Any
 
 import httpx
 
-from ..config import SHARED_DIR
+from ...config import DATA_DIR
 
-with open(SHARED_DIR / "data" / "model-pricing.json", encoding="utf-8") as _f:
+with open(DATA_DIR / "model-pricing.json", encoding="utf-8") as _f:
     MODEL_PRICING: dict[str, dict[str, float]] = json.load(_f)
 
 
@@ -51,6 +51,25 @@ def format_http_error(exc: httpx.HTTPError) -> str:
         elif status == 429:
             hint = " \u2014 rate limited; wait a moment or check your plan."
         elif status == 400:
-            hint = " \u2014 the request was rejected (bad model name or invalid API key)."
+            hint = (
+                " \u2014 the request was rejected"
+                " (bad model name or invalid API key)."
+            )
         return f"AI provider returned HTTP {status}{hint}\n\n{detail}"
     return f"Network error talking to the AI provider: {exc}"
+
+
+def strip_article(word: str, language: dict[str, Any]) -> str | None:
+    """Strip a leading article/particle, return stripped form or None."""
+    particles_str = (
+        language.get("sentenceAnalysis", {}).get("skipParticles", "")
+    )
+    if not particles_str:
+        return None
+    particles = [p.strip().lower() for p in particles_str.split(",")][:20]
+    lower = word.lower()
+    for p in particles:
+        prefix = p + " "
+        if lower.startswith(prefix) and len(word) > len(prefix):
+            return word[len(prefix):]
+    return None

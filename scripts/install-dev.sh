@@ -59,7 +59,7 @@ cp "$ADDON_DIR/_services_settings_wrapper.py" "$ADDON_DIR/_services/settings.py"
 rm -f "$ADDON_DIR/_services/anki_connect.py"
 # Rewrite relative parent imports to absolute package imports.
 find "$ADDON_DIR/_services" -name '*.py' -exec \
-    sed -i 's/from \.\.config import/from anki_defs.config import/' {} +
+    sed -i 's/from \.\.\.\?config import/from anki_defs.config import/' {} +
 
 echo "==> Installing httpx, keyring, and bottle into _vendor/..."
 force_rm "$ADDON_DIR/_vendor"

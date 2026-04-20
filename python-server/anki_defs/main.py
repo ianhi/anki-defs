@@ -19,7 +19,8 @@ bottle.BaseRequest.MEMFILE_MAX = 20 * 1024 * 1024  # 20 MB
 
 from .config import CLIENT_DIST, load_dotenv, migrate_config_dir  # noqa: E402
 from .middleware.auth import check_auth  # noqa: E402
-from .routes import anki, chat, photo, prompts, session, settings  # noqa: E402
+from .services import anki_connect  # noqa: E402
+from .services.routes import anki, chat, photo, prompts, session, settings  # noqa: E402
 from .services.settings import get_settings, save_settings  # noqa: E402
 
 # Migrate config dir from old name and load .env files
@@ -111,9 +112,9 @@ def platform() -> dict:
 
 # --- Mount route modules ---
 
-anki.register(app)
-chat.register(app)
-photo.register(app)
+anki.register(app, anki_connect)
+chat.register(app, anki_connect)
+photo.register(app, anki_connect)
 prompts.register(app)
 session.register(app)
 settings.register(app)

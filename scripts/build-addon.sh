@@ -40,10 +40,10 @@ cp "$ADDON_DIR/_services_settings_wrapper.py" "$ADDON_DIR/_services/settings.py"
 # Remove anki_connect.py (addon uses direct mw.col access, not AnkiConnect HTTP)
 rm -f "$ADDON_DIR/_services/anki_connect.py"
 # Rewrite relative parent imports to absolute package imports.
-# _services/*.py uses `from ..config import` which must become `from anki_defs.config import`
-# since anki_defs is the package name when installed in Anki.
+# _services/*.py uses `from ..config import` and _services/routes/*.py uses
+# `from ...config import` — both must become `from anki_defs.config import`.
 find "$ADDON_DIR/_services" -name '*.py' -exec \
-    sed -i 's/from \.\.config import/from anki_defs.config import/' {} +
+    sed -i 's/from \.\.\.\?config import/from anki_defs.config import/' {} +
 
 echo "==> Bundling httpx, keyring, and dependencies..."
 rm -rf "$ADDON_DIR/_vendor"
