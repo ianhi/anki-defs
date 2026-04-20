@@ -10,6 +10,56 @@ function formatVersionRange(current: number | null, latest: number): string {
   return `v${current} → v${latest}`;
 }
 
+/** Syntax-highlight a single line of Anki template */
+function highlightLine(text: string): React.ReactNode[] {
+  const parts = text.split(/(<!--.*?-->|\{\{[^}]*\}\}|<\/?[a-zA-Z][^>]*>)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('<!--')) {
+      return (
+        <span key={i} className="text-emerald-600 dark:text-emerald-400">
+          {part}
+        </span>
+      );
+    }
+    if (part.startsWith('{{')) {
+      return (
+        <span key={i} className="text-blue-600 dark:text-blue-400 font-semibold">
+          {part}
+        </span>
+      );
+    }
+    if (part.startsWith('<')) {
+      return (
+        <span key={i} className="text-orange-600 dark:text-orange-400">
+          {part}
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+/** Render template with syntax highlighting + line-level diff coloring */
+function highlightWithDiff(
+  text: string,
+  otherLines: Set<string>,
+  mode: 'added' | 'removed'
+): React.ReactNode[] {
+  return text.split('\n').map((line, i) => {
+    const isDiff = !otherLines.has(line);
+    const bg = isDiff
+      ? mode === 'added'
+        ? 'bg-green-100/70 dark:bg-green-900/20'
+        : 'bg-red-100/70 dark:bg-red-900/20 line-through opacity-70'
+      : '';
+    return (
+      <div key={i} className={bg}>
+        {highlightLine(line)}
+      </div>
+    );
+  });
+}
+
 /** Side-by-side current vs editable merged template */
 function TemplateEditor({
   label,
@@ -58,27 +108,46 @@ function TemplateEditor({
           </Button>
         )}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-        <div>
-          <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
-            Current
-          </p>
-          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border text-foreground/80">
-            {current || <span className="italic text-muted-foreground">(empty)</span>}
-          </pre>
-        </div>
-        <div>
-          <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
-            Merged result (editable)
-          </p>
-          <textarea
-            className="w-full p-2 text-[11px] font-mono leading-relaxed bg-muted rounded border border-border text-foreground/80 resize-y focus:outline-none focus:ring-1 focus:ring-primary"
-            value={proposed}
-            rows={Math.max(8, proposed.split('\n').length + 1)}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </div>
-      </div>
+      {(() => {
+        const proposedLines = new Set(proposed.split('\n'));
+        const currentLines = new Set(current.split('\n'));
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
+                Current
+              </p>
+              <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border">
+                {current ? (
+                  highlightWithDiff(current, proposedLines, 'removed')
+                ) : (
+                  <span className="italic text-muted-foreground">(empty)</span>
+                )}
+              </pre>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
+                Merged result (editable)
+              </p>
+              <div className="relative">
+                <pre
+                  className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border pointer-events-none"
+                  aria-hidden
+                >
+                  {highlightWithDiff(proposed, currentLines, 'added')}
+                  {'\n'}
+                </pre>
+                <textarea
+                  className="absolute inset-0 w-full h-full p-2 text-[11px] font-mono leading-relaxed bg-transparent text-transparent caret-foreground rounded border border-transparent resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={proposed}
+                  onChange={(e) => onChange(e.target.value)}
+                  spellCheck={false}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -151,9 +220,9 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
+      <div className="sticky top-0 z-10 bg-background flex items-center gap-3 px-4 py-3 border-b border-border">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -179,7 +248,7 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 max-w-5xl mx-auto w-full">
+      <div className="p-4 space-y-5 max-w-5xl mx-auto w-full">
         {/* Sync warning */}
         <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
           Updating templates forces a one-way sync. You can edit the proposed templates below to
