@@ -63,7 +63,7 @@ function TemplateEditor({
           <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
             Current
           </p>
-          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border overflow-auto max-h-52 text-foreground/80">
+          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border text-foreground/80">
             {current || <span className="italic text-muted-foreground">(empty)</span>}
           </pre>
         </div>
@@ -72,8 +72,9 @@ function TemplateEditor({
             Merged result (editable)
           </p>
           <textarea
-            className="w-full p-2 text-[11px] font-mono leading-relaxed bg-background rounded border border-primary/30 text-foreground overflow-auto max-h-52 min-h-32 resize-y focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full p-2 text-[11px] font-mono leading-relaxed bg-muted rounded border border-border text-foreground/80 resize-y focus:outline-none focus:ring-1 focus:ring-primary"
             value={proposed}
+            rows={Math.max(8, proposed.split('\n').length + 1)}
             onChange={(e) => onChange(e.target.value)}
           />
         </div>
