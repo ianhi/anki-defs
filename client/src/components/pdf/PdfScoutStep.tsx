@@ -152,7 +152,7 @@ function SectionRow({
   checked: boolean;
   onToggle: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const snippetLines = s.bodySnippet?.split('\n').slice(0, 5) ?? [];
 
   return (
