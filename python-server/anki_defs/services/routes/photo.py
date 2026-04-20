@@ -27,6 +27,7 @@ from ._helpers import (
     sse_stream,
     strip_article,
 )
+from ._protocol import AnkiBackend
 
 log = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def _save_dev_image(image_base64: str, mime_type: str) -> None:
         log.warning("Could not save dev image: %s", e)
 
 
-def register(app: Any, anki: Any) -> None:
+def register(app: Any, anki: AnkiBackend) -> None:
     if os.environ.get("ANKI_DEFS_DEV"):
 
         def _image_dirs() -> list[Path]:

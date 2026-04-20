@@ -8,11 +8,11 @@ interface GenerateStepProps {
   selectedCount: number;
   isGenerating: boolean;
   extraTag: string;
-  handleAddAll: () => void;
+  onAddAll: () => void;
   addingAll: boolean;
   addAllResult: { added: number } | null;
-  handleReset: () => void;
-  goBack: () => void;
+  onReset: () => void;
+  onGoBack: () => void;
 }
 
 export function GenerateStep({
@@ -20,11 +20,11 @@ export function GenerateStep({
   selectedCount,
   isGenerating,
   extraTag,
-  handleAddAll,
+  onAddAll,
   addingAll,
   addAllResult,
-  handleReset,
-  goBack,
+  onReset,
+  onGoBack,
 }: GenerateStepProps) {
   const newCount = cardPreviews.filter((p) => !p.alreadyExists).length;
   const extraTags = extraTag
@@ -46,7 +46,7 @@ export function GenerateStep({
           <p className="text-sm text-muted-foreground">
             {cardPreviews.length} card{cardPreviews.length !== 1 ? 's' : ''} ready.
           </p>
-          <Button size="sm" onClick={handleAddAll} disabled={addingAll || newCount === 0}>
+          <Button size="sm" onClick={onAddAll} disabled={addingAll || newCount === 0}>
             {addingAll ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
@@ -59,7 +59,7 @@ export function GenerateStep({
           {addAllResult && (
             <>
               <span className="text-xs text-muted-foreground">{addAllResult.added} added</span>
-              <Button variant="outline" size="sm" onClick={handleReset}>
+              <Button variant="outline" size="sm" onClick={onReset}>
                 New image
               </Button>
             </>
@@ -75,11 +75,11 @@ export function GenerateStep({
 
       {!isGenerating && (
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" onClick={goBack}>
+          <Button variant="outline" onClick={onGoBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to image
           </Button>
-          <Button variant="outline" onClick={handleReset}>
+          <Button variant="outline" onClick={onReset}>
             New image
           </Button>
         </div>

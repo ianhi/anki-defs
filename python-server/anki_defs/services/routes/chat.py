@@ -22,11 +22,12 @@ from ._helpers import (
     sse_event,
     sse_stream,
 )
+from ._protocol import AnkiBackend
 
 log = logging.getLogger(__name__)
 
 
-def register(app: Any, anki: Any) -> None:
+def register(app: Any, anki: AnkiBackend) -> None:
     @app.post("/api/chat/stream")
     def stream() -> Iterator[str]:
         body = request.json or {}
@@ -164,7 +165,7 @@ def _sentence_translate(
 
 def _json_pipeline(
     q: queue.Queue[str | None],
-    anki: Any,
+    anki: AnkiBackend,
     selection: Any,
     target_deck: str,
     highlighted_words: list[str] | None,

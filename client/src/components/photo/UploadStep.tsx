@@ -4,26 +4,26 @@ import { Camera, Upload, ImageIcon } from 'lucide-react';
 
 interface UploadStepProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isDragging: boolean;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isDev: boolean;
   examples: string[];
-  loadExample: (filename: string) => void;
+  onLoadExample: (filename: string) => void;
 }
 
 export function UploadStep({
   fileInputRef,
-  handleFileSelect,
+  onFileSelect,
   isDragging,
   onDragOver,
   onDragLeave,
   onDrop,
   isDev,
   examples,
-  loadExample,
+  onLoadExample,
 }: UploadStepProps) {
   return (
     <div
@@ -49,7 +49,7 @@ export function UploadStep({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={handleFileSelect}
+            onChange={onFileSelect}
             className="hidden"
           />
           <div className="flex gap-3">
@@ -90,7 +90,7 @@ export function UploadStep({
                 variant="outline"
                 size="sm"
                 className="text-xs"
-                onClick={() => loadExample(name)}
+                onClick={() => onLoadExample(name)}
               >
                 {name.length > 20 ? name.slice(0, 17) + '...' : name}
               </Button>

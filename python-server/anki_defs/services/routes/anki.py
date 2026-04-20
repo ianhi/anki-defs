@@ -9,13 +9,14 @@ from urllib.parse import unquote
 from bottle import request, response
 
 from .. import ai
+from ._protocol import AnkiBackend
 
 log = logging.getLogger(__name__)
 
 _VALID_CARD_TYPES = {"vocab", "cloze", "mcCloze"}
 
 
-def register(app: Any, anki: Any) -> None:
+def register(app: Any, anki: AnkiBackend) -> None:
     @app.get("/api/anki/decks")
     def get_decks() -> dict:
         try:

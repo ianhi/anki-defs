@@ -8,12 +8,15 @@ import queue
 import threading
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
 from ...config import DATA_DIR
 from .. import ai, card_extraction, session
+
+if TYPE_CHECKING:
+    from ._protocol import AnkiBackend
 
 log = logging.getLogger(__name__)
 
@@ -97,7 +100,7 @@ def strip_article(word: str, language: dict[str, Any]) -> str | None:
 
 
 def check_words_parallel(
-    anki: Any, words: list[str], target_deck: str,
+    anki: AnkiBackend, words: list[str], target_deck: str,
 ) -> dict[str, Any | None]:
     """Search Anki for multiple words concurrently."""
     results: dict[str, Any | None] = {}

@@ -219,14 +219,14 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
         {step === 'upload' && (
           <UploadStep
             fileInputRef={fileInputRef}
-            handleFileSelect={handleFileSelect}
+            onFileSelect={handleFileSelect}
             isDragging={isDragging}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             isDev={isDev}
             examples={examples}
-            loadExample={loadExample}
+            onLoadExample={loadExample}
           />
         )}
 
@@ -250,11 +250,11 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
             selectedCount={selectedCount}
             isGenerating={isGenerating}
             extraTag={extraTag}
-            handleAddAll={handleAddAll}
+            onAddAll={handleAddAll}
             addingAll={addingAll}
             addAllResult={addAllResult}
-            handleReset={handleReset}
-            goBack={() => setStep('extract')}
+            onReset={handleReset}
+            onGoBack={() => setStep('extract')}
           />
         )}
       </div>
