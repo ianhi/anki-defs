@@ -60,11 +60,25 @@ export function PdfScoutStep({
     setPicked(next);
   };
 
-  if (loading) return <p className="p-6 text-sm text-muted-foreground">Scouting sections…</p>;
-  if (error) return <p className="p-6 text-sm text-destructive">{error}</p>;
+  if (loading)
+    return (
+      <div className="p-6 flex flex-col items-center gap-3">
+        <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-muted-foreground">
+          Scouting {sectionsToScout.length} section{sectionsToScout.length === 1 ? '' : 's'}…
+        </p>
+        <p className="text-xs text-muted-foreground">This may take 10–30 seconds</p>
+      </div>
+    );
+  if (error)
+    return (
+      <div className="p-6 max-w-lg mx-auto">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    );
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 max-w-2xl mx-auto">
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground">Source tag (applied to every card)</label>
         <Input value={sourceTag} onChange={(e) => onSourceTagChange(e.target.value)} />

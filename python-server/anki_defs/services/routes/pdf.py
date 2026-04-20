@@ -26,6 +26,7 @@ from ._helpers import (
     compute_cost,
     format_http_error,
     parse_cards_with_healing,
+    parse_json_with_healing,
     sse_event,
     sse_stream,
 )
@@ -78,7 +79,12 @@ def register(app: Any, anki: AnkiBackend) -> None:
                 cost = compute_cost(usage)
                 session.record_usage(usage, cost)
 
-            parsed = ai.parse_json_response(raw)
+            def _record_heal(u: dict[str, Any]) -> None:
+                nonlocal usage
+                session.record_usage(u, compute_cost(u))
+                usage = u  # overwrite so client sees combined
+
+            parsed = parse_json_with_healing(raw, _record_heal)
             scouted_raw = parsed.get("sections") if isinstance(parsed, dict) else parsed
             if not isinstance(scouted_raw, list):
                 raise ValueError("Scout response missing sections array")

@@ -95,7 +95,7 @@ export function PdfExtractStep({
   }, []);
 
   return (
-    <div className="p-4 space-y-3">
+    <div className="p-4 space-y-3 max-w-2xl mx-auto">
       <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground">{status || (done ? 'Done.' : '')}</span>
         <Button variant="ghost" size="sm" className="ml-auto" onClick={onRestart}>

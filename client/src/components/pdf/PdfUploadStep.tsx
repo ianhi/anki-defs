@@ -39,7 +39,7 @@ export function PdfUploadStep({ onReady }: Props) {
   };
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 max-w-lg mx-auto">
       <p className="text-sm text-muted-foreground">
         Upload a PDF with selectable text. We&apos;ll extract the outline and ask an AI scout to
         classify sections before you pick which ones to turn into cards.
@@ -57,7 +57,12 @@ export function PdfUploadStep({ onReady }: Props) {
       <Button onClick={() => inputRef.current?.click()} disabled={loading}>
         {loading ? 'Working…' : 'Choose PDF'}
       </Button>
-      {progress && <p className="text-sm text-muted-foreground">{progress}</p>}
+      {progress && (
+        <div className="flex items-center gap-2">
+          <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">{progress}</p>
+        </div>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

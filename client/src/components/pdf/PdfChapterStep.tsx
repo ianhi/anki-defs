@@ -23,7 +23,7 @@ export function PdfChapterStep({ outline, onSelected }: Props) {
   const selectNone = () => setPicked(new Set());
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 max-w-2xl mx-auto">
       <p className="text-sm text-muted-foreground">
         {chapters.length} chapters found. Pick which to scout for extractable content.
       </p>
