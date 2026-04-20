@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, Check, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from './ui/Button';
 import { ankiApi } from '@/lib/api';
@@ -87,67 +87,64 @@ function TemplateEditor({
     }
   };
 
+  const proposedLines = new Set(proposed.split('\n'));
+  const currentLines = new Set(current.split('\n'));
+
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2">
-        <p className="text-xs font-medium text-foreground">{label}</p>
-        {hasUserChanges && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-5 text-[10px] gap-1 text-primary"
-            disabled={merging}
-            onClick={handleAIMerge}
-          >
-            {merging ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+      <p className="text-xs font-medium text-foreground">{label}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <div>
+          <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
+            Current
+          </p>
+          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border">
+            {current ? (
+              highlightWithDiff(current, proposedLines, 'removed')
             ) : (
-              <Sparkles className="h-3 w-3" />
+              <span className="italic text-muted-foreground">(empty)</span>
             )}
-            AI Merge
-          </Button>
-        )}
-      </div>
-      {(() => {
-        const proposedLines = new Set(proposed.split('\n'));
-        const currentLines = new Set(current.split('\n'));
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
-                Current
-              </p>
-              <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border">
-                {current ? (
-                  highlightWithDiff(current, proposedLines, 'removed')
+          </pre>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-0.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+              Merged result (editable)
+            </p>
+            {hasUserChanges && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-5 text-[10px] gap-1 text-primary"
+                disabled={merging}
+                onClick={handleAIMerge}
+              >
+                {merging ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <span className="italic text-muted-foreground">(empty)</span>
+                  <Sparkles className="h-3 w-3" />
                 )}
-              </pre>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
-                Merged result (editable)
-              </p>
-              <div className="relative">
-                <pre
-                  className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border pointer-events-none"
-                  aria-hidden
-                >
-                  {highlightWithDiff(proposed, currentLines, 'added')}
-                  {'\n'}
-                </pre>
-                <textarea
-                  className="absolute inset-0 w-full h-full p-2 text-[11px] font-mono leading-relaxed bg-transparent text-transparent caret-foreground rounded border border-transparent resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={proposed}
-                  onChange={(e) => onChange(e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
-            </div>
+                AI Merge
+              </Button>
+            )}
           </div>
-        );
-      })()}
+          <div className="relative">
+            <pre
+              className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border pointer-events-none"
+              aria-hidden
+            >
+              {highlightWithDiff(proposed, currentLines, 'added')}
+              {'\n'}
+            </pre>
+            <textarea
+              className="absolute inset-0 w-full h-full p-2 text-[11px] font-mono leading-relaxed bg-transparent text-transparent caret-foreground rounded border border-transparent resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+              value={proposed}
+              onChange={(e) => onChange(e.target.value)}
+              spellCheck={false}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -227,12 +224,8 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1 min-w-0">
-          <h2 className="font-medium">Note Type Updates</h2>
-          <p className="text-xs text-muted-foreground">
-            {consolidated && issues.length > 1
-              ? `Same changes for ${issues.length} note types`
-              : `${issues.length} note type${issues.length > 1 ? 's' : ''} need updating`}
-          </p>
+          <h2 className="font-medium">Review Template Updates</h2>
+          <p className="text-xs text-muted-foreground">Nothing changes until you click apply</p>
         </div>
         {allUpdated ? (
           <Button variant="outline" onClick={onClose}>
@@ -240,20 +233,24 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
             Done
           </Button>
         ) : (
-          <Button disabled={update.isPending} onClick={handleUpdateAll}>
-            {update.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-            {issues.length === 1 ? 'Apply Changes' : `Apply All (${issues.length})`}
+          <Button variant="ghost" onClick={onClose}>
+            Dismiss
           </Button>
         )}
       </div>
 
       {/* Content */}
       <div className="p-4 space-y-5 max-w-5xl mx-auto w-full">
-        {/* Sync warning */}
-        <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-2.5">
-          Updating templates forces a one-way sync. You can edit the proposed templates below to
-          keep your customizations (e.g. specific TTS voices).
-        </p>
+        <div className="text-xs text-muted-foreground bg-muted rounded-md p-2.5 space-y-1">
+          <p>
+            Review the changes below. The <strong>merged result</strong> on the right is what will
+            be applied — you can edit it freely or use <strong>AI Merge</strong> to automatically
+            combine your customizations with the new features.
+          </p>
+          <p className="text-amber-700 dark:text-amber-300">
+            Applying will update your Anki note types and force a one-way sync.
+          </p>
+        </div>
 
         {/* Missing fields */}
         {representative.missingFields.length > 0 && (
@@ -333,6 +330,17 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
             />
           </div>
         )}
+
+        {/* Apply button — at the bottom after the user has reviewed everything */}
+        {!allUpdated && (
+          <div className="border-t border-border pt-4 flex items-center gap-3">
+            <Button disabled={update.isPending} onClick={handleUpdateAll}>
+              {update.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
+              {issues.length === 1 ? 'Apply to Anki' : `Apply to All ${issues.length} Note Types`}
+            </Button>
+            <p className="text-xs text-muted-foreground">Uses the merged result shown above</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -368,18 +376,9 @@ function filterDismissed(issues: NoteTypeIssue[]): NoteTypeIssue[] {
 export function NoteTypeHealth() {
   const [showDetail, setShowDetail] = useState(false);
   const { data, isLoading } = useNoteTypeHealth();
-  const prevCountRef = useRef(0);
 
   const allIssues = data?.issues ?? [];
   const issues = filterDismissed(allIssues);
-
-  // Auto-show when new issues first appear
-  useEffect(() => {
-    if (issues.length > 0 && prevCountRef.current === 0) {
-      setShowDetail(true);
-    }
-    prevCountRef.current = issues.length;
-  }, [issues.length]);
 
   if (isLoading || issues.length === 0) return null;
 
