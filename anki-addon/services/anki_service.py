@@ -307,15 +307,19 @@ def check_template_versions(note_type_prefix):
         for tmpl in rendered["templates"]:
             tmpl_name = tmpl["Name"]
             live = live_tmpls_by_name.get(tmpl_name)
+            live_front = live["qfmt"] if live else ""
+            live_back = live["afmt"] if live else ""
             if live is None:
                 stale_templates.append({
                     "name": tmpl_name,
                     "currentVersion": None,
+                    "current": {"front": "", "back": ""},
+                    "proposed": {"front": tmpl["Front"], "back": tmpl["Back"]},
                 })
                 continue
 
-            front_ver = _extract_template_version(live["qfmt"])
-            back_ver = _extract_template_version(live["afmt"])
+            front_ver = _extract_template_version(live_front)
+            back_ver = _extract_template_version(live_back)
             current_ver = min(
                 v for v in (front_ver, back_ver) if v is not None
             ) if front_ver is not None or back_ver is not None else None
@@ -324,6 +328,8 @@ def check_template_versions(note_type_prefix):
                 stale_templates.append({
                     "name": tmpl_name,
                     "currentVersion": current_ver,
+                    "current": {"front": live_front, "back": live_back},
+                    "proposed": {"front": tmpl["Front"], "back": tmpl["Back"]},
                 })
 
         # Check CSS
@@ -331,14 +337,18 @@ def check_template_versions(note_type_prefix):
         css_outdated = live_css.strip() != rendered["css"].strip()
 
         if missing_fields or stale_templates or css_outdated:
-            issues.append({
+            issue = {
                 "modelName": model_name,
                 "cardType": card_type,
                 "latestVersion": latest_version,
                 "missingFields": missing_fields,
                 "staleTemplates": stale_templates,
                 "cssOutdated": css_outdated,
-            })
+            }
+            if css_outdated:
+                issue["currentCss"] = live_css
+                issue["proposedCss"] = rendered["css"]
+            issues.append(issue)
 
     return issues
 

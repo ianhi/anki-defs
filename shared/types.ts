@@ -69,9 +69,16 @@ export interface SessionState {
 }
 
 // Template health types
+export interface TemplateContent {
+  front: string;
+  back: string;
+}
+
 export interface StaleTemplate {
   name: string;
   currentVersion: number | null;
+  current: TemplateContent;
+  proposed: TemplateContent;
 }
 
 export interface NoteTypeIssue {
@@ -81,6 +88,8 @@ export interface NoteTypeIssue {
   missingFields: string[];
   staleTemplates: StaleTemplate[];
   cssOutdated: boolean;
+  currentCss?: string;
+  proposedCss?: string;
 }
 
 // Anki types

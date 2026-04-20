@@ -115,7 +115,7 @@ function MainApp() {
                 />
               </Button>
             )}
-            <NoteTypeHealth />
+            {/* NoteTypeHealth banner renders below header */}
             {pendingQueue.length > 0 && (
               <Button
                 variant="ghost"
@@ -154,6 +154,7 @@ function MainApp() {
             </Button>
           </div>
         </header>
+        <NoteTypeHealth />
         <ErrorBoundary>
           {showPhoto ? (
             <PhotoCapture

@@ -280,6 +280,8 @@ def check_template_versions(
                 stale_templates.append({
                     "name": tmpl_name,
                     "currentVersion": current_ver,
+                    "current": {"front": live_front, "back": live_back},
+                    "proposed": {"front": tmpl["Front"], "back": tmpl["Back"]},
                 })
 
         # Check CSS
@@ -287,14 +289,18 @@ def check_template_versions(
         css_outdated = live_css.strip() != rendered["css"].strip()
 
         if missing_fields or stale_templates or css_outdated:
-            issues.append({
+            issue: dict[str, Any] = {
                 "modelName": model_name,
                 "cardType": card_type,
                 "latestVersion": latest_version,
                 "missingFields": missing_fields,
                 "staleTemplates": stale_templates,
                 "cssOutdated": css_outdated,
-            })
+            }
+            if css_outdated:
+                issue["currentCss"] = live_css
+                issue["proposedCss"] = rendered["css"]
+            issues.append(issue)
 
     return issues
 
