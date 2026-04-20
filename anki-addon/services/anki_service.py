@@ -4,6 +4,8 @@ All public functions use @main_thread to safely access the collection
 from any thread (Bottle's request threads, daemon threads, etc.).
 """
 
+import logging
+
 from anki_defs._services import note_types as _note_types
 from anki_defs._services.ai import get_language_for_deck as _get_language_for_deck
 from anki_defs._services.note_types import (
@@ -12,9 +14,10 @@ from anki_defs._services.note_types import (
 from anki_defs._services.note_types import (
     render_note_type as _render_note_type,
 )
+from anki_defs.server.bridge import main_thread
 from aqt import mw
 
-from ..server.bridge import main_thread
+log = logging.getLogger(__name__)
 
 # Cache of (note_type_prefix, language_code, card_type) -> model_name for
 # models we have already verified/created this process lifetime.
@@ -170,39 +173,71 @@ def ensure_language_models(language, note_type_prefix, card_types=None, anki_tts
     return result
 
 
-def _migrate_existing_model(model, rendered):
-    """Bring an existing model up to the current schema (fields + templates).
+@main_thread
+def check_pending_migrations(language, note_type_prefix, card_types=None, anki_tts_locale_override=None):
+    """Check for note types that need field additions (without modifying anything).
 
-    Appends missing fields and overwrites template Front/Back with the rendered
-    versions. Idempotent. Custom user template tweaks WILL be overwritten — this
-    is a deliberate trade so audio fallback / template-level fixes reach
-    existing users without forcing them to delete and recreate the model.
+    Returns a list of {"modelName": ..., "newFields": [...]} dicts for models
+    that exist but are missing fields.  Returns [] when nothing needs migrating.
+    Respects _ensured_models cache.
+    """
+    wanted = tuple(card_types) if card_types else _note_types.all_card_types()
+    code = language["code"]
+
+    to_check = []
+    for ct in wanted:
+        if (note_type_prefix, code, ct) not in _ensured_models:
+            to_check.append(ct)
+
+    if not to_check:
+        return []
+
+    col = _col()
+    pending = []
+
+    for ct in to_check:
+        rendered = _render_note_type(ct, language, note_type_prefix, anki_tts_locale_override)
+        model_name = rendered["modelName"]
+        existing = col.models.by_name(model_name)
+        if existing is None:
+            continue  # New model — will be created, not migrated
+        existing_names = {f["name"] for f in existing["flds"]}
+        new_fields = [f for f in rendered["fields"] if f not in existing_names]
+        if new_fields:
+            pending.append({"modelName": model_name, "newFields": new_fields})
+
+    return pending
+
+
+def check_migrations_for_deck(deck, card_types=None):
+    """Convenience wrapper: resolve deck language and check for pending migrations."""
+    from .settings_service import get_settings
+
+    settings = get_settings()
+    prefix = settings.get("noteTypePrefix", "anki-defs")
+    language = _get_language_for_deck(deck)
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+    tts_override = tts_overrides.get(language["code"])
+    return check_pending_migrations(language, prefix, card_types, tts_override)
+
+
+def _migrate_existing_model(model, rendered):
+    """Ensure an existing model has all required fields.
+
+    Only adds missing fields — never touches templates or CSS. Modifying
+    templates would destroy user customizations and trigger a forced one-way
+    sync in Anki (schema modification bumps scm).
     """
     col = _col()
-    changed = False
-
+    added_fields = False
     existing_names = {f["name"] for f in model["flds"]}
     for name in rendered["fields"]:
         if name not in existing_names:
+            log.info("Adding field %s to existing model %s", name, model["name"])
             field = col.models.new_field(name)
             col.models.add_field(model, field)
-            changed = True
-
-    rendered_by_name = {t["Name"]: t for t in rendered["templates"]}
-    for tmpl in model["tmpls"]:
-        new = rendered_by_name.get(tmpl["name"])
-        if not new:
-            continue
-        if tmpl.get("qfmt") != new["Front"] or tmpl.get("afmt") != new["Back"]:
-            tmpl["qfmt"] = new["Front"]
-            tmpl["afmt"] = new["Back"]
-            changed = True
-
-    if model.get("css") != rendered["css"]:
-        model["css"] = rendered["css"]
-        changed = True
-
-    if changed:
+            added_fields = True
+    if added_fields:
         col.models.update_dict(model)
 
 

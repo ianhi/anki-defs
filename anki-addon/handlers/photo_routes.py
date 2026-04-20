@@ -12,13 +12,17 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
+from anki_defs._services import ai as ai_service
+from anki_defs._services.card_extraction import (
+    build_card_previews,
+    inject_textbook_definitions,
+    validate_card_responses,
+)
+from anki_defs._services.session import record_usage
+from anki_defs.server.sse import format_sse_event
+from anki_defs.services import anki_service
+from anki_defs.services.settings_service import get_settings
 from bottle import request, response
-
-from ..server.sse import format_sse_event
-from ..services import ai_service, anki_service
-from ..services.card_extraction import build_card_previews, validate_card_responses
-from ..services.session_service import record_usage
-from ..services.settings_service import get_settings
 
 log = logging.getLogger(__name__)
 
@@ -97,6 +101,7 @@ def register(app):
     def extract():
         upload = request.files.get("image")
         deck = request.forms.get("deck", "")
+        instructions = request.forms.get("instructions", "")
         if not upload:
             response.status = 400
             return {"error": "image file is required"}
@@ -106,7 +111,7 @@ def register(app):
 
         try:
             ai_service.reload_prompts()
-            result = ai_service.get_vision_extraction(image_base64, mime_type)
+            result = ai_service.get_vision_extraction(image_base64, mime_type, instructions)
             usage = result.get("usage")
             if usage:
                 cost = _compute_cost(usage)
@@ -196,6 +201,8 @@ def register(app):
                         q.put(_sse("usage", retry_usage))
                     parsed = ai_service.parse_json_response(retry.get("text", ""))
                     cards = validate_card_responses(parsed)
+
+                inject_textbook_definitions(cards, chunk)
 
                 # Check Anki for duplicates
                 anki_results = {}

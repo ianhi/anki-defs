@@ -1,6 +1,6 @@
 """Platform and health check routes."""
 
-from ..services import ai_service
+from anki_defs._services import ai as ai_service
 
 
 def register(app):

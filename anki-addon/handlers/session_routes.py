@@ -3,9 +3,8 @@
 import logging
 import sqlite3
 
+from anki_defs._services import session as session_service
 from bottle import request, response
-
-from ..services import session_service
 
 log = logging.getLogger(__name__)
 

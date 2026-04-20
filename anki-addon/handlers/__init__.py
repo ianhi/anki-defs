@@ -1,6 +1,7 @@
 """Route registration — registers all API handlers on the Bottle app."""
 
-from ..server.app import app
+from anki_defs.server.app import app
+
 from . import (
     anki_routes,
     chat_routes,

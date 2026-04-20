@@ -2,9 +2,7 @@
 
 import logging
 
-from bottle import request, response
-
-from ..services.settings_service import (
+from anki_defs.services.settings_service import (
     get_masked_settings,
     has_insecure_consent,
     has_new_secrets,
@@ -13,6 +11,7 @@ from ..services.settings_service import (
     set_insecure_consent,
     strip_masked_keys,
 )
+from bottle import request, response
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +62,7 @@ def register(app):
             key in updates
             for key in ("aiProvider", "claudeApiKey", "geminiApiKey", "openRouterApiKey")
         ):
-            from ..services import ai_service
+            from anki_defs._services import ai as ai_service
 
             ai_service.reset_clients()
 

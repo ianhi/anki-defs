@@ -71,7 +71,7 @@ class TestPromptRendering:
     """Test that ai_service can load and render prompts from shared files."""
 
     def test_render_prompts_no_transliteration(self):
-        from services.ai_service import get_system_prompts
+        from anki_defs._services.ai import get_system_prompts
 
         prompts = get_system_prompts(False)
         assert "word" in prompts
@@ -87,21 +87,21 @@ class TestPromptRendering:
         assert "Do NOT" in prompts["word"]
 
     def test_render_prompts_with_transliteration(self):
-        from services.ai_service import get_system_prompts
+        from anki_defs._services.ai import get_system_prompts
 
         prompts = get_system_prompts(True)
         # With transliteration, should include instruction
         assert "Include romanized" in prompts["word"]
 
     def test_render_user_template_word(self):
-        from services.ai_service import render_user_template
+        from anki_defs._services.ai import render_user_template
 
         result = render_user_template("word", {"word": "কাঁদা"})
         assert result is not None
         assert "কাঁদা" in result
 
     def test_render_user_template_word_with_context(self):
-        from services.ai_service import render_user_template
+        from anki_defs._services.ai import render_user_template
 
         result = render_user_template("word", {"word": "কাঁদা", "userContext": "to cry"})
         assert result is not None
@@ -109,7 +109,7 @@ class TestPromptRendering:
         assert "(User note: to cry)" in result
 
     def test_render_user_template_focused_words(self):
-        from services.ai_service import render_user_template
+        from anki_defs._services.ai import render_user_template
 
         result = render_user_template(
             "focusedWords",

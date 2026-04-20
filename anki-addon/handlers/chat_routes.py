@@ -6,12 +6,12 @@ import queue
 import threading
 
 import httpx
+from anki_defs._services import ai as ai_service
+from anki_defs._services.card_extraction import build_card_previews, validate_card_responses
+from anki_defs.server.sse import format_sse_event
+from anki_defs.services import anki_service
+from anki_defs.services.settings_service import get_settings
 from bottle import request, response
-
-from ..server.sse import format_sse_event
-from ..services import ai_service, anki_service
-from ..services.card_extraction import build_card_previews, validate_card_responses
-from ..services.settings_service import get_settings
 
 log = logging.getLogger(__name__)
 

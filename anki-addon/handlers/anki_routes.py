@@ -3,9 +3,8 @@
 import logging
 from urllib.parse import unquote
 
+from anki_defs.services import anki_service
 from bottle import request, response
-
-from ..services import anki_service
 
 log = logging.getLogger(__name__)
 
@@ -80,6 +79,13 @@ def register(app):
             return {"error": "word is required for vocab cards"}
 
         try:
+            # Check for pending note-type migrations before creating.
+            if not body.get("approveMigration"):
+                pending = anki_service.check_migrations_for_deck(deck, [card_type])
+                if pending:
+                    response.status = 409
+                    return {"migrationRequired": True, "migrations": pending}
+
             note_id, model_name = anki_service.create_card(
                 deck=deck,
                 card_type=card_type,
