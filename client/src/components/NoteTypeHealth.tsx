@@ -393,7 +393,7 @@ export function NoteTypeHealth() {
 
   return (
     <button
-      className="w-full bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex-shrink-0 flex items-center gap-2 px-3 py-2 text-left hover:bg-amber-100/50 dark:hover:bg-amber-900/20"
+      className="w-full bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 flex-shrink-0 flex items-center gap-2 px-3 py-2 text-left cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/20 group"
       onClick={() => setShowDetail(true)}
     >
       <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
@@ -403,6 +403,9 @@ export function NoteTypeHealth() {
           ? ` — new fields: ${issues[0]!.missingFields.join(', ')}`
           : ''}
       </p>
+      <span className="text-[10px] text-amber-600 dark:text-amber-400 group-hover:underline flex-shrink-0">
+        Click to review &rarr;
+      </span>
     </button>
   );
 }
