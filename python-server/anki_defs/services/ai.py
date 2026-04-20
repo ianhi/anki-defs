@@ -227,6 +227,7 @@ def _render_prompt(
     sentence_cfg = lang.get("sentenceAnalysis", {})
     result = result.replace("{{skipParticles}}", sentence_cfg.get("skipParticles", ""))
     result = result.replace("{{translationGuidelines}}", lang.get("translationGuidelines", ""))
+    result = result.replace("{{phraseRules}}", lang.get("phraseRules", ""))
     # Global substitutions
     result = result.replace("{{outputRules}}", _variables["outputRules"])
     result = result.replace("{{jsonOutputRule}}", _variables.get("jsonOutputRule", ""))
