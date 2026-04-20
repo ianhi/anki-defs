@@ -13,7 +13,7 @@ async function compressFile(file: File | Blob): Promise<Blob> {
   return imageCompression(f, COMPRESSION_OPTIONS);
 }
 
-export function useImageInput(onImage: (blob: Blob) => void) {
+export function useImageInput(onImage: (blob: Blob) => void, onError?: (msg: string) => void) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFile = useCallback(
@@ -21,11 +21,12 @@ export function useImageInput(onImage: (blob: Blob) => void) {
       try {
         const compressed = await compressFile(file);
         onImage(compressed);
-      } catch {
-        // Caller handles errors via its own error state
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to load image';
+        onError?.(msg);
       }
     },
-    [onImage]
+    [onImage, onError]
   );
 
   const handleFileSelect = useCallback(

@@ -6,9 +6,7 @@ import json
 import logging
 import os
 import queue
-import threading
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import httpx
@@ -16,26 +14,16 @@ from bottle import request, response
 
 from .. import ai, card_extraction, session
 from ..settings import get_settings
-from ._helpers import compute_cost, format_http_error, sse_event
+from ._helpers import (
+    check_words_parallel,
+    compute_cost,
+    format_http_error,
+    parse_cards_with_healing,
+    sse_event,
+    sse_stream,
+)
 
 log = logging.getLogger(__name__)
-
-
-def _check_words_parallel(
-    anki: Any, words: list[str], target_deck: str,
-) -> dict[str, Any | None]:
-    results: dict[str, Any | None] = {}
-
-    def _check(word: str) -> None:
-        try:
-            results[word] = anki.search_word(word, target_deck)
-        except (RuntimeError, ValueError, httpx.HTTPError) as e:
-            log.error("Anki search failed for %s: %s", word, e)
-            results[word] = None
-
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        list(pool.map(lambda w: _check(w), words))
-    return results
 
 
 def register(app: Any, anki: Any) -> None:
@@ -52,12 +40,7 @@ def register(app: Any, anki: Any) -> None:
             response.status = 400
             return iter([sse_event({"type": "error", "data": "newMessage is required"})])
 
-        response.content_type = "text/event-stream"
-        response.set_header("Cache-Control", "no-cache")
-
-        q: queue.Queue[str | None] = queue.Queue()
-
-        def worker() -> None:
+        def worker(q: queue.Queue[str | None]) -> None:
             try:
                 if os.environ.get("ANKI_DEFS_DEV"):
                     ai.reload_prompts()
@@ -84,20 +67,8 @@ def register(app: Any, anki: Any) -> None:
             except (RuntimeError, ValueError, OSError) as e:
                 log.error("Stream worker error: %s", e, exc_info=True)
                 q.put(sse_event({"type": "error", "data": str(e)}))
-            finally:
-                q.put(None)
 
-        thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
-
-        def generate() -> Iterator[str]:
-            while True:
-                item = q.get()
-                if item is None:
-                    break
-                yield item
-
-        return generate()
+        return sse_stream(response, worker)
 
     @app.post("/api/chat/distractors")
     def generate_distractors() -> dict:
@@ -209,7 +180,7 @@ def _json_pipeline(
 
     anki_results: dict[str, Any | None] = {}
     if words_to_check:
-        anki_results = _check_words_parallel(anki, words_to_check, target_deck)
+        anki_results = check_words_parallel(anki, words_to_check, target_deck)
 
     try:
         result = ai.get_json_completion(
@@ -223,34 +194,18 @@ def _json_pipeline(
             session.record_usage(usage, cost)
             q.put(sse_event({"type": "usage", "data": usage}))
 
-        cards = None
+        def _emit_usage(u: dict[str, Any]) -> None:
+            q.put(sse_event({"type": "usage", "data": u}))
+
         try:
-            parsed = ai.parse_json_response(raw_response)
-            cards = card_extraction.validate_card_responses(parsed)
+            cards = parse_cards_with_healing(raw_response, _emit_usage)
         except (json.JSONDecodeError, ValueError):
-            log.warning("JSON parse failed, retrying with healing prompt")
-            try:
-                retry_result = ai.get_json_completion(
-                    "Fix the following malformed JSON. "
-                    "Return ONLY valid JSON, nothing else.",
-                    raw_response,
-                )
-                retry_usage = retry_result.get("usage")
-                if retry_usage:
-                    cost = compute_cost(retry_usage)
-                    session.record_usage(retry_usage, cost)
-                    q.put(sse_event({"type": "usage", "data": retry_usage}))
-                parsed = ai.parse_json_response(
-                    retry_result.get("text", "")
-                )
-                cards = card_extraction.validate_card_responses(parsed)
-            except (json.JSONDecodeError, ValueError):
-                q.put(sse_event({
-                    "type": "error",
-                    "data": "Failed to parse AI response as JSON",
-                }))
-                q.put(sse_event({"type": "done", "data": None}))
-                return
+            q.put(sse_event({
+                "type": "error",
+                "data": "Failed to parse AI response as JSON",
+            }))
+            q.put(sse_event({"type": "done", "data": None}))
+            return
 
         new_words = [
             c.get("word", "")
@@ -259,7 +214,7 @@ def _json_pipeline(
         ]
         if new_words:
             anki_results.update(
-                _check_words_parallel(anki, new_words, target_deck)
+                check_words_parallel(anki, new_words, target_deck)
             )
 
         previews = card_extraction.build_card_previews(

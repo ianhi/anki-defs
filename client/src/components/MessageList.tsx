@@ -1,10 +1,9 @@
 import { useRef, useLayoutEffect, useState, useCallback } from 'react';
-import type { Message, TokenUsage } from 'shared';
-import { computeCost } from 'shared';
+import type { Message } from 'shared';
 import { createLogger } from '@/lib/logger';
 import { CardPreview } from './CardPreview';
 import { Button } from './ui/Button';
-import { cn } from '@/lib/utils';
+import { cn, formatCost } from '@/lib/utils';
 import { useCreateNote, useAnkiStatus } from '@/hooks/useAnki';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
@@ -34,12 +33,6 @@ function MarkedText({ text }: { text: string }) {
       })}
     </>
   );
-}
-
-function formatCost(usage: TokenUsage): string {
-  const cost = computeCost(usage);
-  if (cost === 0) return '';
-  return cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`;
 }
 
 interface MessageListProps {

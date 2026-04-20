@@ -92,7 +92,6 @@ export function drawShape(
 
 export function useImageMask() {
   const [shapes, setShapes] = useState<MaskShape[]>([]);
-  const [isMaskMode, setIsMaskMode] = useState(false);
   const [maskColor, setMaskColor] = useState('#ffffff');
   const [activeTool, setActiveTool] = useState<MaskTool>('rect');
   const currentShape = useRef<MaskShape | null>(null);
@@ -133,10 +132,6 @@ export function useImageMask() {
     setShapes([]);
   }, []);
 
-  const toggleMaskMode = useCallback(() => {
-    setIsMaskMode((prev) => !prev);
-  }, []);
-
   const hasStrokes = shapes.length > 0;
 
   /** Bake mask shapes onto a canvas. Mutates the canvas context. */
@@ -160,7 +155,6 @@ export function useImageMask() {
 
   return {
     shapes,
-    isMaskMode,
     hasStrokes,
     maskColor,
     activeTool,
@@ -173,7 +167,6 @@ export function useImageMask() {
     endStroke,
     undo,
     clearMask,
-    toggleMaskMode,
     bakeMask,
   };
 }

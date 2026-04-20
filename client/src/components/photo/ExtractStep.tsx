@@ -18,8 +18,8 @@ import {
 type ActiveTool = 'none' | 'crop' | 'rect' | 'brush';
 import { MaskCanvas } from './MaskCanvas';
 import { useImageMask, sampleBackgroundColor } from './useImageMask';
-import { estimateGenerateCost, formatCost } from '@/lib/photo-utils';
-import { generateId, stripHtml } from '@/lib/utils';
+import { estimateGenerateCost } from '@/lib/photo-utils';
+import { formatCost, generateId, stripHtml } from '@/lib/utils';
 
 interface IdentifiedPair extends VocabPair {
   id: string;
@@ -53,19 +53,28 @@ export function ExtractStep({
   const [crop, setCrop] = useState<Crop>();
   const [activeTool, setActiveTool] = useState<ActiveTool>('none');
   const [instructions, setInstructions] = useState('');
+  const devPreviewUrlRef = useRef<string | null>(null);
   const [devPreviewUrl, setDevPreviewUrl] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const isDev = import.meta.env.DEV;
 
   const mask = useImageMask();
+  const { setMaskColor } = mask;
+
+  // Clean up dev preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (devPreviewUrlRef.current) URL.revokeObjectURL(devPreviewUrlRef.current);
+    };
+  }, []);
 
   // Sample the image's background color for mask painting
   useEffect(() => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => mask.setMaskColor(sampleBackgroundColor(img));
+    img.onload = () => setMaskColor(sampleBackgroundColor(img));
     img.src = imageUrl;
-  }, [imageUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [imageUrl, setMaskColor]);
 
   const selectedPairs = useMemo(() => pairs.filter((p) => p.selected && p.word.trim()), [pairs]);
   const selectedCount = selectedPairs.length;
@@ -124,8 +133,10 @@ export function ExtractStep({
     if (!blob) return;
 
     if (isDev) {
-      if (devPreviewUrl) URL.revokeObjectURL(devPreviewUrl);
-      setDevPreviewUrl(URL.createObjectURL(blob));
+      if (devPreviewUrlRef.current) URL.revokeObjectURL(devPreviewUrlRef.current);
+      const url = URL.createObjectURL(blob);
+      devPreviewUrlRef.current = url;
+      setDevPreviewUrl(url);
     }
 
     const newPairs = await onExtract(blob, instructions);
@@ -135,7 +146,7 @@ export function ExtractStep({
       selected: !p.alreadyExists,
     }));
     setPairs(identified);
-  }, [getImageBlob, onExtract, instructions, isDev, devPreviewUrl]);
+  }, [getImageBlob, onExtract, instructions, isDev]);
 
   const togglePair = useCallback((id: string) => {
     setPairs((prev) => prev.map((p) => (p.id === id ? { ...p, selected: !p.selected } : p)));
@@ -259,7 +270,10 @@ export function ExtractStep({
             {extractUsage && (
               <span className="text-xs text-muted-foreground">
                 {extractUsage.inputTokens + extractUsage.outputTokens} tok
-                {formatCost(extractUsage) && ` (${formatCost(extractUsage)})`}
+                {(() => {
+                  const c = formatCost(extractUsage);
+                  return c && ` (${c})`;
+                })()}
               </span>
             )}
             {isDev && devPreviewUrl && (
@@ -403,12 +417,15 @@ export function ExtractStep({
               />
             </div>
             <div className="flex items-center justify-between">
-              {generateCostEstimate && selectedCount > 0 ? (
+              {generateCostEstimate && selectedCount > 0 && (
                 <p className="text-xs text-muted-foreground">Est. {generateCostEstimate}</p>
-              ) : (
-                <div />
               )}
-              <Button size="sm" onClick={handleGenerate} disabled={selectedCount === 0}>
+              <Button
+                size="sm"
+                onClick={handleGenerate}
+                disabled={selectedCount === 0}
+                className="ml-auto"
+              >
                 <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
                 Generate examples ({selectedCount})
               </Button>

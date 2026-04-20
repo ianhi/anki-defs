@@ -7,9 +7,7 @@ import json
 import logging
 import os
 import queue
-import threading
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +16,17 @@ from bottle import request, response
 
 from .. import ai, card_extraction, session
 from ..settings import get_settings
-from ._helpers import compute_cost, format_http_error, sse_event, strip_article
+from ._helpers import (
+    MIME_TO_EXT,
+    check_words_parallel,
+    compute_cost,
+    ext_to_mime,
+    format_http_error,
+    parse_cards_with_healing,
+    sse_event,
+    sse_stream,
+    strip_article,
+)
 
 log = logging.getLogger(__name__)
 
@@ -27,12 +35,6 @@ _DEV_IMAGES_DIR = _PROJECT_ROOT / "dev-images"
 _EXTERNAL_PICS_DIR = _PROJECT_ROOT.parent / "example-pics"
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
-_MIME_TO_EXT = {
-    "image/jpeg": ".jpg",
-    "image/png": ".png",
-    "image/webp": ".webp",
-}
-
 
 def _save_dev_image(image_base64: str, mime_type: str) -> None:
     """Save uploaded image to dev-images/ for future dev testing."""
@@ -40,7 +42,7 @@ def _save_dev_image(image_base64: str, mime_type: str) -> None:
 
     try:
         digest = hashlib.sha256(image_base64[:1024].encode()).hexdigest()[:12]
-        ext = _MIME_TO_EXT.get(mime_type, ".jpg")
+        ext = MIME_TO_EXT.get(mime_type, ".jpg")
         dest = _DEV_IMAGES_DIR / f"upload-{digest}{ext}"
         if dest.exists():
             return
@@ -80,13 +82,7 @@ def register(app: Any, anki: Any) -> None:
                 path = d / filename
                 if path.exists() and path.is_relative_to(d):
                     data = base64.b64encode(path.read_bytes()).decode()
-                    mime_map = {
-                        ".jpg": "image/jpeg",
-                        ".jpeg": "image/jpeg",
-                        ".png": "image/png",
-                        ".webp": "image/webp",
-                    }
-                    mime = mime_map.get(path.suffix.lower(), "image/jpeg")
+                    mime = ext_to_mime(path.suffix)
                     return {
                         "imageBase64": data,
                         "mimeType": mime,
@@ -122,8 +118,7 @@ def register(app: Any, anki: Any) -> None:
 
             pairs = result["pairs"]
             if deck and pairs:
-                settings = get_settings()
-                target_deck = deck or settings.get("defaultDeck", "Bangla")
+                target_deck = deck
                 language = ai.get_language_for_deck(target_deck)
                 for pair in pairs:
                     word = pair.get("word", "")
@@ -176,13 +171,10 @@ def register(app: Any, anki: Any) -> None:
                 [sse_event({"type": "error", "data": "pairs is required"})]
             )
 
-        response.content_type = "text/event-stream"
-        response.set_header("Cache-Control", "no-cache")
-
-        q: queue.Queue[str | None] = queue.Queue()
         CHUNK_SIZE = 5
 
         def _process_chunk(
+            q: queue.Queue[str | None],
             chunk: list[dict[str, str]],
             target_deck: str,
             language: dict[str, Any],
@@ -203,45 +195,18 @@ def register(app: Any, anki: Any) -> None:
                     session.record_usage(usage, cost)
                     q.put(sse_event({"type": "usage", "data": usage}))
 
-                try:
-                    parsed = ai.parse_json_response(raw)
-                    cards = card_extraction.validate_card_responses(parsed)
-                except (json.JSONDecodeError, ValueError):
-                    log.warning("JSON parse failed for chunk, retrying")
-                    retry = ai.get_json_completion(
-                        "Fix the following malformed JSON. "
-                        "Return ONLY valid JSON.",
-                        raw,
-                    )
-                    retry_usage = retry.get("usage")
-                    if retry_usage:
-                        cost = compute_cost(retry_usage)
-                        session.record_usage(retry_usage, cost)
-                        q.put(
-                            sse_event({"type": "usage", "data": retry_usage})
-                        )
-                    parsed = ai.parse_json_response(
-                        retry.get("text", "")
-                    )
-                    cards = card_extraction.validate_card_responses(parsed)
+                def _emit_usage(u: dict[str, Any]) -> None:
+                    q.put(sse_event({"type": "usage", "data": u}))
 
+                cards = parse_cards_with_healing(raw, _emit_usage)
                 card_extraction.inject_textbook_definitions(cards, chunk)
 
-                # Check Anki for duplicates
-                anki_results: dict[str, Any | None] = {}
-                for c in cards:
-                    w = c.get("word", "")
-                    if w:
-                        try:
-                            anki_results[w] = anki.search_word(
-                                w, target_deck
-                            )
-                        except (
-                            RuntimeError,
-                            ValueError,
-                            httpx.HTTPError,
-                        ):
-                            anki_results[w] = None
+                card_words = [
+                    c.get("word", "") for c in cards if c.get("word")
+                ]
+                anki_results = check_words_parallel(
+                    anki, card_words, target_deck
+                )
 
                 previews = card_extraction.build_card_previews(
                     cards, target_deck, anki_results
@@ -264,7 +229,7 @@ def register(app: Any, anki: Any) -> None:
                     "data": f"Failed to generate cards for: {words}",
                 }))
 
-        def worker() -> None:
+        def worker(q: queue.Queue[str | None]) -> None:
             try:
                 if os.environ.get("ANKI_DEFS_DEV"):
                     ai.reload_prompts()
@@ -279,10 +244,14 @@ def register(app: Any, anki: Any) -> None:
                     pairs[i : i + CHUNK_SIZE]
                     for i in range(0, len(pairs), CHUNK_SIZE)
                 ]
+
+                from concurrent.futures import ThreadPoolExecutor
+
                 with ThreadPoolExecutor(max_workers=3) as pool:
                     futures = [
                         pool.submit(
                             _process_chunk,
+                            q,
                             chunk,
                             target_deck,
                             language,
@@ -299,17 +268,5 @@ def register(app: Any, anki: Any) -> None:
                     "Photo generate worker error: %s", e, exc_info=True
                 )
                 q.put(sse_event({"type": "error", "data": str(e)}))
-            finally:
-                q.put(None)
 
-        thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
-
-        def stream() -> Iterator[str]:
-            while True:
-                item = q.get()
-                if item is None:
-                    break
-                yield item
-
-        return stream()
+        return sse_stream(response, worker)

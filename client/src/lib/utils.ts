@@ -1,4 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
+import type { TokenUsage } from 'shared';
+import { computeCost } from 'shared';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
@@ -45,4 +47,11 @@ export function sentenceToCloze(sentence: string, startIndex = 1): { text: strin
     return `{{c${idx++}::${word}}}`;
   });
   return { text, count: idx - startIndex };
+}
+
+export function formatCost(usage: TokenUsage): string {
+  const cost = computeCost(usage);
+  if (cost === 0) return '';
+  if (cost < 0.001) return '<$0.001';
+  return `$${cost.toFixed(3)}`;
 }

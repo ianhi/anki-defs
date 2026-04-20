@@ -56,7 +56,7 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
   );
 
   const { handleFileSelect, handleDrop, handleDragOver, handleDragLeave, isDragging } =
-    useImageInput(setImage);
+    useImageInput(setImage, setError);
 
   const loadExample = useCallback(
     async (filename: string) => {
