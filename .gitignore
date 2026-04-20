@@ -51,3 +51,4 @@ anki-addon/web/assets/
 *.bak
 .claude/worktrees/
 dev-images/
+usagenotes.md

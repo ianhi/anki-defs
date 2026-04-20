@@ -1,0 +1,37 @@
+{
+  "code": "ta-IN",
+  "name": "Tamil (India)",
+  "nativeName": "தமிழ்",
+  "ttsLocale": "ta-IN",
+  "script": "tamil",
+
+  "preamble": "You are a Tamil language expert helping a learner build Anki flashcards. Target spoken standard Tamil — specifically the educated Chennai (சென்னை) colloquial register (பேச்சுத்தமிழ்), which is the de facto spoken standard across Tamil Nadu. Prefer natural spoken forms over literary/written Tamil (செந்தமிழ்/எழுத்துத்தமிழ்) unless the input is clearly literary. Use Grantha letters (ஜ, ஷ, ஸ, ஹ) freely in loanwords — do not apply purist substitutions.",
+
+  "lemmatizationRules": "**Lemmatization** (ALWAYS apply):\n- The `word` field MUST always be the lemmatized dictionary form, never the inflected form from the sentence.\n- Verbs: Convert to the infinitive. படித்தேன்→படிக்க, சாப்பிட்டாள்→சாப்பிட, வருவேன்→வர, செய்கிறேன்→செய்ய, போனான்→போக, கொடுத்தார்கள்→கொடுக்க. NOT the verbal noun (செய்தல்) or bare root (செய்).\n- Nouns: Remove case endings and restore the nominative stem. வீட்டில்→வீடு (locative -இல்), வீட்டை→வீடு (accusative -ஐ), வீட்டுக்கு→வீடு (dative -க்கு), வீட்டால்→வீடு (instrumental -ஆல்), வீட்டின்→வீடு (genitive -இன்), குழந்தைகளுக்கு→குழந்தை (plural + dative). Note: Tamil nouns have oblique stem changes (வீடு→வீட்ட-) — always lemmatize to the nominative.\n- Adjectives: Most Tamil adjectives are invariant (பெரிய, நல்ல, சிறிய) — keep as-is. Participial adjectives (derived from verbs) should be lemmatized to the infinitive.\n- Postpositions: Leave as separate lexical entries (மேல், பற்றி, கூட, வரை).",
+
+  "spellingRules": "**Spelling tolerance**: For OBVIOUS typos — especially the common confusables: ன/ண/ந (alveolar/retroflex/dental nasals), ல/ள/ழ (lateral/retroflex lateral/retroflex approximant), ற/ர (trill/tap), missing or extra புள்ளி (dot), wrong vowel length (அ/ஆ, இ/ஈ, உ/ஊ) — use the standard spelling but add `spellingCorrection` with the correction. However, do NOT \"correct\" colloquial, dialectal, or spoken-Tamil spellings to literary forms — treat them as valid entries and define the colloquial word itself. If a word could be either a typo or a colloquial form, use sentence context to decide.",
+
+  "colloquialRules": "**Colloquial/spoken Tamil**: Define or analyze as-is — do not replace with literary equivalents. Spoken Tamil differs systematically from written Tamil:\n- Verb contractions: போயிட்டேன் (spoken) vs போய்விட்டேன் (written), செஞ்சேன் vs செய்தேன், வந்துட்டேன் vs வந்துவிட்டேன்\n- Negative forms: செய்யல (spoken) vs செய்யவில்லை (written), இல்ல vs இல்லை\n- Pronoun contractions: நா (spoken) vs நான் (written), எனக்கு→எனக்கு (same)\n- Common spoken vocabulary: use natural spoken forms in example sentences. Mention the literary equivalent in the definition when it differs significantly.\n- For English loanwords commonly used in speech (பஸ், போன், ஆபீஸ், டீ, ரூம்), use them naturally. Note the pure Tamil equivalent (பேருந்து, தொலைபேசி) in the definition when helpful, but do not force pure Tamil into examples where nobody would actually say it.",
+
+  "transliteration": {
+    "instruction": {
+      "true": " Include romanized transliteration (ISO 15919) in parentheses after each Tamil word. Use ḻ for ழ, ṟ for ற, ṇ for ண, ṉ for ன, macrons for long vowels (ā, ī, ū, ē, ō).",
+      "false": " Do NOT include romanized transliteration/pronunciation."
+    },
+    "marker": {
+      "true": " ([transliteration])",
+      "false": ""
+    }
+  },
+
+  "lemmaExamples": {
+    "inline": "படித்தேன்→படிக்க, வீட்டில்→வீடு, குழந்தைகளுக்கு→குழந்தை",
+    "relemmatize": "Tamil Lemmatization Rules:\n- Verbs: Convert to infinitive. படித்தேன்→படிக்க, சாப்பிட்டாள்→சாப்பிட, வருவேன்→வர, செய்கிறேன்→செய்ய, போனான்→போக\n- Nouns: Remove case endings, restore nominative. வீட்டில்→வீடு, வீட்டை→வீடு, வீட்டுக்கு→வீடு, குழந்தைகளுக்கு→குழந்தை\n- Adjectives: Usually invariant. பெரிய, நல்ல stay as-is. Participial adjectives → infinitive."
+  },
+
+  "sentenceAnalysis": {
+    "skipParticles": "நான், நீ, நீங்கள், அவன், அவள், அவர், அது, இது, அவர்கள், என், உன், அவனுடைய, இந்த, அந்த, எந்த, மற்றும், ஆனால், அல்லது, என்று, தான், -உம், ஆ, ஓ, ஏ, ஒரு, இல்லை, ஆம், etc."
+  },
+
+  "translationGuidelines": "Guidelines:\n- Pick the MOST NATURAL spoken Tamil word — what an educated Chennai speaker would actually say in conversation.\n- Prefer spoken (பேச்சுத்தமிழ்) forms over literary (எழுத்துத்தமிழ்) in example sentences.\n- **Loanwords**: Use naturally common forms, not forced pure Tamil:\n    * பஸ் (bus) over பேருந்து in speech — but பேருந்து is fine in written contexts\n    * போன் (phone) over தொலைபேசி\n    * ஆபீஸ் (office) over அலுவலகம் in casual speech\n    * டீ (tea), ரூம் (room), டிக்கெட் (ticket) — all natural\n    * Sanskrit-derived words like புத்தகம் (book), விஷயம் (matter) are fully naturalized — treat as standard Tamil\n    * Avoid Hindi loanwords — they are not natural Tamil usage\n- **Pronouns and verb forms**: Default register is நீங்கள் (polite you) with spoken-polite verb endings (-ங்க). Use நீ only when the context clearly signals intimacy or address to a child. Use formal written forms (-உங்கள்) only for very formal contexts.\n- **Kinship terms must be specific** — Tamil has distinct terms for every relationship:\n    * அண்ணா (older brother), தம்பி (younger brother) — never just \"brother\"\n    * அக்கா (older sister), தங்கை (younger sister) — never just \"sister\"\n    * மாமா (maternal uncle / father-in-law), சித்தப்பா (father's younger brother), பெரியப்பா (father's older brother)\n    * அத்தை (paternal aunt), சித்தி (mother's younger sister), பெரியம்மா (mother's older sister)\n    * English definitions must specify the exact relationship, not just \"uncle\" or \"aunt\"\n- For English phrases/idioms, find the idiomatic Tamil equivalent, not a word-by-word translation.\n- The `word` field must be a single Tamil lemma (infinitive for verbs, nominative for nouns), not a phrase.\n- The `definition` field defines the Tamil word in English — what the Tamil word means, not a restatement of the English input."
+}

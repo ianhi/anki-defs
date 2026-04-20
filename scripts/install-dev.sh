@@ -49,6 +49,9 @@ echo "==> Copying frontend build to anki-addon/web/..."
 force_rm "$ADDON_DIR/web"
 cp -r "$ROOT/client/dist" "$ADDON_DIR/web"
 
+echo "==> Removing _shared/ (dev install reads directly from shared/)..."
+force_rm "$ADDON_DIR/_shared"
+
 echo "==> Copying shared services from python-server..."
 force_rm "$ADDON_DIR/_services"
 cp -r "$ROOT/python-server/anki_defs/services" "$ADDON_DIR/_services"

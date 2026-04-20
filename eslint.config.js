@@ -79,14 +79,18 @@ export default [
         HTMLImageElement: 'readonly',
         HTMLCanvasElement: 'readonly',
         FileReader: 'readonly',
+        File: 'readonly',
         Image: 'readonly',
         Blob: 'readonly',
+        CanvasRenderingContext2D: 'readonly',
+        ResizeObserver: 'readonly',
         atob: 'readonly',
         btoa: 'readonly',
         createImageBitmap: 'readonly',
         // Event types
         KeyboardEvent: 'readonly',
         MouseEvent: 'readonly',
+        ClipboardEvent: 'readonly',
         Event: 'readonly',
         EventTarget: 'readonly',
         // Other DOM types
