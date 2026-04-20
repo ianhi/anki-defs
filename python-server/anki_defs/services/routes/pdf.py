@@ -89,24 +89,44 @@ def register(app: Any, anki: AnkiBackend) -> None:
             if not isinstance(scouted_raw, list):
                 raise ValueError("Scout response missing sections array")
 
-            # Merge scout classifications back onto original sections by id.
-            by_id = {s["id"]: s for s in sections}
+            # Merge scout classifications back onto original sections.
+            # If the AI truncated and missed some sections, default them
+            # to prose / not-worth-extracting so they still appear in the UI.
+            classified = {
+                e["id"]: e
+                for e in scouted_raw
+                if isinstance(e, dict) and e.get("id")
+            }
             merged: list[dict[str, Any]] = []
-            for entry in scouted_raw:
-                if not isinstance(entry, dict) or not entry.get("id"):
-                    continue
-                original = by_id.get(entry["id"])
-                if not original:
-                    continue
-                merged.append({
-                    **original,
-                    "contentType": entry.get("contentType", "prose"),
-                    "suggestedTags": entry.get("suggestedTags", []),
-                    "worthExtracting": bool(entry.get("worthExtracting", False)),
-                    "confidence": float(entry.get("confidence", 0.0)),
-                    "relatedTo": entry.get("relatedTo", []),
-                })
+            for original in sections:
+                entry = classified.get(original["id"])
+                if entry:
+                    merged.append({
+                        **original,
+                        "contentType": entry.get("contentType", "prose"),
+                        "suggestedTags": entry.get("suggestedTags", []),
+                        "worthExtracting": bool(entry.get("worthExtracting", False)),
+                        "confidence": float(entry.get("confidence", 0.0)),
+                        "relatedTo": entry.get("relatedTo", []),
+                    })
+                else:
+                    # AI truncated — default to prose, show in UI but unchecked
+                    merged.append({
+                        **original,
+                        "contentType": "prose",
+                        "suggestedTags": [],
+                        "worthExtracting": False,
+                        "confidence": 0.0,
+                        "relatedTo": [],
+                    })
 
+            n_classified = len(classified)
+            n_total = len(sections)
+            if n_classified < n_total:
+                log.warning(
+                    "Scout classified %d/%d sections (AI output truncated)",
+                    n_classified, n_total,
+                )
             return {"sections": merged, "usage": usage}
         except httpx.HTTPStatusError as e:
             log.error("PDF scout HTTP error: %s", e)
