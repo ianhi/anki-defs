@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PdfContentType, PdfSection, ScoutedSection } from 'shared';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { pdfApi } from '@/lib/api';
@@ -123,50 +124,82 @@ export function PdfScoutStep({
       </div>
 
       <div className="border border-border rounded-md divide-y divide-border">
-        {sections.map((s) => {
-          const on = picked.has(s.id);
-          return (
-            <label
-              key={s.id}
-              className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-muted/50 ${
-                s.contentType === 'prose' && !on ? 'opacity-50' : ''
-              }`}
-            >
-              <input type="checkbox" checked={on} onChange={() => toggle(s.id)} className="mt-1" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] ${TYPE_STYLE[s.contentType]?.color ?? ''}`}
-                  >
-                    {TYPE_STYLE[s.contentType]?.label ?? s.contentType}
-                  </span>
-                  <span className="font-medium truncate">{s.heading}</span>
-                  <span className="text-xs text-muted-foreground">
-                    pp. {s.pageStart}
-                    {s.pageEnd !== s.pageStart ? `–${s.pageEnd}` : ''}
-                  </span>
-                </div>
-                {s.suggestedTags.length > 0 && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    tags: {s.suggestedTags.join(', ')}
-                  </div>
-                )}
-                {s.relatedTo.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    → linked: {s.relatedTo.join(', ')}
-                  </div>
-                )}
-              </div>
-            </label>
-          );
-        })}
+        {sections.map((s) => (
+          <SectionRow
+            key={s.id}
+            section={s}
+            checked={picked.has(s.id)}
+            onToggle={() => toggle(s.id)}
+          />
+        ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="sticky bottom-0 bg-background border-t border-border py-3 -mx-4 px-4">
         <Button onClick={() => onScouted(sections, picked)} disabled={picked.size === 0}>
           Extract {picked.size} section{picked.size === 1 ? '' : 's'}
         </Button>
       </div>
+    </div>
+  );
+}
+
+function SectionRow({
+  section: s,
+  checked,
+  onToggle,
+}: {
+  section: ScoutedSection;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const snippetLines = s.bodySnippet?.split('\n').slice(0, 5) ?? [];
+
+  return (
+    <div
+      className={`p-3 ${s.contentType === 'prose' && !checked ? 'opacity-50' : ''}`}
+    >
+      <div className="flex items-start gap-3">
+        <input type="checkbox" checked={checked} onChange={onToggle} className="mt-1" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] ${TYPE_STYLE[s.contentType]?.color ?? ''}`}
+            >
+              {TYPE_STYLE[s.contentType]?.label ?? s.contentType}
+            </span>
+            <span className="font-medium truncate">{s.heading}</span>
+            <span className="text-xs text-muted-foreground">
+              pp. {s.pageStart}
+              {s.pageEnd !== s.pageStart ? `–${s.pageEnd}` : ''}
+            </span>
+          </div>
+          {s.suggestedTags.length > 0 && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              tags: {s.suggestedTags.join(', ')}
+            </div>
+          )}
+        </div>
+        {snippetLines.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            className="text-muted-foreground hover:text-foreground p-0.5"
+            title="Preview content"
+          >
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            />
+          </button>
+        )}
+      </div>
+      {expanded && snippetLines.length > 0 && (
+        <pre className="mt-2 ml-7 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed bg-muted/30 rounded p-2 max-h-32 overflow-auto">
+          {snippetLines.join('\n')}
+        </pre>
+      )}
     </div>
   );
 }
