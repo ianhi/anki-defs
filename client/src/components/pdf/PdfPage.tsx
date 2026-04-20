@@ -88,6 +88,7 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
             scouted={scouted}
             selectedIds={selectedIds}
             sourceTag={sourceTag}
+            onBack={() => setStep('scout')}
             onRestart={handleRestart}
           />
         )}

@@ -11,6 +11,7 @@ interface Props {
   scouted: ScoutedSection[];
   selectedIds: Set<string>;
   sourceTag: string;
+  onBack: () => void;
   onRestart: () => void;
 }
 
@@ -48,6 +49,7 @@ export function PdfExtractStep({
   scouted,
   selectedIds,
   sourceTag,
+  onBack,
   onRestart,
 }: Props) {
   const { settings } = useSettingsStore();
@@ -108,9 +110,14 @@ export function PdfExtractStep({
             <span className="text-sm text-muted-foreground">{status}</span>
           </>
         )}
-        <Button variant="ghost" size="sm" className="ml-auto" onClick={onRestart}>
-          New PDF
-        </Button>
+        <div className="ml-auto flex gap-1">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            Back to sections
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onRestart}>
+            New PDF
+          </Button>
+        </div>
       </div>
 
       {done && (
@@ -130,10 +137,15 @@ export function PdfExtractStep({
             </p>
           )}
           {previews.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              The selected sections were grammar/prose or exercises without a cloze prompt.
-              Try selecting sections classified as Vocab or Passage.
-            </p>
+            <>
+              <p className="text-xs text-muted-foreground">
+                The selected sections were grammar/prose or exercises without a cloze prompt.
+                Try selecting sections classified as Vocab or Passage.
+              </p>
+              <Button variant="outline" size="sm" onClick={onBack} className="mt-2">
+                Back to sections
+              </Button>
+            </>
           )}
         </div>
       )}
