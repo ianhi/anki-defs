@@ -1,4 +1,4 @@
-import { useEffect, useState, type MutableRefObject } from 'react';
+import { useEffect, useState } from 'react';
 import type { CardPreview as CardPreviewType, PdfExtractRequest, ScoutedSection } from 'shared';
 import { Button } from '../ui/Button';
 import { CardPreview } from '../CardPreview';
@@ -11,9 +11,6 @@ interface Props {
   scouted: ScoutedSection[];
   selectedIds: Set<string>;
   sourceTag: string;
-  previews: CardPreviewType[];
-  onPreviewsChange: (previews: CardPreviewType[]) => void;
-  abortRef: MutableRefObject<AbortController | null>;
   onRestart: () => void;
 }
 
@@ -51,19 +48,16 @@ export function PdfExtractStep({
   scouted,
   selectedIds,
   sourceTag,
-  previews,
-  onPreviewsChange,
-  abortRef,
   onRestart,
 }: Props) {
   const { settings } = useSettingsStore();
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [previews, setPreviews] = useState<CardPreviewType[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
-    abortRef.current = controller;
     const selected = scouted.filter((s) => selectedIds.has(s.id));
     const byId = new Map(scouted.map((s) => [s.id, s]));
     const collected: CardPreviewType[] = [];
@@ -79,7 +73,7 @@ export function PdfExtractStep({
           for await (const event of pdfApi.extract(req, controller.signal)) {
             if (event.type === 'card_preview') {
               collected.push(event.data);
-              onPreviewsChange([...collected]);
+              setPreviews([...collected]);
             } else if (event.type === 'error') {
               setError(event.data);
             }

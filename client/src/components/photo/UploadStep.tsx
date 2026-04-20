@@ -1,38 +1,29 @@
-import React from 'react';
+import { useRef } from 'react';
 import { Button } from '../ui/Button';
 import { Camera, Upload, ImageIcon } from 'lucide-react';
+import { useImageInput } from './useImageInput';
 
 interface UploadStepProps {
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isDragging: boolean;
-  onDragOver: (e: React.DragEvent) => void;
-  onDragLeave: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onImage: (blob: Blob) => void;
+  onError?: (msg: string) => void;
   isDev: boolean;
   examples: string[];
   onLoadExample: (filename: string) => void;
 }
 
-export function UploadStep({
-  fileInputRef,
-  onFileSelect,
-  isDragging,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  isDev,
-  examples,
-  onLoadExample,
-}: UploadStepProps) {
+export function UploadStep({ onImage, onError, isDev, examples, onLoadExample }: UploadStepProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { handleFileSelect, handleDrop, handleDragOver, handleDragLeave, isDragging } =
+    useImageInput(onImage, onError);
+
   return (
     <div
       className={`flex flex-col items-center justify-center gap-4 py-12 px-4 transition-colors ${
         isDragging ? 'bg-primary/10' : ''
       }`}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {isDragging ? (
         <div className="flex flex-col items-center gap-3 py-8 px-4 border-2 border-dashed border-primary rounded-lg">
@@ -49,7 +40,7 @@ export function UploadStep({
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            onChange={onFileSelect}
+            onChange={handleFileSelect}
             className="hidden"
           />
           <div className="flex gap-3">

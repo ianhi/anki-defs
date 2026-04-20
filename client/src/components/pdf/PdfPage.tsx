@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo } from 'react';
-import type { CardPreview as CardPreviewType, ScoutedSection } from 'shared';
+import { useState, useMemo } from 'react';
+import type { ScoutedSection } from 'shared';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { PdfUploadStep } from './PdfUploadStep';
@@ -17,8 +17,6 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
   const [scouted, setScouted] = useState<ScoutedSection[]>([]);
   const [sourceTag, setSourceTag] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [previews, setPreviews] = useState<CardPreviewType[]>([]);
-  const abortRef = useRef<AbortController | null>(null);
 
   // Filter sections to only those belonging to selected chapters.
   // Memoized to avoid new array references triggering scout re-fire.
@@ -31,6 +29,14 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
     );
     return outline.sections.filter((s) => ids.has(s.id));
   }, [outline, selectedChapterIds]);
+
+  const handleRestart = () => {
+    setOutline(null);
+    setSelectedChapterIds([]);
+    setScouted([]);
+    setSelectedIds(new Set());
+    setStep('upload');
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -82,18 +88,7 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
             scouted={scouted}
             selectedIds={selectedIds}
             sourceTag={sourceTag}
-            previews={previews}
-            onPreviewsChange={setPreviews}
-            abortRef={abortRef}
-            onRestart={() => {
-              abortRef.current?.abort();
-              setOutline(null);
-              setSelectedChapterIds([]);
-              setScouted([]);
-              setSelectedIds(new Set());
-              setPreviews([]);
-              setStep('upload');
-            }}
+            onRestart={handleRestart}
           />
         )}
       </div>

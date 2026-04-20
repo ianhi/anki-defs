@@ -7,7 +7,6 @@ import { parseTags } from '@/lib/utils';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useCreateNote } from '@/hooks/useAnki';
 import { useSessionCards } from '@/hooks/useSessionCards';
-import { useImageInput } from './useImageInput';
 import { UploadStep } from './UploadStep';
 import { ExtractStep } from './ExtractStep';
 import { GenerateStep } from './GenerateStep';
@@ -28,7 +27,6 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [extraTag, setExtraTag] = useState('');
   const [extractUsage, setExtractUsage] = useState<TokenUsage | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [addingAll, setAddingAll] = useState(false);
   const [addAllResult, setAddAllResult] = useState<{ added: number } | null>(null);
@@ -63,9 +61,6 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
     },
     [imageUrl, mode]
   );
-
-  const { handleFileSelect, handleDrop, handleDragOver, handleDragLeave, isDragging } =
-    useImageInput(setImage, setError);
 
   const loadExample = useCallback(
     async (filename: string) => {
@@ -195,7 +190,6 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
     setExtraTag('');
     setClozeItems([]);
     setClozeUnsupported([]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
   }, [imageUrl]);
 
   return (
@@ -249,12 +243,8 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
 
         {step === 'upload' && (
           <UploadStep
-            fileInputRef={fileInputRef}
-            onFileSelect={handleFileSelect}
-            isDragging={isDragging}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onImage={setImage}
+            onError={setError}
             isDev={isDev}
             examples={examples}
             onLoadExample={loadExample}
