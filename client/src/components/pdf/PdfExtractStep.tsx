@@ -52,7 +52,7 @@ export function PdfExtractStep({
 }: Props) {
   const { settings } = useSettingsStore();
   const [status, setStatus] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
   const [done, setDone] = useState(false);
   const [previews, setPreviews] = useState<CardPreviewType[]>([]);
 
@@ -75,13 +75,16 @@ export function PdfExtractStep({
               collected.push(event.data);
               setPreviews([...collected]);
             } else if (event.type === 'error') {
-              setError(event.data);
+              setErrors((prev) => [...prev, `${section.heading}: ${event.data}`]);
             }
+            // 'skipped' events are informational — just continue
           }
         } catch (e) {
           if (controller.signal.aborted) return;
-          setError(e instanceof Error ? e.message : 'Extract failed');
-          return;
+          setErrors((prev) => [
+            ...prev,
+            `${section.heading}: ${e instanceof Error ? e.message : 'Extract failed'}`,
+          ]);
         }
       }
       setStatus('');
@@ -102,7 +105,13 @@ export function PdfExtractStep({
           New PDF
         </Button>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {errors.length > 0 && (
+        <div className="text-xs text-muted-foreground space-y-0.5">
+          {errors.map((e, i) => (
+            <p key={i}>Skipped: {e}</p>
+          ))}
+        </div>
+      )}
       <div className="space-y-2">
         {previews.map((p, i) => (
           <CardPreview key={`${p.word}-${i}`} preview={p} extraTags={p.tags} />

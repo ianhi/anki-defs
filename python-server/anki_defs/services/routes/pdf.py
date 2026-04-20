@@ -169,8 +169,8 @@ def register(app: Any, anki: AnkiBackend) -> None:
                     _run_passage(ctx, primary_text, glossary_text)
                 else:
                     q.put(sse_event({
-                        "type": "error",
-                        "data": f"Extraction for contentType '{content_type}' is not supported",
+                        "type": "skipped",
+                        "data": f"Skipped: contentType '{content_type}' not extractable",
                     }))
                     return
 
