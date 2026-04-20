@@ -2,7 +2,7 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { useDecks, useLanguages } from '@/hooks/useAnki';
+import { useDecks, useLanguages, useNoteTypeHealth } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Label } from './ui/Label';
@@ -15,9 +15,10 @@ import type {
   VocabCardTemplates,
 } from 'shared';
 import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
-import { Loader2, Volume2, X, Plus } from 'lucide-react';
+import { Loader2, Volume2, X, Plus, Wrench } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 import { LanguageDropdown } from './LanguageDropdown';
+import { clearHealthDismissals } from './NoteTypeHealth';
 import { CHAT_STORAGE_KEY } from '@/lib/storage-keys';
 import { useTheme, type Theme } from '@/hooks/useTheme';
 import {
@@ -126,6 +127,37 @@ function TtsVoicePicker() {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">Preview: &ldquo;{previewText}&rdquo;</p>
+    </div>
+  );
+}
+
+function NoteTypeRepairButton() {
+  const { data, isLoading } = useNoteTypeHealth();
+  const [cleared, setCleared] = useState(false);
+  const issueCount = data?.issues?.length ?? 0;
+
+  return (
+    <div className="space-y-2">
+      <Label>Note type health</Label>
+      <p className="text-xs text-muted-foreground">
+        Check if your Anki note types have the latest templates, fields, and CSS.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={isLoading}
+        onClick={() => {
+          clearHealthDismissals();
+          setCleared(true);
+        }}
+      >
+        <Wrench className="h-3.5 w-3.5 mr-1.5" />
+        {cleared
+          ? issueCount > 0
+            ? `${issueCount} issue${issueCount > 1 ? 's' : ''} found — close settings to review`
+            : 'All note types up to date'
+          : 'Check for updates'}
+      </Button>
     </div>
   );
 }
@@ -789,6 +821,9 @@ export function Settings() {
                 before adding. Note types are auto-created in Anki on first use.
               </p>
             </div>
+
+            {/* Note Type Health */}
+            <NoteTypeRepairButton />
           </>
         )}
 

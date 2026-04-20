@@ -379,6 +379,10 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
 
 const DISMISSED_KEY = 'noteTypeHealth:dismissed';
 
+export function clearHealthDismissals() {
+  localStorage.removeItem(DISMISSED_KEY);
+}
+
 function getDismissedVersions(): Record<string, number> {
   try {
     return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '{}');
