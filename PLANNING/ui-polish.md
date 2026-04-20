@@ -1,6 +1,6 @@
 # UI Polish — Usage Notes
 
-Issues captured from mobile testing (phone via Tailscale).
+Issues captured from mobile and desktop testing.
 Source: `usagenotes.md` in repo root.
 
 ## Deck Language Management
@@ -45,7 +45,8 @@ components, client/src/App.tsx (loading flash), client/DOCS/file-map.md
 and client/CLAUDE.md for orientation.
 
 The user strongly dislikes layout shifts on mobile. Keep changes minimal
-and focused. Test in the browser before reporting done.
+and focused. These issues were found on both mobile and desktop — test
+both viewports. Test in the browser before reporting done.
 ```
 
 ## Status
