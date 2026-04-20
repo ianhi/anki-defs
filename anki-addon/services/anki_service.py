@@ -354,11 +354,11 @@ def check_template_versions(note_type_prefix):
 
 
 @main_thread
-def update_model_templates(model_name, note_type_prefix):
-    """Update a model's templates and CSS to the latest version.
+def update_model_templates(model_name, note_type_prefix, template_overrides=None, css_override=None):
+    """Update a model's templates and CSS.
 
-    Also adds any missing fields via ``_migrate_existing_model``.
-    Returns a summary of what changed.
+    When ``template_overrides`` is provided, uses user-edited content
+    instead of rendered defaults. Format: ``{templateName: {front, back}}``.
     """
     from .settings_service import get_settings
 
@@ -396,16 +396,22 @@ def update_model_templates(model_name, note_type_prefix):
     # Add missing fields
     _migrate_existing_model(model, rendered)
 
-    # Update templates
+    # Update templates — use overrides when provided
     live_tmpls_by_name = {t["name"]: t for t in model["tmpls"]}
     for tmpl in rendered["templates"]:
-        live = live_tmpls_by_name.get(tmpl["Name"])
+        name = tmpl["Name"]
+        live = live_tmpls_by_name.get(name)
         if live is not None:
-            live["qfmt"] = tmpl["Front"]
-            live["afmt"] = tmpl["Back"]
+            if template_overrides and name in template_overrides:
+                override = template_overrides[name]
+                live["qfmt"] = override.get("front", tmpl["Front"])
+                live["afmt"] = override.get("back", tmpl["Back"])
+            else:
+                live["qfmt"] = tmpl["Front"]
+                live["afmt"] = tmpl["Back"]
 
     # Update CSS
-    model["css"] = rendered["css"]
+    model["css"] = css_override if css_override is not None else rendered["css"]
 
     log.info("Updating templates on model %s to v%s", model_name, rendered.get("version"))
     col.models.update_dict(model)

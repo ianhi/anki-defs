@@ -308,10 +308,14 @@ def check_template_versions(
 def update_model_templates(
     model_name: str,
     note_type_prefix: str,
+    template_overrides: dict[str, dict[str, str]] | None = None,
+    css_override: str | None = None,
 ) -> dict[str, Any]:
-    """Update a model's templates and CSS to the latest version.
+    """Update a model's templates and CSS.
 
-    Also adds any missing fields. Returns a summary of what changed.
+    When ``template_overrides`` is provided, uses the user-edited content
+    instead of the rendered defaults. Format: ``{templateName: {front, back}}``.
+    Also adds any missing fields.
     """
     from .settings import get_settings
 
@@ -344,17 +348,26 @@ def update_model_templates(
     # Add missing fields
     _migrate_existing_model(model_name, rendered)
 
-    # Update templates
-    templates_payload = {
-        t["Name"]: {"Front": t["Front"], "Back": t["Back"]}
-        for t in rendered["templates"]
-    }
+    # Build templates — use overrides when provided
+    templates_payload: dict[str, dict[str, str]] = {}
+    for t in rendered["templates"]:
+        name = t["Name"]
+        if template_overrides and name in template_overrides:
+            override = template_overrides[name]
+            templates_payload[name] = {
+                "Front": override["front"] if "front" in override else t["Front"],
+                "Back": override["back"] if "back" in override else t["Back"],
+            }
+        else:
+            templates_payload[name] = {"Front": t["Front"], "Back": t["Back"]}
+
     log.info("Updating templates on model %s to v%s", model_name, rendered.get("version"))
     _invoke("updateModelTemplates", model={"name": model_name, "templates": templates_payload})
 
     # Update CSS
+    final_css = css_override if css_override is not None else rendered["css"]
     log.info("Updating CSS on model %s", model_name)
-    _invoke("updateModelStyling", model={"name": model_name, "css": rendered["css"]})
+    _invoke("updateModelStyling", model={"name": model_name, "css": final_css})
 
     return {
         "modelName": model_name,

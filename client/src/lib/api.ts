@@ -140,10 +140,14 @@ export const ankiApi = {
   getStatus: () => fetchJson<{ connected: boolean }>('/anki/status').then((r) => r.connected),
   sync: () => fetchJson<{ success: boolean }>('/anki/sync', { method: 'POST' }),
   checkHealth: () => fetchJson<{ issues: NoteTypeIssue[] }>('/anki/health-check'),
-  updateTemplates: (modelName: string) =>
+  updateTemplates: (
+    modelName: string,
+    templates?: Record<string, { front: string; back: string }>,
+    css?: string,
+  ) =>
     fetchJson<{ modelName: string; version: number; updated: boolean }>('/anki/update-templates', {
       method: 'POST',
-      body: JSON.stringify({ modelName }),
+      body: JSON.stringify({ modelName, ...(templates && { templates }), ...(css && { css }) }),
     }),
 };
 

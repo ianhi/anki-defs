@@ -75,7 +75,11 @@ export function useUpdateTemplates() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (modelName: string) => ankiApi.updateTemplates(modelName),
+    mutationFn: (args: {
+      modelName: string;
+      templates?: Record<string, { front: string; back: string }>;
+      css?: string;
+    }) => ankiApi.updateTemplates(args.modelName, args.templates, args.css),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['anki', 'health'] });
     },

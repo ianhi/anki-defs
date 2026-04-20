@@ -63,4 +63,6 @@ class AnkiBackend(Protocol):
         self,
         model_name: str,
         note_type_prefix: str,
+        template_overrides: dict[str, dict[str, str]] | None = None,
+        css_override: str | None = None,
     ) -> dict[str, Any]: ...

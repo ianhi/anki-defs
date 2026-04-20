@@ -177,10 +177,17 @@ def register(app: Any, anki: AnkiBackend) -> None:
             response.status = 400
             return {"error": "modelName is required"}
 
+        # Optional: user-edited template overrides
+        # {templateName: {front: str, back: str}}
+        template_overrides = body.get("templates")
+        css_override = body.get("css")
+
         settings = get_settings()
         prefix = settings.get("noteTypePrefix", "anki-defs")
         try:
-            result = anki.update_model_templates(model_name, prefix)
+            result = anki.update_model_templates(
+                model_name, prefix, template_overrides, css_override,
+            )
             return result
         except ValueError as e:
             response.status = 400
