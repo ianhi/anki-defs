@@ -147,16 +147,7 @@ def get_completion(system_prompt: str, user_message: str) -> str:
         headers={"Content-Type": "application/json"},
     )
     resp.raise_for_status()
-    result = resp.json()
-
-    candidates = result.get("candidates", [])
-    if candidates:
-        parts = candidates[0].get("content", {}).get("parts", [])
-        for part in parts:
-            text = part.get("text", "")
-            if text:
-                return text
-    return ""
+    return parse_response(resp.json(), model)["text"] or ""
 
 
 def get_json_completion(

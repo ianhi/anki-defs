@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import type { CardPreview as CardPreviewType, ScoutedSection } from 'shared';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -21,17 +21,16 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
   const abortRef = useRef<AbortController | null>(null);
 
   // Filter sections to only those belonging to selected chapters.
-  const selectedSectionIds = outline
-    ? new Set(
-        outline.chapters
-          .filter((ch) => selectedChapterIds.includes(ch.id))
-          .flatMap((ch) => ch.sectionIds),
-      )
-    : new Set<string>();
-
-  const sectionsForScout = outline
-    ? outline.sections.filter((s) => selectedSectionIds.has(s.id))
-    : [];
+  // Memoized to avoid new array references triggering scout re-fire.
+  const sectionsForScout = useMemo(() => {
+    if (!outline) return [];
+    const ids = new Set(
+      outline.chapters
+        .filter((ch) => selectedChapterIds.includes(ch.id))
+        .flatMap((ch) => ch.sectionIds),
+    );
+    return outline.sections.filter((s) => ids.has(s.id));
+  }, [outline, selectedChapterIds]);
 
   return (
     <div className="flex flex-col h-full">

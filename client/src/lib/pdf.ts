@@ -23,7 +23,7 @@ export interface LoadedPdf {
 }
 
 export async function loadPdf(file: File): Promise<LoadedPdf> {
-  const data = new Uint8Array(await file.arrayBuffer());
+  const data = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data }).promise;
   return { doc, numPages: doc.numPages };
 }
@@ -91,13 +91,13 @@ function itemsToLines(items: PositionedItem[]): Array<{
 
 // Detect header/footer lines that recur at the same y on many pages — drop them.
 function findRunningHeaderFooterTexts(
-  allPages: Array<ReturnType<typeof itemsToLines>>,
+  pages: PageData[],
   pageHeight: number
 ): Set<string> {
   const topCounts = new Map<string, number>();
   const bottomCounts = new Map<string, number>();
-  for (const lines of allPages) {
-    for (const line of lines) {
+  for (const page of pages) {
+    for (const line of page.lines) {
       const key = line.text.trim();
       if (!key || key.length < 3) continue;
       if (line.y > pageHeight * 0.9) {
@@ -108,7 +108,7 @@ function findRunningHeaderFooterTexts(
     }
   }
   const drop = new Set<string>();
-  const threshold = Math.max(3, Math.floor(allPages.length * 0.3));
+  const threshold = Math.max(3, Math.floor(pages.length * 0.3));
   for (const [k, c] of topCounts) if (c >= threshold) drop.add(k);
   for (const [k, c] of bottomCounts) if (c >= threshold) drop.add(k);
   return drop;
@@ -360,10 +360,7 @@ export interface ExtractedOutline {
 export async function extractOutline(loaded: LoadedPdf): Promise<ExtractedOutline> {
   const pages = await collectPages(loaded.doc);
   const pageHeight = pages[0]?.pageHeight ?? 792;
-  const drop = findRunningHeaderFooterTexts(
-    pages.map((p) => p.lines.map((l) => ({ ...l, items: [] }))),
-    pageHeight
-  );
+  const drop = findRunningHeaderFooterTexts(pages, pageHeight);
 
   const tree = await embeddedOutlineTree(loaded.doc);
   const { sections: raw, chapters } = tree.length

@@ -55,3 +55,10 @@ export function formatCost(usage: TokenUsage): string {
   if (cost < 0.001) return '<$0.001';
   return `$${cost.toFixed(3)}`;
 }
+
+export function parseTags(s: string): string[] {
+  return s
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}

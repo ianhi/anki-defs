@@ -127,7 +127,6 @@ def register(app: Any, anki: AnkiBackend) -> None:
                 sse_event({"type": "error", "data": "primary.contentType and text required"})
             ])
 
-        # Cloze prompt is owned by another agent — may not exist yet.
         if content_type == "exercise" and not _prompt_exists("pdf-cloze-extract.json"):
             response.status = 400
             return iter([

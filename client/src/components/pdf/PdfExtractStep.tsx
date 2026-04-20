@@ -17,16 +17,13 @@ interface Props {
   onRestart: () => void;
 }
 
-// Build the PdfExtractRequest for a single primary section: resolve its
-// relatedTo links by looking up their text from the outline.
 function buildRequest(
   primary: ScoutedSection,
-  scouted: ScoutedSection[],
+  byId: Map<string, ScoutedSection>,
   outline: ExtractedOutline,
   tags: string[],
-  deck: string | undefined
+  deck: string | undefined,
 ): PdfExtractRequest {
-  const byId = new Map(scouted.map((s) => [s.id, s]));
   const supporting = primary.relatedTo
     .map((id) => byId.get(id))
     .filter((s): s is ScoutedSection => !!s)
@@ -68,6 +65,7 @@ export function PdfExtractStep({
     const controller = new AbortController();
     abortRef.current = controller;
     const selected = scouted.filter((s) => selectedIds.has(s.id));
+    const byId = new Map(scouted.map((s) => [s.id, s]));
     const collected: CardPreviewType[] = [];
 
     (async () => {
@@ -76,7 +74,7 @@ export function PdfExtractStep({
         const section = selected[i]!;
         setStatus(`Extracting section ${i + 1}/${selected.length}: ${section.heading}`);
         const tags = [sourceTag, ...section.suggestedTags].filter(Boolean);
-        const req = buildRequest(section, scouted, outline, tags, settings.defaultDeck);
+        const req = buildRequest(section, byId, outline, tags, settings.defaultDeck);
         try {
           for await (const event of pdfApi.extract(req, controller.signal)) {
             if (event.type === 'card_preview') {

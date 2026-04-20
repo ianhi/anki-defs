@@ -3,7 +3,7 @@ import type { ClozeItem, PhotoClozeExtractResponse, TokenUsage } from 'shared';
 import { Button } from '../ui/Button';
 import { photoApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
-import { computeCost } from 'shared';
+import { formatCost } from '@/lib/utils';
 
 interface Props {
   imageUrl: string;
@@ -95,7 +95,7 @@ export function ClozeTranscribeStep({ imageUrl, imageBlob, onExtracted }: Props)
 
       {usage && (
         <p className="text-xs text-muted-foreground">
-          {usage.inputTokens + usage.outputTokens} tokens (~${computeCost(usage).toFixed(4)})
+          {usage.inputTokens + usage.outputTokens} tokens {formatCost(usage) && `(${formatCost(usage)})`}
         </p>
       )}
 

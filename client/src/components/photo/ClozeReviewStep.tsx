@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
 import { X } from 'lucide-react';
 import { useSettingsStore } from '@/hooks/useSettings';
+import { parseTags } from '@/lib/utils';
 import { useCreateNote } from '@/hooks/useAnki';
 import { useSessionCards } from '@/hooks/useSessionCards';
 
@@ -125,7 +126,8 @@ export function ClozeReviewStep({
       setItems((prev) => {
         const next = [...prev];
         const item = { ...next[itemIdx]!, blanks: [...next[itemIdx]!.blanks] };
-        item.blanks[blankIdx] = { ...item.blanks[blankIdx]!, [field]: value || null };
+        const coerced = field === 'hint' ? value || null : value;
+      item.blanks[blankIdx] = { ...item.blanks[blankIdx]!, [field]: coerced };
         next[itemIdx] = item;
         return next;
       });
@@ -154,14 +156,7 @@ export function ClozeReviewStep({
     setAddingAll(true);
     setAddResult(null);
     let added = 0;
-    const tags = [
-      'auto-generated',
-      'photo-cloze',
-      ...extraTag
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-    ];
+    const tags = ['auto-generated', 'photo-cloze', ...parseTags(extraTag)];
 
     for (let i = 0; i < items.length; i++) {
       if (discarded.has(i)) continue;

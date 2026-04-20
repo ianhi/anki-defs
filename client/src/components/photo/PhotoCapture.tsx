@@ -3,6 +3,7 @@ import type { CardPreview as CardPreviewType, ClozeItem, VocabPair, TokenUsage }
 import { Button } from '../ui/Button';
 import { ArrowLeft } from 'lucide-react';
 import { photoApi } from '@/lib/api';
+import { parseTags } from '@/lib/utils';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useCreateNote } from '@/hooks/useAnki';
 import { useSessionCards } from '@/hooks/useSessionCards';
@@ -168,13 +169,7 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
           nativeDefinition: preview.nativeDefinition,
           example: preview.exampleSentence,
           translation: preview.sentenceTranslation,
-          tags: [
-            'auto-generated',
-            ...extraTag
-              .split(',')
-              .map((t) => t.trim())
-              .filter(Boolean),
-          ],
+          tags: ['auto-generated', ...parseTags(extraTag)],
         });
         addCard(preview, settings.defaultDeck, result.modelName, result.noteId);
         added++;
