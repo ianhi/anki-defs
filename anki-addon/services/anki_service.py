@@ -7,9 +7,13 @@ from any thread (Bottle's request threads, daemon threads, etc.).
 import logging
 
 from anki_defs._services import note_types as _note_types
+from anki_defs._services.ai import get_language_by_code as _get_language_by_code
 from anki_defs._services.ai import get_language_for_deck as _get_language_for_deck
 from anki_defs._services.note_types import (
     build_card_fields as _build_card_fields,
+)
+from anki_defs._services.note_types import (
+    extract_template_version as _extract_template_version,
 )
 from anki_defs._services.note_types import (
     render_note_type as _render_note_type,
@@ -239,6 +243,168 @@ def _migrate_existing_model(model, rendered):
             added_fields = True
     if added_fields:
         col.models.update_dict(model)
+
+
+
+@main_thread
+def check_template_versions(note_type_prefix):
+    """Check all models matching the prefix for outdated templates or missing fields.
+
+    Returns a list of issues -- one per model that needs attention.
+    """
+    from .settings_service import get_settings
+
+    settings = get_settings()
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+
+    col = _col()
+    model_list = col.models.all_names_and_ids()
+    prefix_with_dash = note_type_prefix + "-"
+    matching = [m.name for m in model_list if m.name.startswith(prefix_with_dash)]
+    if not matching:
+        return []
+
+    issues = []
+    for model_name in matching:
+        remainder = model_name[len(prefix_with_dash):]
+
+        # Determine card type from model name suffix
+        card_type = None
+        for ct in _note_types.all_card_types():
+            defn = _note_types.get_note_type_definition(ct)
+            suffix = defn.get("modelNameSuffix", "")
+            if suffix and remainder.endswith(suffix):
+                card_type = ct
+                break
+        if card_type is None:
+            card_type = "vocab"  # no suffix = vocab
+
+        # Resolve language code from model name
+        defn = _note_types.get_note_type_definition(card_type)
+        suffix = defn.get("modelNameSuffix", "")
+        lang_code = remainder[: -len(suffix)] if suffix else remainder
+        language = _get_language_by_code(lang_code)
+        if language is None:
+            continue
+
+        tts_override = tts_overrides.get(lang_code)
+        rendered = _render_note_type(
+            card_type, language, note_type_prefix, tts_override
+        )
+
+        # Check fields
+        model = col.models.by_name(model_name)
+        if model is None:
+            continue
+        existing_fields = {f["name"] for f in model["flds"]}
+        missing_fields = [f for f in rendered["fields"] if f not in existing_fields]
+
+        # Check template versions
+        stale_templates = []
+        latest_version = rendered.get("version", 0)
+
+        live_tmpls_by_name = {t["name"]: t for t in model["tmpls"]}
+        for tmpl in rendered["templates"]:
+            tmpl_name = tmpl["Name"]
+            live = live_tmpls_by_name.get(tmpl_name)
+            if live is None:
+                stale_templates.append({
+                    "name": tmpl_name,
+                    "currentVersion": None,
+                })
+                continue
+
+            front_ver = _extract_template_version(live["qfmt"])
+            back_ver = _extract_template_version(live["afmt"])
+            current_ver = min(
+                v for v in (front_ver, back_ver) if v is not None
+            ) if front_ver is not None or back_ver is not None else None
+
+            if current_ver is None or current_ver < latest_version:
+                stale_templates.append({
+                    "name": tmpl_name,
+                    "currentVersion": current_ver,
+                })
+
+        # Check CSS
+        live_css = model.get("css", "")
+        css_outdated = live_css.strip() != rendered["css"].strip()
+
+        if missing_fields or stale_templates or css_outdated:
+            issues.append({
+                "modelName": model_name,
+                "cardType": card_type,
+                "latestVersion": latest_version,
+                "missingFields": missing_fields,
+                "staleTemplates": stale_templates,
+                "cssOutdated": css_outdated,
+            })
+
+    return issues
+
+
+@main_thread
+def update_model_templates(model_name, note_type_prefix):
+    """Update a model's templates and CSS to the latest version.
+
+    Also adds any missing fields via ``_migrate_existing_model``.
+    Returns a summary of what changed.
+    """
+    from .settings_service import get_settings
+
+    settings = get_settings()
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+
+    prefix_with_dash = note_type_prefix + "-"
+    remainder = model_name[len(prefix_with_dash):]
+
+    card_type = "vocab"
+    for ct in _note_types.all_card_types():
+        defn = _note_types.get_note_type_definition(ct)
+        suffix = defn.get("modelNameSuffix", "")
+        if suffix and remainder.endswith(suffix):
+            card_type = ct
+            break
+
+    defn = _note_types.get_note_type_definition(card_type)
+    suffix = defn.get("modelNameSuffix", "")
+    lang_code = remainder[: -len(suffix)] if suffix else remainder
+    language = _get_language_by_code(lang_code)
+    if language is None:
+        raise ValueError("Unknown language code: {}".format(lang_code))
+
+    tts_override = tts_overrides.get(lang_code)
+    rendered = _render_note_type(
+        card_type, language, note_type_prefix, tts_override
+    )
+
+    col = _col()
+    model = col.models.by_name(model_name)
+    if model is None:
+        raise ValueError("Model not found: {}".format(model_name))
+
+    # Add missing fields
+    _migrate_existing_model(model, rendered)
+
+    # Update templates
+    live_tmpls_by_name = {t["name"]: t for t in model["tmpls"]}
+    for tmpl in rendered["templates"]:
+        live = live_tmpls_by_name.get(tmpl["Name"])
+        if live is not None:
+            live["qfmt"] = tmpl["Front"]
+            live["afmt"] = tmpl["Back"]
+
+    # Update CSS
+    model["css"] = rendered["css"]
+
+    log.info("Updating templates on model %s to v%s", model_name, rendered.get("version"))
+    col.models.update_dict(model)
+
+    return {
+        "modelName": model_name,
+        "version": rendered.get("version", 0),
+        "updated": True,
+    }
 
 
 @main_thread

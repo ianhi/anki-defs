@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from ..note_types import CardType
+
 
 class AnkiBackend(Protocol):
     """Minimal Anki backend interface consumed by shared route handlers."""
@@ -30,7 +32,7 @@ class AnkiBackend(Protocol):
     def create_card(
         self,
         deck: str,
-        card_type: str,
+        card_type: CardType,
         word: str,
         definition: str,
         native_definition: str,
@@ -49,5 +51,16 @@ class AnkiBackend(Protocol):
     def check_migrations_for_deck(
         self,
         deck: str,
-        card_types: list[str] | None = None,
+        card_types: list[CardType] | None = None,
     ) -> list[dict[str, Any]]: ...
+
+    def check_template_versions(
+        self,
+        note_type_prefix: str,
+    ) -> list[dict[str, Any]]: ...
+
+    def update_model_templates(
+        self,
+        model_name: str,
+        note_type_prefix: str,
+    ) -> dict[str, Any]: ...

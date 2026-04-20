@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 from urllib.parse import unquote
 
 from bottle import request, response
 
 from .. import ai
+from ..note_types import CardType
+from ..settings import get_settings
 from ._protocol import AnkiBackend
 
 log = logging.getLogger(__name__)
@@ -75,20 +77,21 @@ def register(app: Any, anki: AnkiBackend) -> None:
         if card_type not in _VALID_CARD_TYPES:
             response.status = 400
             return {"error": f"Invalid cardType: {card_type}"}
-        if not word and card_type == "vocab":
+        ct = cast(CardType, card_type)
+        if not word and ct == "vocab":
             response.status = 400
             return {"error": "word is required for vocab cards"}
 
         try:
             if not body.get("approveMigration"):
-                pending = anki.check_migrations_for_deck(deck, [card_type])
+                pending = anki.check_migrations_for_deck(deck, [ct])
                 if pending:
                     response.status = 409
                     return {"migrationRequired": True, "migrations": pending}
 
             note_id, model_name = anki.create_card(
                 deck=deck,
-                card_type=card_type,
+                card_type=ct,
                 word=word,
                 definition=body.get("definition", ""),
                 native_definition=body.get("nativeDefinition", ""),
@@ -153,3 +156,36 @@ def register(app: Any, anki: AnkiBackend) -> None:
     @app.get("/api/anki/languages")
     def get_languages() -> dict:
         return {"languages": ai.get_available_languages()}
+
+    @app.get("/api/anki/health-check")
+    def health_check() -> dict:
+        settings = get_settings()
+        prefix = settings.get("noteTypePrefix", "anki-defs")
+        try:
+            issues = anki.check_template_versions(prefix)
+            return {"issues": issues}
+        except (RuntimeError, ValueError) as e:
+            log.error("Health check error: %s", e)
+            response.status = 500
+            return {"error": str(e)}
+
+    @app.post("/api/anki/update-templates")
+    def update_templates() -> dict:
+        body = request.json or {}
+        model_name = body.get("modelName", "")
+        if not model_name:
+            response.status = 400
+            return {"error": "modelName is required"}
+
+        settings = get_settings()
+        prefix = settings.get("noteTypePrefix", "anki-defs")
+        try:
+            result = anki.update_model_templates(model_name, prefix)
+            return result
+        except ValueError as e:
+            response.status = 400
+            return {"error": str(e)}
+        except RuntimeError as e:
+            log.error("Error updating templates: %s", e)
+            response.status = 500
+            return {"error": str(e)}

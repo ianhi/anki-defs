@@ -2,6 +2,7 @@
   "_doc": "Note-type templates for auto-creation in Anki. Server substitutes {{LOCALE}} with the BCP-47 TTS locale (e.g. bn_IN, es_MX) at model creation time. Field names and structure are language-agnostic. Vocab has 3 card templates gated by EnableRecognition/EnableProduction/EnableListening fields — populating only the desired flags lets a single note generate 1-3 cards. Cloze and MC-cloze are separate note types copied from existing models (spanish-cloze and Bangla Enhanced Cloze) with field-name normalization and locale substitution only — visual/behavioral redesign is intentionally deferred.",
 
   "vocab": {
+    "version": 1,
     "modelNameSuffix": "",
     "isCloze": false,
     "fields": [
@@ -38,6 +39,7 @@
   },
 
   "cloze": {
+    "version": 1,
     "modelNameSuffix": "-cloze",
     "isCloze": true,
     "fields": [
@@ -60,6 +62,7 @@
   },
 
   "mcCloze": {
+    "version": 1,
     "modelNameSuffix": "-mc-cloze",
     "isCloze": true,
     "fields": [

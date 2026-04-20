@@ -8,6 +8,7 @@ import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
 import { HistoryPanel } from './components/HistoryPanel';
+import { NoteTypeHealth } from './components/NoteTypeHealth';
 import { TokenDisplay } from './components/TokenDisplay';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import {
@@ -114,6 +115,7 @@ function MainApp() {
                 />
               </Button>
             )}
+            <NoteTypeHealth />
             {pendingQueue.length > 0 && (
               <Button
                 variant="ghost"

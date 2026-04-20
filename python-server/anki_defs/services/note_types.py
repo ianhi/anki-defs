@@ -81,23 +81,42 @@ def render_note_type(
     suffix = definition.get("modelNameSuffix", "")
     model_name = f"{note_type_prefix}-{code}{suffix}"
 
+    version = definition.get("version", 0)
+    tag = (
+        f"<!-- card-template:v{version}"
+        " \u2014 do not delete, used for auto-updating -->\n"
+    )
+
     templates: list[dict[str, str]] = []
     for tmpl in definition["templates"]:
         templates.append(
             {
                 "Name": tmpl["name"],
-                "Front": _substitute_locale(tmpl["front"], anki_locale),
-                "Back": _substitute_locale(tmpl["back"], anki_locale),
+                "Front": tag + _substitute_locale(tmpl["front"], anki_locale),
+                "Back": tag + _substitute_locale(tmpl["back"], anki_locale),
             }
         )
 
     return {
         "modelName": model_name,
+        "version": version,
         "fields": list(definition["fields"]),
         "css": definition["css"],
         "isCloze": bool(definition.get("isCloze", False)),
         "templates": templates,
     }
+
+
+_VERSION_RE = re.compile(r"<!--\s*card-template:v(\d+)\b")
+
+
+def extract_template_version(template_text: str) -> int | None:
+    """Extract the version number from a card-template version comment.
+
+    Returns ``None`` if no version tag is found (pre-versioning template).
+    """
+    m = _VERSION_RE.search(template_text)
+    return int(m.group(1)) if m else None
 
 
 _BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")

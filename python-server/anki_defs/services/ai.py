@@ -98,6 +98,23 @@ def _get_default_language() -> dict[str, Any]:
     return _resolve_language(code, settings)
 
 
+def get_language_by_code(code: str) -> dict[str, Any] | None:
+    """Look up a language by code, returning None if not found."""
+    settings = get_settings()
+    lang = _resolve_language(code, settings)
+    # _resolve_language always returns a dict (falls back to default),
+    # but we return None if the code doesn't match any known language file
+    # and isn't in customLanguages.
+    if code not in _languages and not any(
+        c.get("code") == code for c in settings.get("customLanguages", [])
+    ):
+        # Check base code for regional variants (es-MX → es)
+        base = code.split("-", 1)[0] if "-" in code else ""
+        if base and base not in _languages:
+            return None
+    return lang
+
+
 def get_language_for_deck(deck: str) -> dict[str, Any]:
     """Resolve language for a deck using :: hierarchy inheritance."""
     settings = get_settings()

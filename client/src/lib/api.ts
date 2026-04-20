@@ -11,6 +11,7 @@ import type {
   PlatformInfo,
   PhotoExtractResponse,
   VocabPair,
+  NoteTypeIssue,
 } from 'shared';
 
 const API_BASE = '/api';
@@ -138,6 +139,12 @@ export const ankiApi = {
     fetchJson<{ success: boolean }>(`/anki/notes/${id}`, { method: 'DELETE' }),
   getStatus: () => fetchJson<{ connected: boolean }>('/anki/status').then((r) => r.connected),
   sync: () => fetchJson<{ success: boolean }>('/anki/sync', { method: 'POST' }),
+  checkHealth: () => fetchJson<{ issues: NoteTypeIssue[] }>('/anki/health-check'),
+  updateTemplates: (modelName: string) =>
+    fetchJson<{ modelName: string; version: number; updated: boolean }>('/anki/update-templates', {
+      method: 'POST',
+      body: JSON.stringify({ modelName }),
+    }),
 };
 
 // Chat API

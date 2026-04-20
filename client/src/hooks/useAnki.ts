@@ -58,3 +58,26 @@ export function useDeleteNote() {
     },
   });
 }
+
+export function useNoteTypeHealth() {
+  const { data: connected } = useAnkiStatus();
+
+  return useQuery({
+    queryKey: ['anki', 'health'],
+    queryFn: ankiApi.checkHealth,
+    enabled: !!connected,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useUpdateTemplates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (modelName: string) => ankiApi.updateTemplates(modelName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['anki', 'health'] });
+    },
+  });
+}

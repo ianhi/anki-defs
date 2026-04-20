@@ -68,6 +68,21 @@ export interface SessionState {
   pendingQueue: PendingCard[];
 }
 
+// Template health types
+export interface StaleTemplate {
+  name: string;
+  currentVersion: number | null;
+}
+
+export interface NoteTypeIssue {
+  modelName: string;
+  cardType: string;
+  latestVersion: number;
+  missingFields: string[];
+  staleTemplates: StaleTemplate[];
+  cssOutdated: boolean;
+}
+
 // Anki types
 export interface AnkiNote {
   noteId: number;
