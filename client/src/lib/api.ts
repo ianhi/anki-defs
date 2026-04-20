@@ -61,6 +61,20 @@ async function* streamSSE(
   }
 }
 
+export interface MigrationInfo {
+  modelName: string;
+  newFields: string[];
+}
+
+export class MigrationRequiredError extends Error {
+  migrations: MigrationInfo[];
+  constructor(migrations: MigrationInfo[]) {
+    super('Note type migration required');
+    this.name = 'MigrationRequiredError';
+    this.migrations = migrations;
+  }
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${url}`, {
     ...options,
@@ -101,11 +115,24 @@ export const ankiApi = {
       method: 'POST',
       body: JSON.stringify({ query }),
     }).then((r) => r.notes),
-  createNote: (note: CreateNoteRequest) =>
-    fetchJson<{ noteId: number; modelName: string }>('/anki/notes', {
+  createNote: async (note: CreateNoteRequest) => {
+    const resp = await fetch(`${API_BASE}/anki/notes`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(note),
-    }),
+    });
+    if (resp.status === 409) {
+      const data = await resp.json();
+      if (data.migrationRequired) {
+        throw new MigrationRequiredError(data.migrations);
+      }
+    }
+    if (!resp.ok) {
+      const error = await resp.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+    return resp.json() as Promise<{ noteId: number; modelName: string }>;
+  },
   getNote: (id: number) => fetchJson<{ note: AnkiNote }>(`/anki/notes/${id}`).then((r) => r.note),
   deleteNote: (id: number) =>
     fetchJson<{ success: boolean }>(`/anki/notes/${id}`, { method: 'DELETE' }),
@@ -217,10 +244,15 @@ export const sessionApi = {
 
 // Photo API
 export const photoApi = {
-  extract: async (blob: Blob, deck: string): Promise<PhotoExtractResponse> => {
+  extract: async (
+    blob: Blob,
+    deck: string,
+    instructions?: string
+  ): Promise<PhotoExtractResponse> => {
     const formData = new FormData();
     formData.append('image', blob, 'photo.jpg');
     formData.append('deck', deck);
+    if (instructions) formData.append('instructions', instructions);
     const response = await fetch(`${API_BASE}/photo/extract`, {
       method: 'POST',
       body: formData,

@@ -7,7 +7,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { useCreateNote, useDeleteNote, useAnkiStatus } from '@/hooks/useAnki';
-import { ankiApi } from '@/lib/api';
+import { ankiApi, MigrationRequiredError } from '@/lib/api';
+import type { MigrationInfo } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useSessionCards } from '@/hooks/useSessionCards';
 import { chatApi } from '@/lib/api';
@@ -131,6 +132,7 @@ export function CardPreview({
   const isAdded = !!sessionMatch && verifiedExists;
 
   const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+  const [migrationInfo, setMigrationInfo] = useState<MigrationInfo[] | null>(null);
   const [addError, setAddError] = useState<string | null>(null);
   // Editable word and definition
   const [editedWord, setEditedWord] = useState<string | null>(null);
@@ -179,7 +181,7 @@ export function CardPreview({
 
   if (isDismissed) return null;
 
-  const handleAddCard = async () => {
+  const handleAddCard = async (approveMigration = false) => {
     // If word exists and user hasn't confirmed, show confirmation
     if (alreadyExists && !confirmDuplicate) {
       setConfirmDuplicate(true);
@@ -213,6 +215,7 @@ export function CardPreview({
           translation: preview.sentenceTranslation,
           vocabTemplates,
           tags: ['auto-generated', ...(extraTags || [])],
+          ...(approveMigration && { approveMigration: true }),
         });
         firstNoteId = result.noteId;
         firstModelName = result.modelName;
@@ -229,6 +232,7 @@ export function CardPreview({
           example: preview.exampleSentence,
           translation: preview.sentenceTranslation,
           tags: ['auto-generated', ...(extraTags || [])],
+          ...(approveMigration && { approveMigration: true }),
         });
         if (!firstNoteId) {
           firstNoteId = result.noteId;
@@ -249,6 +253,7 @@ export function CardPreview({
             example: preview.exampleSentence,
             translation: preview.sentenceTranslation,
             tags: ['auto-generated', ...(extraTags || [])],
+            ...(approveMigration && { approveMigration: true }),
           });
           if (!firstNoteId) {
             firstNoteId = result.noteId;
@@ -263,6 +268,10 @@ export function CardPreview({
         addCard(cardPreview, targetDeck, firstModelName ?? '', firstNoteId);
       }
     } catch (error) {
+      if (error instanceof MigrationRequiredError) {
+        setMigrationInfo(error.migrations);
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Unknown error';
       if (
         !ankiConnected ||
@@ -274,6 +283,11 @@ export function CardPreview({
         setAddError(message);
       }
     }
+  };
+
+  const handleApproveMigration = () => {
+    setMigrationInfo(null);
+    handleAddCard(true);
   };
 
   const handleUndo = async () => {
@@ -518,7 +532,7 @@ export function CardPreview({
         ) : confirmDuplicate ? (
           <>
             <Button
-              onClick={handleAddCard}
+              onClick={() => handleAddCard()}
               disabled={createNote.isPending}
               size="sm"
               variant="destructive"
@@ -535,6 +549,36 @@ export function CardPreview({
             <span className="text-sm text-yellow-600 dark:text-yellow-400 mr-auto">
               Add duplicate card?
             </span>
+          </>
+        ) : migrationInfo ? (
+          <>
+            <Button
+              onClick={handleApproveMigration}
+              disabled={createNote.isPending}
+              size="sm"
+              variant="destructive"
+            >
+              {createNote.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Yes, update note type'
+              )}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setMigrationInfo(null)}>
+              Cancel
+            </Button>
+            <div className="text-xs mr-auto space-y-1">
+              {migrationInfo.map((m) => (
+                <p key={m.modelName} className="text-yellow-600 dark:text-yellow-400">
+                  <span className="font-semibold">{m.modelName}</span> needs new fields:{' '}
+                  {m.newFields.join(', ')}
+                </p>
+              ))}
+              <p className="text-muted-foreground">
+                Adding fields forces a one-way sync in Anki — you&apos;ll need to choose Upload or
+                Download next time you sync.
+              </p>
+            </div>
           </>
         ) : (
           <>
@@ -602,7 +646,7 @@ export function CardPreview({
               )}
             </div>
             <Button
-              onClick={handleAddCard}
+              onClick={() => handleAddCard()}
               disabled={createNote.isPending || generatingMC || selectedTypes.size === 0}
               size="sm"
             >

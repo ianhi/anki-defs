@@ -240,6 +240,9 @@ export interface CreateNoteRequest {
   // Vocab cards only — overrides the global vocabCardTemplates default for this note.
   vocabTemplates?: VocabCardTemplates;
   tags?: string[];
+  // Set to true after the user approves a note-type migration (adding missing
+  // fields). Without this flag the server returns 409 when migration is needed.
+  approveMigration?: boolean;
 }
 
 // Token usage tracking

@@ -94,6 +94,12 @@ def register(app: Bottle) -> None:
             return {"error": "word is required for vocab cards"}
 
         try:
+            if not body.get("approveMigration"):
+                pending = anki_connect.check_migrations_for_deck(deck, [card_type])
+                if pending:
+                    response.status = 409
+                    return {"migrationRequired": True, "migrations": pending}
+
             note_id, model_name = anki_connect.create_card(
                 deck=deck,
                 card_type=card_type,

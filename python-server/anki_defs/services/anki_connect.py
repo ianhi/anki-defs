@@ -155,13 +155,67 @@ def ensure_language_models(
     return result
 
 
-def _migrate_existing_model(model_name: str, rendered: dict[str, Any]) -> None:
-    """Bring an existing AnkiConnect model up to the current schema.
+def check_pending_migrations(
+    language: dict[str, Any],
+    note_type_prefix: str,
+    card_types: list[CardType] | None = None,
+    anki_tts_locale_override: str | None = None,
+) -> list[dict[str, Any]]:
+    """Check for note types that need field additions (without modifying anything).
 
-    Appends missing fields, overwrites template Front/Back, and updates CSS.
-    Idempotent. Custom user template tweaks WILL be overwritten — deliberate
-    trade-off so template-level fixes (audio fallback, etc.) reach existing
-    users without forcing them to delete and recreate the model.
+    Returns a list of ``{"modelName": ..., "newFields": [...]}`` dicts for
+    models that exist but are missing fields.  Returns ``[]`` when nothing
+    needs migrating (the common case).  Respects ``_ensured_models`` cache —
+    if the model was already ensured this process, it won't appear here.
+    """
+    wanted = tuple(card_types) if card_types else note_types.all_card_types()
+    code = language["code"]
+
+    to_check: list[CardType] = []
+    for ct in wanted:
+        if (note_type_prefix, code, ct) not in _ensured_models:
+            to_check.append(ct)
+
+    if not to_check:
+        return []
+
+    existing_models = set(_invoke("modelNames") or [])
+    pending: list[dict[str, Any]] = []
+
+    for ct in to_check:
+        rendered = render_note_type(ct, language, note_type_prefix, anki_tts_locale_override)
+        model_name = rendered["modelName"]
+        if model_name not in existing_models:
+            continue  # New model — will be created, not migrated
+        current = set(_invoke("modelFieldNames", modelName=model_name) or [])
+        new_fields = [f for f in rendered["fields"] if f not in current]
+        if new_fields:
+            pending.append({"modelName": model_name, "newFields": new_fields})
+
+    return pending
+
+
+def check_migrations_for_deck(
+    deck: str,
+    card_types: list[CardType] | None = None,
+) -> list[dict[str, Any]]:
+    """Resolve deck language and check for pending note-type migrations."""
+    from .settings import get_settings
+
+    settings = get_settings()
+    prefix = settings.get("noteTypePrefix", "anki-defs")
+    language = ai.get_language_for_deck(deck)
+    tts_overrides = settings.get("ankiTtsLocaleByLanguage") or {}
+    tts_override = tts_overrides.get(language["code"])
+    return check_pending_migrations(language, prefix, card_types, tts_override)
+
+
+def _migrate_existing_model(model_name: str, rendered: dict[str, Any]) -> None:
+    """Ensure an existing model has all required fields.
+
+    Only adds missing fields — never touches templates or CSS. Modifying
+    templates would destroy user customizations and trigger a forced one-way
+    sync in Anki (schema modification bumps scm).
     """
     current = _invoke("modelFieldNames", modelName=model_name) or []
     current_set = set(current)
@@ -171,15 +225,6 @@ def _migrate_existing_model(model_name: str, rendered: dict[str, Any]) -> None:
             _invoke("modelFieldAdd", modelName=model_name, fieldName=name, index=len(current))
             current.append(name)
             current_set.add(name)
-
-    templates_payload = {
-        t["Name"]: {"Front": t["Front"], "Back": t["Back"]} for t in rendered["templates"]
-    }
-    log.info("Updating templates on existing model %s", model_name)
-    _invoke("updateModelTemplates", model={"name": model_name, "templates": templates_payload})
-
-    log.info("Updating CSS on existing model %s", model_name)
-    _invoke("updateModelStyling", model={"name": model_name, "css": rendered["css"]})
 
 
 def search_notes(query: str) -> list[dict[str, Any]]:
