@@ -12,12 +12,12 @@ interface Props {
   onScouted: (sections: ScoutedSection[], picked: Set<string>) => void;
 }
 
-const TYPE_COLORS: Record<PdfContentType, string> = {
-  vocab: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-  glossary: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
-  passage: 'bg-green-500/10 text-green-700 dark:text-green-300',
-  exercise: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  prose: 'bg-muted text-muted-foreground',
+const TYPE_STYLE: Record<PdfContentType, { color: string; label: string }> = {
+  vocab: { color: 'bg-blue-500/10 text-blue-700 dark:text-blue-300', label: 'Vocab' },
+  glossary: { color: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300', label: 'Glossary' },
+  passage: { color: 'bg-green-500/10 text-green-700 dark:text-green-300', label: 'Passage' },
+  exercise: { color: 'bg-amber-500/10 text-amber-700 dark:text-amber-300', label: 'Exercise' },
+  prose: { color: 'bg-muted text-muted-foreground', label: 'Grammar / prose' },
 };
 
 export function PdfScoutStep({
@@ -95,8 +95,28 @@ export function PdfScoutStep({
       </div>
     );
 
+  const extractable = sections.filter((s) => s.contentType !== 'prose');
+
   return (
     <div className="p-4 space-y-4 max-w-2xl mx-auto">
+      <p className="text-sm text-muted-foreground">
+        {extractable.length} of {sections.length} sections can produce flashcards.
+        Checked sections will be extracted. Grammar/prose sections are skipped by default.
+      </p>
+
+      <div className="flex flex-wrap gap-2 text-[10px]">
+        {(['vocab', 'passage', 'glossary', 'exercise', 'prose'] as PdfContentType[]).map((t) => {
+          const count = sections.filter((s) => s.contentType === t).length;
+          if (count === 0) return null;
+          const style = TYPE_STYLE[t];
+          return (
+            <span key={t} className={`px-1.5 py-0.5 rounded ${style.color}`}>
+              {style.label} ({count})
+            </span>
+          );
+        })}
+      </div>
+
       <div className="space-y-1">
         <label className="text-xs text-muted-foreground">Source tag (applied to every card)</label>
         <Input value={sourceTag} onChange={(e) => onSourceTagChange(e.target.value)} />
@@ -108,15 +128,17 @@ export function PdfScoutStep({
           return (
             <label
               key={s.id}
-              className="flex items-start gap-3 p-3 cursor-pointer hover:bg-muted/50"
+              className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-muted/50 ${
+                s.contentType === 'prose' && !on ? 'opacity-50' : ''
+              }`}
             >
               <input type="checkbox" checked={on} onChange={() => toggle(s.id)} className="mt-1" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] uppercase ${TYPE_COLORS[s.contentType] ?? ''}`}
+                    className={`px-1.5 py-0.5 rounded text-[10px] ${TYPE_STYLE[s.contentType]?.color ?? ''}`}
                   >
-                    {s.contentType}
+                    {TYPE_STYLE[s.contentType]?.label ?? s.contentType}
                   </span>
                   <span className="font-medium truncate">{s.heading}</span>
                   <span className="text-xs text-muted-foreground">
