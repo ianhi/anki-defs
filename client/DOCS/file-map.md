@@ -27,6 +27,8 @@
 - `PromptPreview.tsx` -- Debug prompt preview (via ?demo=prompts)
 - `RetryUxDemo.tsx` -- Debug retry UX demo (via ?demo=retry)
 - `ui/` -- Base UI primitives (Badge, Button, Card, Input, Label, Select)
+- `photo/` -- Photo-to-flashcards flow (capture → extract → generate)
+- `pdf/` -- PDF-to-flashcards flow: `PdfPage` (step container), `PdfUploadStep` (pdfjs parse), `PdfScoutStep` (scouted TOC checkboxes), `PdfExtractStep` (stream CardPreviews with tags)
 
 ## Hooks (`src/hooks/`)
 
@@ -44,6 +46,7 @@
 - `utils.ts` -- Utilities: `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`. Field-building helpers (`buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`) were removed — field mapping is now server-side.
 - `logger.ts` -- Structured console logging with levels (`createLogger`)
 - `tts.ts` -- Text-to-speech using browser SpeechSynthesis API (voice detection, selection)
+- `pdf.ts` -- pdfjs wrapper: `loadPdf`, `extractOutline` (font-based heading heuristics + bookmarks fallback, header/footer + soft-hyphen normalization), `getSectionText`. Structural only; classification lives in the server scout prompt.
 
 ## Adding a New API Endpoint (Client Side)
 

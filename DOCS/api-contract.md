@@ -107,9 +107,9 @@ PUT with secrets when keyring unavailable returns 409 until user consents.
 PDF-to-cards pipeline. The client parses the PDF with pdfjs and sends
 structural outline data; the server classifies and extracts via AI.
 
-| Method | Endpoint   | Description                                                  |
-| ------ | ---------- | ------------------------------------------------------------ |
-| POST   | `/scout`   | Classify sections + link related (`PdfScoutRequest/Response`)|
+| Method | Endpoint   | Description                                                     |
+| ------ | ---------- | --------------------------------------------------------------- |
+| POST   | `/scout`   | Classify sections + link related (`PdfScoutRequest/Response`)   |
 | POST   | `/extract` | SSE-stream `CardPreview`s for one section (`PdfExtractRequest`) |
 
 `/extract` dispatches by `primary.contentType`:

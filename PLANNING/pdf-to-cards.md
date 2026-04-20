@@ -2,7 +2,7 @@
 
 ## Context
 
-Users have digital textbook PDFs (e.g. *Complete Spanish Step-by-Step*, 621 pp)
+Users have digital textbook PDFs (e.g. _Complete Spanish Step-by-Step_, 621 pp)
 with selectable text. They want to turn vocab lists, conjugation tables, and
 reading passages into Anki cards without flipping through hundreds of pages.
 
@@ -16,7 +16,7 @@ book and surface the parts worth extracting.
 
 `Complete-Spanish-Step-By-Step-Book.pdf` — 621 pp, digital (InDesign), excellent
 extraction. Contains vocab lists (`Key Vocabulary / Los colores`), conjugation
-tables, reading passages (*El tren*), fill-in exercises (`K Exercise 6.3`),
+tables, reading passages (_El tren_), fill-in exercises (`K Exercise 6.3`),
 grammar prose, and an answer key (pp. 579+, extractor must exclude by default).
 Layout hazards: 2-column grids, `1.\t` numbered list markers, running
 header/footer on every page, U+00AD soft hyphens at line breaks.
@@ -132,7 +132,7 @@ means.
 
 Textbooks chain content across sections in ways we can't predict:
 
-- A reading passage followed by a *Vocabulario* glossary for its hard words
+- A reading passage followed by a _Vocabulario_ glossary for its hard words
 - An exercise (`Ex 6.3`) that drills a vocab list introduced earlier in the chapter
 - A dialogue followed by comprehension questions
 - A conjugation table that references verbs from a preceding vocab list
@@ -145,15 +145,15 @@ for every section. The LLM decides the pairings; our code just respects them.
 ```json
 {
   "sections": [
-    {"id": "s12", "type": "passage",  "title": "El tren",     "relatedTo": ["s13"]},
-    {"id": "s13", "type": "glossary", "title": "Vocabulario", "relatedTo": ["s12"]},
-    {"id": "s14", "type": "vocab",    "title": "Los colores", "relatedTo": []},
-    {"id": "s15", "type": "exercise", "title": "Ex 6.3",      "relatedTo": ["s14"]}
+    { "id": "s12", "type": "passage", "title": "El tren", "relatedTo": ["s13"] },
+    { "id": "s13", "type": "glossary", "title": "Vocabulario", "relatedTo": ["s12"] },
+    { "id": "s14", "type": "vocab", "title": "Los colores", "relatedTo": [] },
+    { "id": "s15", "type": "exercise", "title": "Ex 6.3", "relatedTo": ["s14"] }
   ]
 }
 ```
 
-**How extract uses it.** When extracting section `s12` (*El tren* passage),
+**How extract uses it.** When extracting section `s12` (_El tren_ passage),
 the server sees `relatedTo: ["s13"]`, fetches text for `s13` (the glossary),
 and passes both into the passage prompt with roles marked:
 
@@ -171,7 +171,7 @@ supporting context so the cloze prompt knows the intended answer set.
 missing link or remove a wrong one before extract runs. Much easier than
 debugging pairing code, and user corrections could become tuning data later.
 
-**Symmetry note.** `relatedTo` is directional in semantics (passage *uses*
+**Symmetry note.** `relatedTo` is directional in semantics (passage _uses_
 glossary as support), but we let the LLM emit it on both sides when the
 relationship is mutual. At extract time we only follow links from the section
 being extracted — we don't traverse both directions to avoid duplicate cards.

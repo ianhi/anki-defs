@@ -43,14 +43,14 @@
 
 ## Detailed plans
 
-| Doc                                                  | What it covers                     |
-| ---------------------------------------------------- | ---------------------------------- |
-| [pdf-to-cards.md](pdf-to-cards.md)                   | Cards from textbook PDFs via pdfjs + LLM scout (backend + types landed, UI pending) |
-| [photo-cloze.md](photo-cloze.md)                     | Cloze cards from textbook exercises|
-| [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session |
-| [next-steps.md](next-steps.md)                       | Full feature list with details     |
-| [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan               |
-| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)  |
+| Doc                                                  | What it covers                                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [pdf-to-cards.md](pdf-to-cards.md)                   | Cards from textbook PDFs via pdfjs + LLM scout (initial implementation landed, needs testing) |
+| [photo-cloze.md](photo-cloze.md)                     | Cloze cards from textbook exercises                                                           |
+| [addon-testing-session.md](addon-testing-session.md) | Full log of addon e2e test session                                                            |
+| [next-steps.md](next-steps.md)                       | Full feature list with details                                                                |
+| [audio-in-cards.md](audio-in-cards.md)               | TTS integration plan                                                                          |
+| [cloze-research-prompt.md](cloze-research-prompt.md) | Cloze card research (mostly done)                                                             |
 
 ## Completed plans
 

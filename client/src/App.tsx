@@ -4,6 +4,7 @@ import { Settings } from './components/Settings';
 import { OnboardingModal } from './components/OnboardingModal';
 import { HelpPage } from './components/HelpPage';
 import { PhotoCapture } from './components/photo/PhotoCapture';
+import { PdfPage } from './components/pdf/PdfPage';
 import { HeaderDeckSelector } from './components/HeaderDeckSelector';
 import { RetryUxDemo } from './components/RetryUxDemo';
 import { PromptPreview } from './components/PromptPreview';
@@ -19,6 +20,7 @@ import {
   AlertTriangle,
   HelpCircle,
   Camera,
+  FileText,
 } from 'lucide-react';
 import { Button } from './components/ui/Button';
 import { useSessionCards, initSessionCards } from './hooks/useSessionCards';
@@ -65,6 +67,7 @@ function MainApp() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showPhoto, setShowPhoto] = useState(() => localStorage.getItem('showPhoto') === 'true');
+  const [showPdf, setShowPdf] = useState(false);
   const { pendingQueue } = useSessionCards();
   const { settings, isLoaded: settingsLoaded } = useSettingsStore();
   const { totalInputTokens, totalOutputTokens, totalCost, reset: resetUsage } = useTokenUsage();
@@ -146,6 +149,14 @@ function MainApp() {
             >
               <Camera className="h-4 w-4" />
             </Button>
+            <Button
+              variant={showPdf ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setShowPdf((v) => !v)}
+              title="PDF to flashcards"
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setShowHelp(true)} title="Help">
               <HelpCircle className="h-4 w-4" />
             </Button>
@@ -156,7 +167,9 @@ function MainApp() {
         </header>
         <NoteTypeHealth />
         <ErrorBoundary>
-          {showPhoto ? (
+          {showPdf ? (
+            <PdfPage onBack={() => setShowPdf(false)} />
+          ) : showPhoto ? (
             <PhotoCapture
               onBack={() => {
                 setShowPhoto(false);

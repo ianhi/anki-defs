@@ -12,6 +12,9 @@ import type {
   PhotoExtractResponse,
   VocabPair,
   NoteTypeIssue,
+  PdfScoutRequest,
+  PdfScoutResponse,
+  PdfExtractRequest,
 } from 'shared';
 
 const API_BASE = '/api';
@@ -292,4 +295,12 @@ export const photoApi = {
     fetchJson<{ imageBase64: string; mimeType: string; filename: string }>(
       `/photo/examples/${encodeURIComponent(filename)}`
     ),
+};
+
+// PDF API
+export const pdfApi = {
+  scout: (req: PdfScoutRequest) =>
+    fetchJson<PdfScoutResponse>('/pdf/scout', { method: 'POST', body: JSON.stringify(req) }),
+
+  extract: (req: PdfExtractRequest, signal?: AbortSignal) => streamSSE('/pdf/extract', req, signal),
 };

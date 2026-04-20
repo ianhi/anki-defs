@@ -9,11 +9,7 @@
 // the server scout prompt, not here.
 
 import * as pdfjs from 'pdfjs-dist';
-import type {
-  PDFDocumentProxy,
-  PDFPageProxy,
-  TextItem,
-} from 'pdfjs-dist/types/src/display/api';
+import type { PDFDocumentProxy, PDFPageProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
 import type { PdfFontProfile, PdfSection } from '../../../shared/types';
 
 // Point pdfjs at its bundled worker. Vite's `?url` import resolves to a URL
@@ -83,7 +79,11 @@ function itemsToLines(items: PositionedItem[]): Array<{
     return {
       y: l.y,
       items: sortedX,
-      text: sortedX.map((i) => i.str).join(' ').replace(/\s+/g, ' ').trim(),
+      text: sortedX
+        .map((i) => i.str)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
       medianFontSize: sizes[Math.floor(sizes.length / 2)] ?? 0,
     };
   });
@@ -161,7 +161,10 @@ function isHeading(
 }
 
 function pageBodyMedianFontSize(lines: PageData['lines']): number {
-  const sizes = lines.map((l) => l.medianFontSize).filter((s) => s > 0).sort((a, b) => a - b);
+  const sizes = lines
+    .map((l) => l.medianFontSize)
+    .filter((s) => s > 0)
+    .sort((a, b) => a - b);
   return sizes[Math.floor(sizes.length / 2)] ?? 10;
 }
 
