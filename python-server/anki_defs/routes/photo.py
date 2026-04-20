@@ -104,6 +104,7 @@ def register(app: Bottle) -> None:
     def extract() -> dict:
         upload = request.files.get("image")  # type: ignore[attr-defined]
         deck: str = request.forms.get("deck", "")  # type: ignore[attr-defined]
+        instructions: str = request.forms.get("instructions", "")  # type: ignore[attr-defined]
         if not upload:
             response.status = 400
             return {"error": "image file is required"}
@@ -116,7 +117,7 @@ def register(app: Bottle) -> None:
             _save_dev_image(image_base64, mime_type)
 
         try:
-            result = ai.get_vision_extraction(image_base64, mime_type)
+            result = ai.get_vision_extraction(image_base64, mime_type, instructions)
             usage = result.get("usage")
             if usage:
                 cost = compute_cost(usage)
@@ -213,6 +214,8 @@ def register(app: Bottle) -> None:
                         q.put(sse_event({"type": "usage", "data": retry_usage}))
                     parsed = ai.parse_json_response(retry.get("text", ""))
                     cards = card_extraction.validate_card_responses(parsed)
+
+                card_extraction.inject_textbook_definitions(cards, chunk)
 
                 # Check Anki for duplicates
                 anki_results: dict[str, Any | None] = {}

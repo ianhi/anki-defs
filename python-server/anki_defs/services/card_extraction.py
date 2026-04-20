@@ -73,6 +73,33 @@ def _note_to_card_content(note: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def inject_textbook_definitions(
+    cards: list[dict[str, Any]],
+    pairs: list[dict[str, str]],
+) -> None:
+    """Override LLM-generated definitions with user-verified textbook definitions.
+
+    The LLM may lemmatize words (e.g. "ascensores" → "ascensor"), so we try
+    exact match first, then fall back to checking if the card word is a
+    substring of a textbook word (or vice versa) for inflected forms.
+    """
+    exact = {p["word"]: p.get("definition", "") for p in pairs}
+    for card in cards:
+        word = card.get("word", "")
+        # Exact match (common case)
+        tb_def = exact.get(word, "")
+        # Fuzzy fallback: lemmatized word may differ from textbook form
+        if not tb_def:
+            word_lower = word.lower()
+            for p in pairs:
+                pw = p["word"].lower()
+                if word_lower in pw or pw in word_lower:
+                    tb_def = p.get("definition", "")
+                    break
+        if tb_def:
+            card["definition"] = tb_def
+
+
 def build_card_previews(
     cards: list[dict[str, Any]],
     target_deck: str,

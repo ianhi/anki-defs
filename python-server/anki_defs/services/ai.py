@@ -448,7 +448,7 @@ def parse_json_response(raw: str) -> Any:
 
 
 def get_vision_extraction(
-    image_base64: str, mime_type: str
+    image_base64: str, mime_type: str, instructions: str = ""
 ) -> dict[str, Any]:
     """Extract vocab pairs from an image using Gemini vision API.
 
@@ -457,6 +457,14 @@ def get_vision_extraction(
     template = _prompt_templates["photoExtract"]
     system_prompt = template["system"]
     user_message = template.get("user_template", "Extract vocabulary from this image.")
+    if instructions:
+        user_message += (
+            "\n\nIMPORTANT — follow these additional instructions"
+            f" strictly:\n{instructions}"
+        )
+        log.info("Photo extract with user instructions: %s", instructions)
+    else:
+        log.info("Photo extract with no user instructions")
 
     result = providers.gemini.get_vision_json_completion(
         system_prompt, user_message, image_base64, mime_type
