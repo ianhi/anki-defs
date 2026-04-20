@@ -97,21 +97,58 @@ export function PdfExtractStep({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const selected = scouted.filter((s) => selectedIds.has(s.id));
+
   return (
     <div className="p-4 space-y-3 max-w-2xl mx-auto">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">{status || (done ? 'Done.' : '')}</span>
+        {!done && status && (
+          <>
+            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-muted-foreground">{status}</span>
+          </>
+        )}
         <Button variant="ghost" size="sm" className="ml-auto" onClick={onRestart}>
           New PDF
         </Button>
       </div>
-      {errors.length > 0 && (
-        <div className="text-xs text-muted-foreground space-y-0.5">
-          {errors.map((e, i) => (
-            <p key={i}>Skipped: {e}</p>
-          ))}
+
+      {done && (
+        <div className="rounded-md border border-border p-4 space-y-2">
+          {previews.length > 0 ? (
+            <p className="text-sm font-medium">
+              {previews.length} card{previews.length === 1 ? '' : 's'} ready for review
+            </p>
+          ) : (
+            <p className="text-sm font-medium">No cards produced</p>
+          )}
+          {errors.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {errors.length} section{errors.length === 1 ? '' : 's'} skipped
+              {selected.length > 0 &&
+                ` (of ${selected.length} selected)`}
+            </p>
+          )}
+          {previews.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              The selected sections were grammar/prose or exercises without a cloze prompt.
+              Try selecting sections classified as Vocab or Passage.
+            </p>
+          )}
         </div>
       )}
+
+      {errors.length > 0 && (
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Skipped sections</summary>
+          <div className="mt-1 space-y-0.5 pl-3">
+            {errors.map((e, i) => (
+              <p key={i}>{e}</p>
+            ))}
+          </div>
+        </details>
+      )}
+
       <div className="space-y-2">
         {previews.map((p, i) => (
           <CardPreview key={`${p.word}-${i}`} preview={p} extraTags={p.tags} />
