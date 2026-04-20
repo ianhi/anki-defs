@@ -72,7 +72,12 @@ def register(app: Any, anki: AnkiBackend) -> None:
             language = ai.get_language_for_deck(target_deck)
 
             system_prompt, user_message = ai.build_pdf_scout_prompt(sections, language)
-            result = ai.get_json_completion(system_prompt, user_message)
+            # Scout output scales with section count (~100 tokens each).
+            # Default 4096 truncates at ~40 sections.
+            max_tokens = max(4096, len(sections) * 120)
+            result = ai.get_json_completion(
+                system_prompt, user_message, max_output_tokens=max_tokens
+            )
             raw = result.get("text", "")
             usage = result.get("usage")
             if usage:
