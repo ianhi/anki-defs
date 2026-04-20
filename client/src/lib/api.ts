@@ -143,11 +143,16 @@ export const ankiApi = {
   updateTemplates: (
     modelName: string,
     templates?: Record<string, { front: string; back: string }>,
-    css?: string,
+    css?: string
   ) =>
     fetchJson<{ modelName: string; version: number; updated: boolean }>('/anki/update-templates', {
       method: 'POST',
       body: JSON.stringify({ modelName, ...(templates && { templates }), ...(css && { css }) }),
+    }),
+  mergeTemplates: (current: string, proposed: string) =>
+    fetchJson<{ merged: string }>('/anki/merge-templates', {
+      method: 'POST',
+      body: JSON.stringify({ current, proposed }),
     }),
 };
 

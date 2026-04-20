@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Check, Loader2, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Button } from './ui/Button';
+import { ankiApi } from '@/lib/api';
 import { useNoteTypeHealth, useUpdateTemplates } from '@/hooks/useAnki';
 import type { NoteTypeIssue, StaleTemplate } from 'shared';
 
@@ -9,7 +10,7 @@ function formatVersionRange(current: number | null, latest: number): string {
   return `v${current} → v${latest}`;
 }
 
-/** Side-by-side current vs editable proposed template */
+/** Side-by-side current vs editable merged template */
 function TemplateEditor({
   label,
   current,
@@ -21,21 +22,54 @@ function TemplateEditor({
   proposed: string;
   onChange: (value: string) => void;
 }) {
+  const [merging, setMerging] = useState(false);
+  const hasUserChanges = current.trim() !== '' && current.trim() !== proposed.trim();
+
+  const handleAIMerge = async () => {
+    setMerging(true);
+    try {
+      const result = await ankiApi.mergeTemplates(current, proposed);
+      onChange(result.merged);
+    } catch {
+      // Silently fail — user can still edit manually
+    } finally {
+      setMerging(false);
+    }
+  };
+
   return (
     <div className="space-y-1">
-      <p className="text-xs font-medium text-foreground">{label}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-medium text-foreground">{label}</p>
+        {hasUserChanges && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-5 text-[10px] gap-1 text-primary"
+            disabled={merging}
+            onClick={handleAIMerge}
+          >
+            {merging ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Sparkles className="h-3 w-3" />
+            )}
+            AI Merge
+          </Button>
+        )}
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         <div>
           <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
             Current
           </p>
-          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border overflow-auto max-h-52 text-foreground/70">
+          <pre className="p-2 text-[11px] leading-relaxed whitespace-pre-wrap break-all bg-muted rounded border border-border overflow-auto max-h-52 text-foreground/80">
             {current || <span className="italic text-muted-foreground">(empty)</span>}
           </pre>
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground mb-0.5 uppercase tracking-wide">
-            Proposed (editable)
+            Merged result (editable)
           </p>
           <textarea
             className="w-full p-2 text-[11px] font-mono leading-relaxed bg-background rounded border border-primary/30 text-foreground overflow-auto max-h-52 min-h-32 resize-y focus:outline-none focus:ring-1 focus:ring-primary"
@@ -234,14 +268,42 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
   );
 }
 
+const DISMISSED_KEY = 'noteTypeHealth:dismissed';
+
+function getDismissedVersions(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function dismissVersions(issues: NoteTypeIssue[]) {
+  const dismissed = getDismissedVersions();
+  for (const issue of issues) {
+    dismissed[issue.modelName] = issue.latestVersion;
+  }
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify(dismissed));
+}
+
+function filterDismissed(issues: NoteTypeIssue[]): NoteTypeIssue[] {
+  const dismissed = getDismissedVersions();
+  return issues.filter((issue) => {
+    const ver = dismissed[issue.modelName];
+    // Show if: never dismissed, or new version available, or has missing fields
+    return ver == null || ver < issue.latestVersion || issue.missingFields.length > 0;
+  });
+}
+
 export function NoteTypeHealth() {
   const [showDetail, setShowDetail] = useState(false);
   const { data, isLoading } = useNoteTypeHealth();
   const prevCountRef = useRef(0);
 
-  const issues = data?.issues ?? [];
+  const allIssues = data?.issues ?? [];
+  const issues = filterDismissed(allIssues);
 
-  // Auto-show when issues first appear
+  // Auto-show when new issues first appear
   useEffect(() => {
     if (issues.length > 0 && prevCountRef.current === 0) {
       setShowDetail(true);
@@ -251,8 +313,13 @@ export function NoteTypeHealth() {
 
   if (isLoading || issues.length === 0) return null;
 
+  const handleClose = () => {
+    setShowDetail(false);
+    dismissVersions(issues);
+  };
+
   if (showDetail) {
-    return <HealthDetail issues={issues} onClose={() => setShowDetail(false)} />;
+    return <HealthDetail issues={issues} onClose={handleClose} />;
   }
 
   return (

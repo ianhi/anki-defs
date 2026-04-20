@@ -196,3 +196,43 @@ def register(app: Any, anki: AnkiBackend) -> None:
             log.error("Error updating templates: %s", e)
             response.status = 500
             return {"error": str(e)}
+
+    @app.post("/api/anki/merge-templates")
+    def merge_templates() -> dict:
+        """Use AI to merge user-customized templates with the latest version."""
+        body = request.json or {}
+        current = body.get("current", "")
+        proposed = body.get("proposed", "")
+        if not current or not proposed:
+            response.status = 400
+            return {"error": "current and proposed are required"}
+
+        try:
+            prompt = (
+                "Merge these two Anki card templates. Template A is the "
+                "user's current version with their customizations (e.g. "
+                "specific TTS voices, extra fields). Template B is the "
+                "latest official version with new features.\n\n"
+                "Produce a single merged template that:\n"
+                "1. Preserves ALL user customizations from Template A\n"
+                "2. Incorporates ALL new features from Template B\n"
+                "3. Keeps the version comment from Template B\n\n"
+                "Return ONLY the merged template text, nothing else."
+            )
+            user_msg = (
+                f"Template A (user's current):\n```\n{current}\n```\n\n"
+                f"Template B (latest official):\n```\n{proposed}\n```"
+            )
+            result = ai.get_text_completion(prompt, user_msg)
+            merged = result.get("text", "").strip()
+            # Strip markdown code fences if the model wraps the output
+            if merged.startswith("```") and merged.endswith("```"):
+                merged = merged[3:]
+                if merged.startswith("html\n"):
+                    merged = merged[5:]
+                merged = merged[:-3].strip()
+            return {"merged": merged}
+        except (RuntimeError, ValueError, OSError) as e:
+            log.error("Error merging templates: %s", e)
+            response.status = 500
+            return {"error": str(e)}
