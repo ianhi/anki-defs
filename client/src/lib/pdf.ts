@@ -173,6 +173,7 @@ function pageBodyMedianFontSize(lines: PageData['lines']): number {
 interface OutlineNode {
   title: string;
   pageIndex: number; // 0-based
+  yCoord: number | null; // y-coordinate on the page (pdfjs coords: 0=bottom)
   children: OutlineNode[];
 }
 
@@ -189,8 +190,10 @@ async function embeddedOutlineTree(doc: PDFDocumentProxy): Promise<OutlineNode[]
           typeof node.dest === 'string' ? await doc.getDestination(node.dest) : node.dest;
         if (dest && Array.isArray(dest) && dest[0]) {
           const pageIndex = await doc.getPageIndex(dest[0]);
+          // dest = [pageRef, {name:'XYZ'}, x, y, zoom] — y is index 3
+          const yCoord = typeof dest[3] === 'number' ? dest[3] : null;
           const children = node.items?.length ? await resolve(node.items) : [];
-          result.push({ title: node.title.trim(), pageIndex, children });
+          result.push({ title: node.title.trim(), pageIndex, yCoord, children });
         }
       } catch {
         // unresolvable dest — skip
@@ -201,7 +204,13 @@ async function embeddedOutlineTree(doc: PDFDocumentProxy): Promise<OutlineNode[]
   return resolve(outline);
 }
 
-type RawSection = { id: string; heading: string; pageStart: number; pageEnd: number };
+type RawSection = {
+  id: string;
+  heading: string;
+  pageStart: number;
+  pageEnd: number;
+  startY: number | null; // y-coord on first page (pdfjs: 0=bottom), null for heuristic sections
+};
 
 // Flatten a tree node and all descendants into sections. Returns the list and
 // the global counter so IDs are unique across the whole outline.
@@ -231,6 +240,7 @@ function flattenNode(
       heading: node.title,
       pageStart,
       pageEnd: Math.max(pageStart, nextSiblingPage - 1),
+      startY: node.yCoord,
     });
   } else {
     // Recurse into children
@@ -304,6 +314,7 @@ function sectionsAndChaptersFromHeadings(
       heading: s.heading,
       pageStart: s.pageIndex + 1,
       pageEnd: pageEnd + 1,
+      startY: null,
     };
   });
   const chapters: PdfChapter[] = sections.map((s) => ({
@@ -321,12 +332,19 @@ function sectionText(
   pageStart1: number,
   pageEnd1: number,
   drop: Set<string>,
-  options: { limitLines?: number } = {}
+  options: { limitLines?: number; startY?: number | null } = {},
 ): string {
   const out: string[] = [];
   for (let p = pageStart1 - 1; p <= pageEnd1 - 1 && p < pages.length; p++) {
     const page = pages[p]!;
     for (const line of page.lines) {
+      // On the first page, skip lines above the bookmark's y-coordinate.
+      // pdfjs y-coords: 0 = bottom, larger = higher on page.
+      // Lines are sorted top-to-bottom (descending y), so skip lines with
+      // y > startY (they're above the bookmark target).
+      if (p === pageStart1 - 1 && options.startY != null && line.y > options.startY) {
+        continue;
+      }
       const text = normalizeLine(line.text);
       if (!text) continue;
       if (drop.has(text)) continue;
@@ -355,6 +373,7 @@ export interface ExtractedOutline {
   chapters: PdfChapter[];
   pages: PageData[];
   dropLines: Set<string>;
+  sectionStartY: Map<string, number>; // section id → bookmark y-coord on first page
 }
 
 export async function extractOutline(loaded: LoadedPdf): Promise<ExtractedOutline> {
@@ -372,16 +391,26 @@ export async function extractOutline(loaded: LoadedPdf): Promise<ExtractedOutlin
     heading: r.heading,
     pageStart: r.pageStart,
     pageEnd: r.pageEnd,
-    bodySnippet: sectionText(pages, r.pageStart, r.pageEnd, drop, { limitLines: 10 }),
+    bodySnippet: sectionText(pages, r.pageStart, r.pageEnd, drop, {
+      limitLines: 10,
+      startY: r.startY,
+    }),
     fontProfile: fontProfileFor(pages, r.pageStart, r.pageEnd),
   }));
 
-  return { sections, chapters, pages, dropLines: drop };
+  const sectionStartY = new Map<string, number>();
+  for (const r of raw) {
+    if (r.startY != null) sectionStartY.set(r.id, r.startY);
+  }
+
+  return { sections, chapters, pages, dropLines: drop, sectionStartY };
 }
 
 // Full text for a section — used at extract time.
 export function getSectionText(outline: ExtractedOutline, sectionId: string): string {
   const section = outline.sections.find((s) => s.id === sectionId);
   if (!section) return '';
-  return sectionText(outline.pages, section.pageStart, section.pageEnd, outline.dropLines);
+  return sectionText(outline.pages, section.pageStart, section.pageEnd, outline.dropLines, {
+    startY: outline.sectionStartY.get(sectionId) ?? null,
+  });
 }
