@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AlertTriangle, Check, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
+import { MODEL_PRICING } from 'shared';
 import { Button } from './ui/Button';
 import { ankiApi } from '@/lib/api';
 import { useNoteTypeHealth, useUpdateTemplates } from '@/hooks/useAnki';
+import { useSettingsStore } from '@/hooks/useSettings';
 import type { NoteTypeIssue, StaleTemplate } from 'shared';
 
 function formatVersionRange(current: number | null, latest: number): string {
@@ -60,6 +62,18 @@ function highlightWithDiff(
   });
 }
 
+/** Rough token estimate: ~4 chars per token for template text */
+function estimateMergeCost(current: string, proposed: string, model: string): string {
+  const pricing = MODEL_PRICING[model];
+  if (!pricing) return '';
+  if (pricing.input === 0 && pricing.output === 0) return 'Free';
+  const inputTokens = Math.ceil((current.length + proposed.length + 300) / 4); // +300 for prompt
+  const outputTokens = Math.ceil(Math.max(current.length, proposed.length) / 4);
+  const cost = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  if (cost < 0.001) return '<$0.001';
+  return `~$${cost.toFixed(3)}`;
+}
+
 /** Side-by-side current vs editable merged template */
 function TemplateEditor({
   label,
@@ -73,7 +87,15 @@ function TemplateEditor({
   onChange: (value: string) => void;
 }) {
   const [merging, setMerging] = useState(false);
+  const { settings } = useSettingsStore();
   const hasUserChanges = current.trim() !== '' && current.trim() !== proposed.trim();
+  const costEstimate = useMemo(
+    () =>
+      hasUserChanges
+        ? estimateMergeCost(current, proposed, settings.geminiModel || 'gemini-2.5-flash')
+        : '',
+    [hasUserChanges, current, proposed, settings.geminiModel]
+  );
 
   const handleAIMerge = async () => {
     setMerging(true);
@@ -125,6 +147,9 @@ function TemplateEditor({
                   <Sparkles className="h-3 w-3" />
                 )}
                 AI Merge
+                {costEstimate && (
+                  <span className="text-muted-foreground font-normal">({costEstimate})</span>
+                )}
               </Button>
             )}
           </div>
@@ -193,13 +218,19 @@ function HealthDetail({ issues, onClose }: { issues: NoteTypeIssue[]; onClose: (
   const allUpdated = issues.every((i) => updated.has(i.modelName));
 
   const handleUpdate = (modelName: string) => {
+    const issue = issues.find((i) => i.modelName === modelName);
     update.mutate(
       {
         modelName,
         templates: Object.keys(edits).length > 0 ? edits : undefined,
         css: representative.cssOutdated ? cssEdit : undefined,
       },
-      { onSuccess: () => setUpdated((prev) => new Set(prev).add(modelName)) }
+      {
+        onSuccess: () => {
+          setUpdated((prev) => new Set(prev).add(modelName));
+          if (issue) dismissVersions([issue]);
+        },
+      }
     );
   };
 
