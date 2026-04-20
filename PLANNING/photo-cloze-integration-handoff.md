@@ -332,12 +332,35 @@ PLANNING/INDEX.md                            (status update)
 
 ## Acceptance checklist for the integration PR
 
-- [ ] UI: mode toggle + transcribe step + review step
-- [ ] UI: low-confidence visual flag (border, icon, or column)
-- [ ] UI: per-item discard control
-- [ ] UI: editable hint + answer + translation per blank
-- [ ] `createNote` builds `{{cN::answer::hint}}` correctly (parens stripped — see snippet above)
+- [x] UI: mode toggle + transcribe step + review step
+- [x] UI: low-confidence visual flag (border, icon, or column)
+- [x] UI: per-item discard control
+- [x] UI: editable hint + answer + translation per blank
+- [x] `createNote` builds `{{cN::answer::hint}}` correctly (parens stripped — see snippet above)
 - [ ] Duplicate-check behavior for cloze cards (the `Text` field is the natural key; confirm behavior in `anki.py`)
 - [ ] Addon `tests/test_shared_data.py` still passes
-- [ ] `npm run check` + `npm run check:py` green
-- [ ] Doc updates: `client/DOCS/file-map.md` for new components; `shared/DOCS/types-reference.md` for new types; `DOCS/api-contract.md` for the two new endpoints; `PLANNING/INDEX.md` status bump.
+- [x] `npm run check` + `npm run check:py` green
+- [x] Doc updates: `client/DOCS/file-map.md` for new components; `shared/DOCS/types-reference.md` for new types; `DOCS/api-contract.md` for the two new endpoints; `PLANNING/INDEX.md` status bump.
+- [ ] **E2E test with real exercise photo** (never done — see agent prompt below)
+
+## E2E Test Agent Prompt
+
+```
+Test the photo-to-cloze flow end-to-end. Test images are in
+~/dev/cloze-test-pics/. Start the dev servers (npm run dev), open the
+UI, toggle to "Fill-in-blank" mode, upload an exercise photo, verify
+the transcribe → edit → extract → review → add-to-Anki flow works.
+
+Read PLANNING/photo-cloze-integration-handoff.md for the full context,
+acceptance checklist, and test expectations (50/53 exact matches on
+answer key from the backend tests).
+
+The UI was built but never tested with a real image as of 2026-04-20.
+Components: ClozeTranscribeStep.tsx, ClozeReviewStep.tsx, mode toggle
+in PhotoCapture.tsx.
+
+Remaining unchecked items from the acceptance checklist:
+- Duplicate-check behavior for cloze cards
+- Addon tests still pass
+- Real e2e test with exercise photos
+```

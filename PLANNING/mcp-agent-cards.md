@@ -116,6 +116,39 @@ handles failures (one section failing doesn't block others).
 - Should the agent have direct Anki access or always go through our API?
 - Can we reuse the existing `pdf.ts` parsing in a Node MCP server?
 
+## Agent Prompt
+
+```
+You're building an MCP server that exposes anki-defs as tools for AI
+agents to generate flashcards autonomously.
+
+Start here: read PLANNING/mcp-agent-cards.md for the design, then
+DOCS/api-contract.md for the existing REST API you're wrapping.
+
+The server is a Node.js MCP server (TypeScript) that:
+1. Wraps the existing REST API at localhost:3001 (pdf/extract,
+   anki/notes, settings, etc.)
+2. Adds pdf_parse — runs pdfjs in Node to parse a PDF file path into
+   chapters + sections with snippets. Reuse the logic from
+   client/src/lib/pdf.ts (extractOutline, getSectionText) adapted for
+   Node (no Vite worker URL, use the legacy build).
+3. Adds pdf_section_text — returns full text for a section by ID from
+   a previously parsed PDF.
+
+Key design decisions:
+- No scout tool. The agent reads snippets and decides what to extract.
+- The PDF parse result needs to be held in memory between calls (parse
+  once, extract many). Use a session/cache keyed by file path.
+- Keep it minimal — 5 tools max. The agent is smart; tools are simple.
+
+Refer to client/src/lib/pdf.ts for parsing logic (extractOutline,
+loadPdf, getSectionText, y-coordinate filtering). Port to Node — main
+difference is worker setup and file loading (File API → fs.readFileSync).
+
+Put the MCP server in a new top-level directory mcp-server/. Use the
+Anthropic MCP SDK.
+```
+
 ## Status
 
 Idea stage. REST API and UI components exist. MCP wrapper and agent
