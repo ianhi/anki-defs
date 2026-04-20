@@ -342,7 +342,9 @@ function sectionText(
       // pdfjs y-coords: 0 = bottom, larger = higher on page.
       // Lines are sorted top-to-bottom (descending y), so skip lines with
       // y > startY (they're above the bookmark target).
-      if (p === pageStart1 - 1 && options.startY != null && line.y > options.startY) {
+      // Small tolerance (5pt) because bookmark anchors may sit slightly
+      // above the heading text they point to.
+      if (p === pageStart1 - 1 && options.startY != null && line.y > options.startY + 5) {
         continue;
       }
       const text = normalizeLine(line.text);
