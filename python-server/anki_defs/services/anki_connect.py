@@ -7,6 +7,7 @@ auto-creates per-language note types on demand via `ensure_language_models`.
 
 from __future__ import annotations
 
+import base64
 import logging
 import time
 from typing import Any
@@ -14,7 +15,8 @@ from typing import Any
 import httpx
 
 from . import ai, note_types
-from .note_types import CardType, build_card_fields, render_note_type
+from .note_types import CardType, build_card_fields, embed_audio_fields, render_note_type
+from .providers import tts
 from .session import add_word_to_db_cache, load_word_cache, replace_deck_cache
 from .settings import get_settings
 
@@ -449,6 +451,27 @@ def get_note(note_id: int) -> dict[str, Any] | None:
     }
 
 
+def _store_media_file(filename: str, data: bytes) -> None:
+    """Store an audio file in Anki's media folder via AnkiConnect."""
+    _invoke("storeMediaFile", filename=filename, data=base64.b64encode(data).decode())
+
+
+def _make_audio_generator(locale: str, api_key: str):
+    """Return a closure that generates+stores TTS audio for a given text."""
+    def generate(text: str) -> str | None:
+        if not text.strip():
+            return None
+        try:
+            audio_bytes = tts.synthesize(text, locale, api_key)
+            filename = tts.audio_filename(text, locale)
+            _store_media_file(filename, audio_bytes)
+            return f"[sound:{filename}]"
+        except Exception:
+            log.warning("TTS failed for %r", text[:50], exc_info=True)
+            return None
+    return generate
+
+
 def create_card(
     deck: str,
     card_type: CardType,
@@ -492,6 +515,19 @@ def create_card(
         translation=translation,
         vocab_templates=vocab_templates,
     )
+
+    # --- TTS audio injection (best-effort) ---
+    if tts.is_enabled(settings):
+        tts_locale = (
+            tts_overrides.get(language["code"])
+            or language.get("ttsLocale")
+            or language["code"]
+        )
+        generate_fn = _make_audio_generator(tts_locale, settings["geminiApiKey"])
+        try:
+            embed_audio_fields(fields, card_type, word, example, generate_fn)
+        except Exception:
+            log.warning("TTS audio embedding failed", exc_info=True)
 
     log.info("Creating %s card with model: %s", card_type, model_name)
     log.debug("Fields: %s", fields)

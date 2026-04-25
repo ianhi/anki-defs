@@ -113,6 +113,10 @@ export const settingsApi = {
     }),
 };
 
+export const ttsApi = {
+  check: () => fetchJson<{ available: boolean; error?: string; voiceCount?: number }>('/tts/check'),
+};
+
 // Anki API
 export const ankiApi = {
   getDecks: () => fetchJson<{ decks: string[] }>('/anki/decks').then((r) => r.decks),

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { settingsApi } from '@/lib/api';
+import { settingsApi, ttsApi } from '@/lib/api';
 import { useSettingsStore } from '@/hooks/useSettings';
 import { useDecks, useLanguages, useNoteTypeHealth } from '@/hooks/useAnki';
 import { Input } from './ui/Input';
@@ -15,7 +15,7 @@ import type {
   VocabCardTemplates,
 } from 'shared';
 import { GEMINI_MODELS, OPENROUTER_MODELS, MODEL_PRICING } from 'shared';
-import { Loader2, Volume2, X, Plus, Wrench } from 'lucide-react';
+import { Loader2, Volume2, X, Plus, Wrench, CheckCircle, AlertTriangle } from 'lucide-react';
 import { KeyringWarning } from './KeyringWarning';
 import { LanguageDropdown } from './LanguageDropdown';
 import { clearHealthDismissals } from './NoteTypeHealth';
@@ -406,6 +406,112 @@ function LanguageSection({
         </div>
       )}
     </>
+  );
+}
+
+type TtsCheckState = { status: 'idle' } | { status: 'checking' } | { status: 'ok' } | { status: 'error'; error: string };
+
+function TtsSection({
+  ttsEnabled,
+  geminiKeySet,
+  onChange,
+}: {
+  ttsEnabled: boolean;
+  geminiKeySet: boolean;
+  onChange: (enabled: boolean) => void;
+}) {
+  const [check, setCheck] = useState<TtsCheckState>({ status: 'idle' });
+
+  const checkTts = async () => {
+    setCheck({ status: 'checking' });
+    try {
+      const result = await ttsApi.check();
+      setCheck(result.available ? { status: 'ok' } : { status: 'error', error: result.error ?? 'Cloud TTS not available' });
+    } catch {
+      setCheck({ status: 'error', error: 'Failed to reach server' });
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Embedded TTS audio</Label>
+      <div className="flex items-center justify-between">
+        <span className="text-sm">Generate audio when creating cards</span>
+        <input
+          type="checkbox"
+          checked={ttsEnabled}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            const next = e.target.checked;
+            onChange(next);
+            if (next && check.status === 'idle') void checkTts();
+          }}
+          className="h-4 w-4 rounded border-input"
+        />
+      </div>
+
+      {ttsEnabled && !geminiKeySet && (
+        <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+          Configure a Gemini API key first (AI Provider tab).
+        </p>
+      )}
+
+      {ttsEnabled && geminiKeySet && check.status !== 'idle' && (
+        <div className="flex items-center gap-2">
+          {check.status === 'checking' && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3.5 w-3.5 animate-spin flex-shrink-0" />
+              Checking Cloud TTS access...
+            </p>
+          )}
+          {check.status === 'ok' && (
+            <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+              <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
+              Cloud TTS available
+            </p>
+          )}
+          {check.status === 'error' && (
+            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+              <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
+              {check.error}
+              {check.error.includes('403') && (
+                <>
+                  {' — '}
+                  <a
+                    href="https://console.cloud.google.com/apis/library/texttospeech.googleapis.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Enable it in Google Cloud Console
+                  </a>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      {ttsEnabled && geminiKeySet && check.status === 'idle' && (
+        <Button variant="outline" size="sm" onClick={checkTts}>
+          Test TTS access
+        </Button>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Uses Google Cloud Text-to-Speech with your Gemini API key (same GCP project). Generates MP3
+        audio (~12 KB per word). Requires the{' '}
+        <a
+          href="https://console.cloud.google.com/apis/library/texttospeech.googleapis.com"
+          target="_blank"
+          rel="noreferrer"
+          className="underline"
+        >
+          Cloud Text-to-Speech API
+        </a>{' '}
+        to be enabled.
+      </p>
+    </div>
   );
 }
 
@@ -834,6 +940,13 @@ export function Settings() {
                 before adding. Note types are auto-created in Anki on first use.
               </p>
             </div>
+
+            {/* Embedded TTS Audio */}
+            <TtsSection
+              ttsEnabled={localSettings.ttsEnabled}
+              geminiKeySet={!!localSettings.geminiApiKey}
+              onChange={(enabled) => handleChange('ttsEnabled', enabled)}
+            />
 
             {/* Note Type Health */}
             <NoteTypeRepairButton />

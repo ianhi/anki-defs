@@ -8,6 +8,7 @@ from typing import Any
 from bottle import request, response
 
 from .. import ai
+from ..providers import tts
 from ..settings import (
     get_settings,
     has_insecure_consent,
@@ -81,3 +82,12 @@ def register(app: Any) -> None:
             ai.reset_clients()
 
         return _response_settings(updated)
+
+    @app.get("/api/tts/check")
+    def check_tts() -> dict:
+        """Validate that Cloud TTS is enabled for the configured Gemini API key."""
+        settings = get_settings()
+        api_key = settings.get("geminiApiKey", "")
+        if not api_key:
+            return {"available": False, "error": "No Gemini API key configured"}
+        return tts.check_available(api_key)

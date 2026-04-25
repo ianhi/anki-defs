@@ -23,5 +23,6 @@
   },
   "noteTypePrefix": "anki-defs",
   "ankiTtsLocaleByLanguage": {},
+  "ttsEnabled": false,
   "onboardingComplete": false
 }

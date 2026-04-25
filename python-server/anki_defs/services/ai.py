@@ -469,6 +469,7 @@ def reset_clients() -> None:
     providers.claude.reset_client()
     providers.gemini.reset_client()
     providers.openrouter.reset_client()
+    providers.tts.reset_client()
 
 
 def parse_json_response(raw: str) -> Any:

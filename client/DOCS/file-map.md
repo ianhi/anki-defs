@@ -13,7 +13,7 @@
 - `MessageList.tsx` -- Message rendering (no avatar icons, full-width on mobile)
 - `MessageInput.tsx` -- Text input with word focus UI (Focus bar, Ctrl+B, auto-resize, draft persistence)
 - `CardPreview.tsx` -- Flashcard preview with editing, TTS, card-type checkboxes (vocab/cloze/mcCloze) plus per-card vocab template overrides (recognition/production/listening), add/skip/queue. Sends the new domain `CreateNoteRequest` payload (deck, cardType, word, definition, etc.)
-- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences, Debug). The Anki tab has per-deck languages (default deck, language per deck with subdeck inheritance), default card types, and vocab card templates. The Debug tab provides controls to reset onboarding / clear chat history / forget deck languages for re-testing the new-user flow.
+- `Settings.tsx` -- Tabbed settings modal (AI Provider, Anki, Preferences, Debug). The Anki tab has per-deck languages (default deck, language per deck with subdeck inheritance), default card types, vocab card templates, and embedded TTS audio toggle (with Cloud TTS availability check). The Debug tab provides controls to reset onboarding / clear chat history / forget deck languages for re-testing the new-user flow.
 - `HeaderDeckSelector.tsx` -- Unified deck selector (short name on mobile, full-screen picker). Refetches deck list on open; prompts for language via `DeckLanguagePrompt` when user picks a deck with no configured language (walks `::` ancestors first).
 - `DeckLanguagePrompt.tsx` -- Small modal asking which language a newly-selected deck is in; uses the shared `LanguageDropdown` and writes via `useSettingsStore.setDeckLanguage`.
 - `LanguageDropdown.tsx` -- Shared Select of languages (server-provided + custom) with an optional `Custom...` entry. Used by Settings, OnboardingModal, and DeckLanguagePrompt.
@@ -41,7 +41,7 @@
 
 ## Lib (`src/lib/`)
 
-- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation + `languageApi`). No `getModels`/`getModelFields` — the client no longer picks note types.
+- `api.ts` -- API client (REST fetch wrappers + SSE stream + distractor generation + `languageApi` + `ttsApi`). No `getModels`/`getModelFields` — the client no longer picks note types.
 - `focus.ts` -- Word focus/highlight logic (parse tokens, toggle `**` markers, `isEnglishToTarget` detection)
 - `utils.ts` -- Utilities: `sentenceToCloze`, `markdownBoldToHtml`, `cn`, `generateId`. Field-building helpers (`buildNoteFields`, `buildClozeFields`, `buildMCClozeFields`) were removed — field mapping is now server-side.
 - `logger.ts` -- Structured console logging with levels (`createLogger`)

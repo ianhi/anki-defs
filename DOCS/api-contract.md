@@ -87,6 +87,15 @@ the same word with different definitions.
 GET response includes `_keyringAvailable` (bool) and `_insecureStorageConsent` (bool).
 PUT with secrets when keyring unavailable returns 409 until user consents.
 
+### TTS Routes (`/api/tts`)
+
+| Method | Endpoint | Description                                              |
+| ------ | -------- | -------------------------------------------------------- |
+| GET    | `/check` | Validate Cloud TTS is enabled for the Gemini API key     |
+
+Returns `{ available: true, voiceCount: N }` or `{ available: false, error: "..." }`.
+Uses the `geminiApiKey` setting (same GCP project). No audio generated, no cost.
+
 ### Session Routes (`/api/session`)
 
 | Method | Endpoint               | Description                                    |

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from typing import Any, Literal
 
 from ..config import DATA_DIR
@@ -206,6 +207,38 @@ def build_card_fields(
         }
 
     raise ValueError(f"Unknown card type: {card_type}")
+
+
+def embed_audio_fields(
+    fields: dict[str, str],
+    card_type: CardType,
+    word: str,
+    example: str,
+    generate_fn: Callable[[str], str | None],
+) -> None:
+    """Populate audio fields in-place using *generate_fn*.
+
+    ``generate_fn(text)`` should return ``"[sound:filename.mp3]"`` on success
+    or ``None`` on failure.  This function is backend-agnostic — the caller
+    provides a *generate_fn* that handles TTS synthesis and media storage.
+    """
+    if card_type == "vocab":
+        ref = generate_fn(word)
+        if ref:
+            fields["WordAudio"] = ref
+        ref = generate_fn(example)
+        if ref:
+            fields["ExampleAudio"] = ref
+    elif card_type in ("cloze", "mcCloze"):
+        sentence = fields.get("FullSentence", "")
+        ref = generate_fn(sentence)
+        if ref:
+            fields["FullSentenceAudio"] = ref
+        if card_type == "mcCloze":
+            answer = fields.get("Answer", "")
+            ref = generate_fn(answer)
+            if ref:
+                fields["AnswerAudio"] = ref
 
 
 def reset_cache() -> None:

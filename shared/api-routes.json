@@ -57,6 +57,11 @@
       "method": "POST",
       "path": "/api/session/clear",
       "note": "Session management not yet implemented on Android"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tts/check",
+      "note": "Cloud TTS availability check — not applicable on Android"
     }
   ]
 }

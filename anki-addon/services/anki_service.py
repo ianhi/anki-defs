@@ -423,6 +423,27 @@ def update_model_templates(model_name, note_type_prefix, template_overrides=None
     }
 
 
+def _make_audio_generator(locale, api_key):
+    """Return a closure that generates+stores TTS audio for a given text.
+
+    Must be called from the main thread (inside ``@main_thread`` functions).
+    """
+    from anki_defs._services.providers import tts
+
+    def generate(text):
+        if not text or not text.strip():
+            return None
+        try:
+            audio_bytes = tts.synthesize(text, locale, api_key)
+            filename = tts.audio_filename(text, locale)
+            _col().media.write_data(filename, audio_bytes)
+            return "[sound:{}]".format(filename)
+        except Exception:
+            log.warning("TTS failed for %r", text[:50], exc_info=True)
+            return None
+    return generate
+
+
 @main_thread
 def create_card(
     deck,
@@ -463,6 +484,23 @@ def create_card(
         translation=translation,
         vocab_templates=vocab_templates,
     )
+
+    # --- TTS audio injection (best-effort) ---
+    from anki_defs._services.providers import tts as _tts
+    from anki_defs._services.note_types import embed_audio_fields as _embed_audio
+
+    if _tts.is_enabled(settings):
+        tts_locale = (
+            tts_overrides.get(language["code"])
+            or language.get("ttsLocale")
+            or language["code"]
+        )
+        generate_fn = _make_audio_generator(tts_locale, settings["geminiApiKey"])
+        try:
+            _embed_audio(fields, card_type, word, example, generate_fn)
+        except Exception:
+            log.warning("TTS audio embedding failed", exc_info=True)
+
     note_id = create_note(deck, model_name, fields, tags)
     return note_id, model_name
 

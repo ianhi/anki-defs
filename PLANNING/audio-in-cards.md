@@ -1,84 +1,77 @@
 # Embedded Audio in Anki Cards
 
-## Problem
+## Status
 
-The app has browser TTS for pronunciation, but Anki cards themselves have no audio.
-Users reviewing cards on devices without good TTS (older Android, desktop without
-voices installed, AnkiWeb) can't hear pronunciation. Embedding audio at card creation
-time solves this — the audio travels with the card.
+Implemented (2026-04-20). Google Cloud TTS generates MP3 audio during card creation
+and stores it in Anki's media folder via AnkiConnect (python-server) or col.media
+(addon). Audio is opt-in via `ttsEnabled` setting.
 
-## Options
+## Implementation
 
-### Option A: Google Cloud TTS API
+### Provider: Google Cloud Text-to-Speech
 
-- High quality, supports bn-IN and bn-BD
-- Cost: ~$4 per 1M characters ($0.000004/char). A typical word is ~5 chars = ~$0.00002
-  per word. 1,000 words = ~$0.02. Very cheap.
-- Requires API key (could reuse Gemini key if on same GCP project)
-- Returns MP3/OGG/WAV
-- Pros: best quality, consistent across all devices
-- Cons: requires network, adds API dependency, small cost
+- Reuses the Gemini API key (same GCP project — user enables Cloud TTS API)
+- REST endpoint: `POST texttospeech.googleapis.com/v1/text:synthesize?key=KEY`
+- Output: MP3, 24 kHz sample rate, mono (~12 KB per word, ~40 KB per sentence)
 
-### Option B: Browser TTS capture via MediaRecorder
+### Format decision: MP3 only
 
-- Use the existing SpeechSynthesis API + MediaRecorder to capture the audio
-- No API cost, works offline
-- Pros: free, uses the voice the user already selected
-- Cons: quality depends on device voices, requires browser support for
-  MediaRecorder + SpeechSynthesis combo (may not work on all browsers),
-  recording is real-time (must wait for speech to finish)
+OGG Opus would be smaller but is **broken on mobile**:
+- AnkiDroid: Opus not supported (GitHub #3673, #9639)
+- AnkiMobile iOS: OGG not supported at all (iOS only supports Opus in .caf container)
+- MP3 is the only format universally supported across Anki Desktop, AnkiWeb,
+  AnkiDroid, and AnkiMobile
 
-### Option C: Gemini TTS (if available)
+### Architecture
 
-- Gemini API may support TTS in future versions
-- Could bundle with the existing card generation call
-- Not currently available for standalone TTS
+```
+create_card()
+  → build_card_fields()              # existing, stays pure
+  → _embed_audio(fields, ...)        # best-effort TTS + store
+      → tts.synthesize(text, locale)  # Google Cloud TTS → MP3 bytes
+      → store_media(fname, bytes)     # AnkiConnect or col.media
+      → fields["WordAudio"] = "[sound:fname.mp3]"
+  → addNote / col.add_note()         # existing
+```
 
-## Recommended: Option A (Google Cloud TTS)
+TTS failure logs a warning but never blocks card creation.
 
-Best quality, negligible cost, and the user likely already has a GCP account
-for the Gemini API key. Can be made optional — only generate audio if a TTS
-API key is configured.
+### Files
 
-## Implementation sketch
+- `python-server/anki_defs/services/providers/tts.py` — Cloud TTS client (shared)
+- `python-server/anki_defs/services/anki_connect.py` — `_store_media_file`, `_embed_audio`
+- `anki-addon/services/anki_service.py` — `_generate_audio`, `_embed_audio`
+- `python-server/anki_defs/services/routes/settings.py` — `GET /api/tts/check`
+- `client/src/components/Settings.tsx` — TtsSection in Anki tab
+- `client/src/lib/api.ts` — `ttsApi.check()`
 
-### Backend
+### Audio fields populated
 
-- New endpoint: `POST /api/tts` with `{ text, lang }` body
-- Calls Google Cloud TTS API (or configurable provider)
-- Returns audio as base64-encoded MP3
-- Cache: store generated audio by text hash to avoid re-generating
+| Card type | Fields populated |
+|-----------|-----------------|
+| vocab     | `WordAudio`, `ExampleAudio` |
+| cloze     | `FullSentenceAudio` |
+| mcCloze   | `FullSentenceAudio`, `AnswerAudio` |
 
-### Card creation
-
-- When creating a note, if TTS is enabled:
-  1. Generate audio for the word
-  2. Optionally generate audio for the example sentence
-  3. Upload audio to Anki via AnkiConnect `storeMediaFile`
-  4. Set the audio field in the note to `[sound:filename.mp3]`
+Distractor audio for mcCloze skipped for now (diminishing returns).
 
 ### Settings
 
-- TTS provider: None / Google Cloud / Browser capture
-- TTS API key (if Google Cloud)
-- Generate audio for: Word only / Word + sentence / Sentence only
-- Audio field mapping: which Anki field gets the `[sound:...]` reference
+- `ttsEnabled: boolean` — opt-in toggle (default: false)
+- No separate TTS API key — reuses `geminiApiKey`
+- `GET /api/tts/check` validates Cloud TTS access via `voices.list`
 
-### Anki note type
+### Dedup
 
-- User's note type needs an audio field (or we add one)
-- The field mapping in Settings > Anki maps our "Audio" field to their field name
-- AnkiConnect `storeMediaFile` stores the MP3 in Anki's media folder
+Filenames are deterministic: `anki-defs-{md5(text|locale)}.mp3`. Same text +
+locale always produces the same filename, so re-adding a card doesn't create
+duplicate media files.
 
-## Complexity estimate
+### Size estimates
 
-- Backend: ~100 lines (TTS endpoint + Google Cloud client)
-- Frontend: ~50 lines (settings UI + pass audio flag to card creation)
-- Field mapping: reuse existing pattern
-- Testing: manual (generate card, verify audio plays in Anki)
-
-## Dependencies
-
-- Google Cloud TTS API access (or alternative provider)
-- AnkiConnect `storeMediaFile` action
-- Note type with an audio field
+| Content | Duration | Size |
+|---------|----------|------|
+| Single word | ~2s | ~8 KB |
+| Example sentence | ~5s | ~20 KB |
+| Word + sentence | ~7s | ~28 KB |
+| 50 cards/day (word+sentence) | — | ~1.4 MB/day |

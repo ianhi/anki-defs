@@ -4,9 +4,7 @@
 
 ### Ready now (no blockers)
 
-1. **Embedded audio in cards (Phase 2)** — Audio fields + fallback templates are
-   wired. Next: wire up Google Cloud TTS endpoint to actually populate them.
-   Plan exists at [audio-in-cards.md](audio-in-cards.md).
+(No immediate blockers — pick from below.)
 
 ### Needs design/discussion first
 
@@ -58,7 +56,8 @@
 ## Completed plans
 
 [addon-hardening.md](addon-hardening.md) ·
-[settings-unification.md](settings-unification.md)
+[settings-unification.md](settings-unification.md) ·
+[audio-in-cards.md](audio-in-cards.md)
 
 ## Reference docs
 
