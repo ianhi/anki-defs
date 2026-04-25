@@ -37,10 +37,13 @@ export function MessageInput({
     },
     [onDraftChange]
   );
-  const setValue = (v: string) => {
-    setValueRaw(v);
-    debouncedDraftChange(v);
-  };
+  const setValue = useCallback(
+    (v: string) => {
+      setValueRaw(v);
+      debouncedDraftChange(v);
+    },
+    [debouncedDraftChange]
+  );
   const [cursorPos, setCursorPos] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { settings, resolveDeckLanguage } = useSettingsStore();
@@ -80,7 +83,7 @@ export function MessageInput({
     };
     window.addEventListener('setInput', handler);
     return () => window.removeEventListener('setInput', handler);
-  }, []);
+  }, [setValue]);
 
   const handleSubmit = () => {
     const trimmed = value.trim();

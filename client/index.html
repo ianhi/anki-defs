@@ -16,7 +16,8 @@
           if (raw) theme = JSON.parse(raw).state && JSON.parse(raw).state.theme;
         } catch (e) {}
         var dark =
-          theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+          theme === 'dark' ||
+          (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) document.documentElement.classList.add('dark');
         document.documentElement.style.backgroundColor = dark ? '#14181a' : '#fafaf7';
       })();

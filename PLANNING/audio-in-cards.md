@@ -17,6 +17,7 @@ and stores it in Anki's media folder via AnkiConnect (python-server) or col.medi
 ### Format decision: MP3 only
 
 OGG Opus would be smaller but is **broken on mobile**:
+
 - AnkiDroid: Opus not supported (GitHub #3673, #9639)
 - AnkiMobile iOS: OGG not supported at all (iOS only supports Opus in .caf container)
 - MP3 is the only format universally supported across Anki Desktop, AnkiWeb,
@@ -47,10 +48,10 @@ TTS failure logs a warning but never blocks card creation.
 
 ### Audio fields populated
 
-| Card type | Fields populated |
-|-----------|-----------------|
-| vocab     | `WordAudio`, `ExampleAudio` |
-| cloze     | `FullSentenceAudio` |
+| Card type | Fields populated                   |
+| --------- | ---------------------------------- |
+| vocab     | `WordAudio`, `ExampleAudio`        |
+| cloze     | `FullSentenceAudio`                |
 | mcCloze   | `FullSentenceAudio`, `AnswerAudio` |
 
 Distractor audio for mcCloze skipped for now (diminishing returns).
@@ -69,9 +70,9 @@ duplicate media files.
 
 ### Size estimates
 
-| Content | Duration | Size |
-|---------|----------|------|
-| Single word | ~2s | ~8 KB |
-| Example sentence | ~5s | ~20 KB |
-| Word + sentence | ~7s | ~28 KB |
-| 50 cards/day (word+sentence) | — | ~1.4 MB/day |
+| Content                      | Duration | Size        |
+| ---------------------------- | -------- | ----------- |
+| Single word                  | ~2s      | ~8 KB       |
+| Example sentence             | ~5s      | ~20 KB      |
+| Word + sentence              | ~7s      | ~28 KB      |
+| 50 cards/day (word+sentence) | —        | ~1.4 MB/day |

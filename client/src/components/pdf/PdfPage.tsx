@@ -25,7 +25,7 @@ export function PdfPage({ onBack }: { onBack: () => void }) {
     const ids = new Set(
       outline.chapters
         .filter((ch) => selectedChapterIds.includes(ch.id))
-        .flatMap((ch) => ch.sectionIds),
+        .flatMap((ch) => ch.sectionIds)
     );
     return outline.sections.filter((s) => ids.has(s.id));
   }, [outline, selectedChapterIds]);

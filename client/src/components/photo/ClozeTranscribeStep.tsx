@@ -40,7 +40,7 @@ export function ClozeTranscribeStep({ imageUrl, imageBlob, onExtracted }: Props)
     try {
       const result: PhotoClozeExtractResponse = await photoApi.clozeExtract(
         transcription,
-        settings.defaultDeck,
+        settings.defaultDeck
       );
       if (result.usage) {
         setUsage((prev) =>
@@ -50,7 +50,7 @@ export function ClozeTranscribeStep({ imageUrl, imageBlob, onExtracted }: Props)
                 inputTokens: prev.inputTokens + result.usage!.inputTokens,
                 outputTokens: prev.outputTokens + result.usage!.outputTokens,
               }
-            : result.usage!,
+            : result.usage!
         );
       }
       onExtracted(result.items, result.unsupported ?? []);
@@ -95,7 +95,8 @@ export function ClozeTranscribeStep({ imageUrl, imageBlob, onExtracted }: Props)
 
       {usage && (
         <p className="text-xs text-muted-foreground">
-          {usage.inputTokens + usage.outputTokens} tokens {formatCost(usage) && `(${formatCost(usage)})`}
+          {usage.inputTokens + usage.outputTokens} tokens{' '}
+          {formatCost(usage) && `(${formatCost(usage)})`}
         </p>
       )}
 

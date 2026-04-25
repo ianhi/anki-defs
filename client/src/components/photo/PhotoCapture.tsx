@@ -206,9 +206,7 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
             <button
               onClick={() => setMode('vocab')}
               className={`px-2.5 py-1 transition-colors ${
-                mode === 'vocab'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
+                mode === 'vocab' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
             >
               Vocab list
@@ -216,9 +214,7 @@ export function PhotoCapture({ onBack }: { onBack: () => void }) {
             <button
               onClick={() => setMode('cloze')}
               className={`px-2.5 py-1 transition-colors ${
-                mode === 'cloze'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-muted'
+                mode === 'cloze' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
               }`}
             >
               Fill-in-blank

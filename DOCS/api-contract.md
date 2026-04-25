@@ -89,9 +89,9 @@ PUT with secrets when keyring unavailable returns 409 until user consents.
 
 ### TTS Routes (`/api/tts`)
 
-| Method | Endpoint | Description                                              |
-| ------ | -------- | -------------------------------------------------------- |
-| GET    | `/check` | Validate Cloud TTS is enabled for the Gemini API key     |
+| Method | Endpoint | Description                                          |
+| ------ | -------- | ---------------------------------------------------- |
+| GET    | `/check` | Validate Cloud TTS is enabled for the Gemini API key |
 
 Returns `{ available: true, voiceCount: N }` or `{ available: false, error: "..." }`.
 Uses the `geminiApiKey` setting (same GCP project). No audio generated, no cost.
@@ -138,10 +138,10 @@ optional `tags` field, and flow through `CardPreview.extraTags` → addNote.
 In addition to the existing photo vocab extraction endpoint, these routes
 support the two-stage cloze pipeline for textbook exercise photos.
 
-| Method | Endpoint            | Description                                                        |
-| ------ | ------------------- | ------------------------------------------------------------------ |
-| POST   | `/cloze-transcribe` | Vision transcription of exercise image → plain text                |
-| POST   | `/cloze-extract`    | Parse transcription into `ClozeItem[]` for cloze card creation     |
+| Method | Endpoint            | Description                                                    |
+| ------ | ------------------- | -------------------------------------------------------------- |
+| POST   | `/cloze-transcribe` | Vision transcription of exercise image → plain text            |
+| POST   | `/cloze-extract`    | Parse transcription into `ClozeItem[]` for cloze card creation |
 
 `/cloze-transcribe` accepts `multipart/form-data` with an `image` file field.
 Returns `PhotoClozeTranscribeResponse`:

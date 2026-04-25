@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { AlertTriangle, Check, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { MODEL_PRICING } from 'shared';
 import { Button } from './ui/Button';
@@ -13,7 +13,7 @@ function formatVersionRange(current: number | null, latest: number): string {
 }
 
 /** Syntax-highlight a single line of Anki template */
-function highlightLine(text: string): React.ReactNode[] {
+function highlightLine(text: string): ReactNode[] {
   const parts = text.split(/(<!--.*?-->|\{\{[^}]*\}\}|<\/?[a-zA-Z][^>]*>)/g);
   return parts.map((part, i) => {
     if (part.startsWith('<!--')) {
@@ -46,7 +46,7 @@ function highlightWithDiff(
   text: string,
   otherLines: Set<string>,
   mode: 'added' | 'removed'
-): React.ReactNode[] {
+): ReactNode[] {
   return text.split('\n').map((line, i) => {
     const isDiff = !otherLines.has(line);
     const bg = isDiff

@@ -20,6 +20,7 @@ all snippets directly in its context and make better classification
 decisions than a one-shot LLM call. The agent IS the classifier.
 
 Agent flow:
+
 1. Parse PDF outline (structural, no AI — pdfjs or server-side parser)
 2. Read snippets directly, decide what to extract (agent judgment)
 3. Spawn subagents per section to extract in parallel
@@ -80,6 +81,7 @@ User: "make flashcards from chapters 3-7"
 ### What the Agent Does vs What the User Does
 
 **Agent handles:**
+
 - Chapter/section selection (reads snippets, understands structure)
 - Content type judgment (vocab vs prose vs passage — no scout needed)
 - Extraction orchestration (parallel subagents per section)
@@ -88,6 +90,7 @@ User: "make flashcards from chapters 3-7"
 - Error recovery (retry failed sections, handle truncation)
 
 **User handles:**
+
 - "Make flashcards from chapters 3-7" (one instruction)
 - Review the final card batch (existing CardPreview UI)
 - Edit/discard individual cards

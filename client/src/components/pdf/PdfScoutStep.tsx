@@ -21,12 +21,7 @@ const TYPE_STYLE: Record<PdfContentType, { color: string; label: string }> = {
   prose: { color: 'bg-muted text-muted-foreground', label: 'Grammar / prose' },
 };
 
-export function PdfScoutStep({
-  sectionsToScout,
-  sourceTag,
-  onSourceTagChange,
-  onScouted,
-}: Props) {
+export function PdfScoutStep({ sectionsToScout, sourceTag, onSourceTagChange, onScouted }: Props) {
   const { settings } = useSettingsStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +96,8 @@ export function PdfScoutStep({
   return (
     <div className="p-4 pb-16 space-y-4 max-w-2xl mx-auto">
       <p className="text-sm text-muted-foreground">
-        {extractable.length} of {sections.length} sections can produce flashcards.
-        Checked sections will be extracted. Grammar/prose sections are skipped by default.
+        {extractable.length} of {sections.length} sections can produce flashcards. Checked sections
+        will be extracted. Grammar/prose sections are skipped by default.
       </p>
 
       <div className="flex flex-wrap gap-2 text-[10px]">
@@ -156,9 +151,7 @@ function SectionRow({
   const snippetLines = s.bodySnippet?.split('\n').slice(0, 5) ?? [];
 
   return (
-    <div
-      className={`p-3 ${s.contentType === 'prose' && !checked ? 'opacity-50' : ''}`}
-    >
+    <div className={`p-3 ${s.contentType === 'prose' && !checked ? 'opacity-50' : ''}`}>
       <div className="flex items-start gap-3">
         <input type="checkbox" checked={checked} onChange={onToggle} className="mt-1" />
         <div className="flex-1 min-w-0">

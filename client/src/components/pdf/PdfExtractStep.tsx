@@ -20,7 +20,7 @@ function buildRequest(
   byId: Map<string, ScoutedSection>,
   outline: ExtractedOutline,
   tags: string[],
-  deck: string | undefined,
+  deck: string | undefined
 ): PdfExtractRequest {
   const supporting = primary.relatedTo
     .map((id) => byId.get(id))
@@ -132,15 +132,14 @@ export function PdfExtractStep({
           {errors.length > 0 && (
             <p className="text-xs text-muted-foreground">
               {errors.length} section{errors.length === 1 ? '' : 's'} skipped
-              {selected.length > 0 &&
-                ` (of ${selected.length} selected)`}
+              {selected.length > 0 && ` (of ${selected.length} selected)`}
             </p>
           )}
           {previews.length === 0 && (
             <>
               <p className="text-xs text-muted-foreground">
-                The selected sections were grammar/prose or exercises without a cloze prompt.
-                Try selecting sections classified as Vocab or Passage.
+                The selected sections were grammar/prose or exercises without a cloze prompt. Try
+                selecting sections classified as Vocab or Passage.
               </p>
               <Button variant="outline" size="sm" onClick={onBack} className="mt-2">
                 Back to sections

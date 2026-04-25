@@ -256,9 +256,7 @@ function LanguageSection({
               value={langCode}
               languages={languages}
               customLanguages={customLanguages}
-              onChange={(code) =>
-                handleChange('deckLanguages', { ...deckLanguages, [deck]: code })
-              }
+              onChange={(code) => handleChange('deckLanguages', { ...deckLanguages, [deck]: code })}
               onCustom={() => {
                 setShowCustomOverride(deck);
                 setOverrideCustomName('');
@@ -409,7 +407,11 @@ function LanguageSection({
   );
 }
 
-type TtsCheckState = { status: 'idle' } | { status: 'checking' } | { status: 'ok' } | { status: 'error'; error: string };
+type TtsCheckState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'ok' }
+  | { status: 'error'; error: string };
 
 function TtsSection({
   ttsEnabled,
@@ -426,7 +428,11 @@ function TtsSection({
     setCheck({ status: 'checking' });
     try {
       const result = await ttsApi.check();
-      setCheck(result.available ? { status: 'ok' } : { status: 'error', error: result.error ?? 'Cloud TTS not available' });
+      setCheck(
+        result.available
+          ? { status: 'ok' }
+          : { status: 'error', error: result.error ?? 'Cloud TTS not available' }
+      );
     } catch {
       setCheck({ status: 'error', error: 'Failed to reach server' });
     }

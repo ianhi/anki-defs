@@ -90,10 +90,7 @@ function itemsToLines(items: PositionedItem[]): Array<{
 }
 
 // Detect header/footer lines that recur at the same y on many pages — drop them.
-function findRunningHeaderFooterTexts(
-  pages: PageData[],
-  pageHeight: number
-): Set<string> {
+function findRunningHeaderFooterTexts(pages: PageData[], pageHeight: number): Set<string> {
   const topCounts = new Map<string, number>();
   const bottomCounts = new Map<string, number>();
   for (const page of pages) {
@@ -180,9 +177,7 @@ interface OutlineNode {
 async function embeddedOutlineTree(doc: PDFDocumentProxy): Promise<OutlineNode[]> {
   const outline = await doc.getOutline();
   if (!outline) return [];
-  async function resolve(
-    nodes: NonNullable<typeof outline>,
-  ): Promise<OutlineNode[]> {
+  async function resolve(nodes: NonNullable<typeof outline>): Promise<OutlineNode[]> {
     const result: OutlineNode[] = [];
     for (const node of nodes) {
       try {
@@ -217,7 +212,7 @@ type RawSection = {
 function flattenNode(
   node: OutlineNode,
   nextSiblingPage: number, // 1-indexed page of the next sibling (or last page + 1)
-  counter: { n: number },
+  counter: { n: number }
 ): RawSection[] {
   const sections: RawSection[] = [];
   const allNodes: Array<{ node: OutlineNode; nextPage: number }> = [];
@@ -257,7 +252,7 @@ function flattenNode(
 // descendants become sections. Top-level leaves become single-section chapters.
 function sectionsAndChaptersFromBookmarks(
   tree: OutlineNode[],
-  numPages: number,
+  numPages: number
 ): { sections: RawSection[]; chapters: PdfChapter[] } {
   const sections: RawSection[] = [];
   const chapters: PdfChapter[] = [];
@@ -287,7 +282,7 @@ function sectionsAndChaptersFromBookmarks(
 // section and a chapter — no tree structure to leverage.
 function sectionsAndChaptersFromHeadings(
   pages: PageData[],
-  drop: Set<string>,
+  drop: Set<string>
 ): { sections: RawSection[]; chapters: PdfChapter[] } {
   type Seed = { heading: string; pageIndex: number };
   const seeds: Seed[] = [];
@@ -332,7 +327,7 @@ function sectionText(
   pageStart1: number,
   pageEnd1: number,
   drop: Set<string>,
-  options: { limitLines?: number; startY?: number | null } = {},
+  options: { limitLines?: number; startY?: number | null } = {}
 ): string {
   const out: string[] = [];
   for (let p = pageStart1 - 1; p <= pageEnd1 - 1 && p < pages.length; p++) {

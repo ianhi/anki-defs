@@ -97,7 +97,7 @@ function SentenceWithBlanks({
               />
             )}
           </span>
-        ),
+        )
       )}
     </div>
   );
@@ -127,12 +127,12 @@ export function ClozeReviewStep({
         const next = [...prev];
         const item = { ...next[itemIdx]!, blanks: [...next[itemIdx]!.blanks] };
         const coerced = field === 'hint' ? value || null : value;
-      item.blanks[blankIdx] = { ...item.blanks[blankIdx]!, [field]: coerced };
+        item.blanks[blankIdx] = { ...item.blanks[blankIdx]!, [field]: coerced };
         next[itemIdx] = item;
         return next;
       });
     },
-    [],
+    []
   );
 
   const handleTranslationChange = useCallback((itemIdx: number, value: string) => {
@@ -185,7 +185,7 @@ export function ClozeReviewStep({
           },
           settings.defaultDeck,
           result.modelName,
-          result.noteId,
+          result.noteId
         );
         added++;
       } catch {
@@ -198,7 +198,7 @@ export function ClozeReviewStep({
             sentenceTranslation: item.translation,
           },
           settings.defaultDeck,
-          '',
+          ''
         );
         added++;
       }
@@ -234,9 +234,7 @@ export function ClozeReviewStep({
             <div
               key={i}
               className={`rounded-md border p-3 space-y-2 ${
-                item.confidence === 'low'
-                  ? 'border-amber-400 bg-amber-500/5'
-                  : 'border-border'
+                item.confidence === 'low' ? 'border-amber-400 bg-amber-500/5' : 'border-border'
               }`}
             >
               <div className="flex items-start gap-2">
@@ -253,7 +251,10 @@ export function ClozeReviewStep({
                       </span>
                     )}
                     {item.confidence === 'low' && (
-                      <Badge variant="outline" className="text-amber-600 border-amber-400 text-[10px]">
+                      <Badge
+                        variant="outline"
+                        className="text-amber-600 border-amber-400 text-[10px]"
+                      >
                         low confidence
                       </Badge>
                     )}
@@ -288,7 +289,9 @@ export function ClozeReviewStep({
         <div className="text-xs text-muted-foreground space-y-1">
           <p className="font-medium">Skipped (open-ended/unsupported):</p>
           {unsupported.map((s, i) => (
-            <p key={i} className="pl-3">- {s}</p>
+            <p key={i} className="pl-3">
+              - {s}
+            </p>
           ))}
         </div>
       )}

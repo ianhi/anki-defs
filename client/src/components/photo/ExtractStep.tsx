@@ -59,7 +59,7 @@ export function ExtractStep({
   const isDev = import.meta.env.DEV;
 
   const mask = useImageMask();
-  const { setMaskColor } = mask;
+  const { setMaskColor, bakeMask, hasStrokes } = mask;
 
   // Clean up dev preview URL on unmount
   useEffect(() => {
@@ -90,7 +90,7 @@ export function ExtractStep({
     const image = imgRef.current;
     if (!image) return imageBlob;
 
-    const needsMask = mask.hasStrokes;
+    const needsMask = hasStrokes;
     const hasCrop = crop && crop.width > 0 && crop.height > 0;
 
     if (!needsMask && !hasCrop) return imageBlob;
@@ -102,7 +102,7 @@ export function ExtractStep({
     if (!ctx) return null;
 
     ctx.drawImage(image, 0, 0);
-    mask.bakeMask(ctx, canvas.width, canvas.height);
+    bakeMask(ctx, canvas.width, canvas.height);
 
     if (hasCrop) {
       const scaleX = image.naturalWidth / image.width;
@@ -126,7 +126,7 @@ export function ExtractStep({
     return new Promise<Blob | null>((resolve) => {
       canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9);
     });
-  }, [crop, imageBlob, mask.bakeMask, mask.hasStrokes]);
+  }, [crop, imageBlob, bakeMask, hasStrokes]);
 
   const handleExtract = useCallback(async () => {
     const blob = await getImageBlob();
