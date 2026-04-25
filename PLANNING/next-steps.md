@@ -16,12 +16,6 @@
 - Needs careful UI planning — user wants significant input on approach
 - PDF/image import builds on this (Gemini vision for OCR)
 
-### Embedded audio in cards
-
-- Generate TTS audio at card creation time, embed in Anki notes
-- See `PLANNING/audio-in-cards.md` for full plan
-- Google Cloud TTS recommended (~$0.02 per 1K words)
-
 ### Language-agnostic prompts — Phase 2 DONE, Phase 3 remaining
 
 - Phase 2 DONE: All prompt templates parameterized with `{{targetLanguage}}`, `{{languageRules}}`, etc.
@@ -61,6 +55,8 @@
 
 ## Recently Completed
 
+- Embedded TTS audio in cards (Google Cloud TTS, opt-in `ttsEnabled` setting,
+  shared between python-server and addon, MP3 for universal Anki client support)
 - Cloze card support (types, settings, UI checkboxes, distractor backend)
 - TTS with voice picker (browser SpeechSynthesis, bn-IN)
 - Theming (light/dark/system toggle, soft dark palette)

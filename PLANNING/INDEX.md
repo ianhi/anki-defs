@@ -29,7 +29,7 @@
 
 | Component                                           | Status  | Notes                                                                                                       |
 | --------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------- |
-| Web app (`client/` + `python-server/`)              | Working | Bottle + React, 3 AI providers, TTS, auto note-type creation per language                                   |
+| Web app (`client/` + `python-server/`)              | Working | Bottle + React, 3 AI providers, browser TTS + opt-in embedded MP3 audio, auto note-type creation per language |
 | Android (`android/`)                                | Working | Still on old two-call pipeline                                                                              |
 | Anki add-on (`anki-addon/`)                         | Working | Bottle WSGI in daemon thread, `@main_thread` bridge for collection access. Tested via Tailscale from phone. |
 | Photo-to-flashcards                                 | Working | Camera/upload → crop → extract vocab → generate examples → add to Anki. Gemini vision, chunked batching.    |
@@ -50,7 +50,6 @@
 | [mcp-agent-cards.md](mcp-agent-cards.md)                                 | MCP agent for flashcard generation — design proposal                                         |
 | [addon-testing-session.md](addon-testing-session.md)                     | Full log of addon e2e test session                                                           |
 | [next-steps.md](next-steps.md)                                           | Full feature list with details                                                               |
-| [audio-in-cards.md](audio-in-cards.md)                                   | TTS integration plan                                                                         |
 | [cloze-research-prompt.md](cloze-research-prompt.md)                     | Cloze card research (mostly done)                                                            |
 
 ## Completed plans
@@ -74,4 +73,4 @@
 - Update docs in the same commit as code changes.
 - Both python-server and anki-addon use Bottle (WSGI). Route handlers should
   be nearly identical — only the Anki adapter import differs.
-- Subproject plans: `android/PLANNING/`, `client/PLANNING/`, `python-server/PLANNING/`, `shared/PLANNING/`
+- Subproject plans: `android/PLANNING/`, `client/PLANNING/`, `shared/PLANNING/`

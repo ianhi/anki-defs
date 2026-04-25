@@ -6,10 +6,6 @@ Plans and requirements specific to the React frontend.
 
 _No client-specific plans yet. Cross-cutting plans are in root [PLANNING/](../../PLANNING/INDEX.md)._
 
-Relevant root plans:
-
-- [frontend-changes.md](../../PLANNING/frontend-changes.md) -- Platform awareness for Android WebView
-
 ## How to Use
 
 - Create a new `.md` file here for client-specific plans or requirements.
